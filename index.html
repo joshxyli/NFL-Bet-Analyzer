@@ -1828,7 +1828,7 @@ const PX = (() => {
   }
   const TRIGGER_ID = 'trig_01GJpisrz3PyDNJHAm8UeUML', ODDS_TRIGGER = 'trig_01KeQxFSxrfvP4nxXejMCURP', PULL_WINDOW = 60 * 60e3;
   const mcpReady = (window.claude && window.claude.use ? Promise.resolve(window.claude.use('mcp')).catch(() => null) : Promise.resolve(null));
-  const SITE_TRIGGER = '__SITE_TRIGGER__';
+  const SITE_TRIGGER = 'trig_01Qd4h2JSJVyjEziTSGm8iK2';
   mcpReady.then((m) => { if (m && !S.ro && !S.site) { const b = $('site-go'); if (b) b.hidden = false; } });
   async function updateSite() {
     const m = $('exp-msg'), say = (t, bad) => { m.textContent = t; m.style.color = bad ? 'var(--bad)' : ''; };
