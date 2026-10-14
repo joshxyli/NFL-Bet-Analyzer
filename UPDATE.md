@@ -2,7 +2,7 @@
 
 This repo is the public, read-only copy of the NFL Bet Analyzer artifact
 (https://claude.ai/artifact/4QvMvgV5MuaH3B725gmMtj), served by GitHub Pages at
-https://joshxyli.github.io/nfl-bet-analyzer/ . A scheduled Claude task runs these steps.
+https://joshxyli.github.io/NFL-Bet-Analyzer/ . A scheduled Claude task runs these steps.
 
 1. Export the artifact database. For each collection `lines`, `pulls`, `meta`, `slips`, `log`, `results`, `rescore`,
    call ArtifactData `list` with url https://claude.ai/artifact/4QvMvgV5MuaH3B725gmMtj, `query: {"limit": 1000}` and
