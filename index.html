@@ -101,7 +101,7 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .mk { display: inline-flex; gap: 4px } .mk button { font: 600 12px var(--mono); min-width: 28px; height: 26px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; border-radius: 2px }
 .mk button[aria-pressed="true"].w { background: var(--good, #1d7a3e); border-color: var(--good, #1d7a3e); color: #fff } .mk button[aria-pressed="true"].l { background: var(--bad); border-color: var(--bad); color: #fff }
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
-.ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro .mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro label[for="out-name"], .ro #out-name { display: none !important }
+.ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro label[for="out-name"], .ro #out-name { display: none !important }
 .ro #cond-body input, .ro .slipcard .hd input { pointer-events: none }
 .ro #cond-body .opt input { display: none }
 .tag.watch { background: var(--warn-soft); color: var(--warn); border: 1px solid currentColor }
@@ -160,7 +160,8 @@ tr.game-row td { background: var(--sunk); font: 700 15px var(--display); letter-
 .gl { font: 600 13px var(--mono); border: 1px solid var(--line); background: var(--sunk); color: var(--ink); padding: 6px 8px; border-radius: 2px; cursor: pointer; min-width: 96px; white-space: nowrap }
 .gl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
 .gl.best { border-color: var(--ink) }
-.gl-table { min-width: 520px }
+.gl-table { min-width: 560px; table-layout: fixed }
+.gl-table td, .gl-table th { overflow: hidden; text-overflow: ellipsis }
 .gl-table td, .gl-table th { vertical-align: middle }
 .gl-table tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-block: 5px }
 table.bt { min-width: 480px }
@@ -1015,7 +1016,11 @@ const PX = (() => {
       items.push({ self: true, text: st.absent ? `${player.n} is ${r.st === 'Doubtful' ? 'doubtful' : 'listed ' + r.st.toLowerCase()} and assumed out` : `${player.n} is ${({ Questionable: 'questionable', Doubtful: 'doubtful', DNP: 'missing practice', Limited: 'limited in practice' })[r.st]}${r.inj ? ' (' + r.inj + ')' : ''}${o.s === 'Under' ? ': a short day helps the under, and the bet is void if he sits' : ': a short day hurts the over, and the bet is void if he sits'}` }); }
     if (st.absent || !opp || (skip && skip !== 'backup quarterback')) return items;
     for (const u of mine) { if (u === player) continue;
-      const alt = projModel(player, o, ec.alt.get(u), opp, atHome); if (!alt) continue;
+      const ac = ec.alt.get(u);
+      // a backup quarterback starting only because this teammate is assumed out goes back to the bench if he plays
+      if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && ec.step && ec.step.has(player) && ac && ac.step && !ac.step.has(player)) {
+        items.push({ self: true, who: u.n, text: `If ${shortName(u.n)} plays, ${shortName(player.n)} goes back to backup and likely won't play: the prop would be void` }); continue; }
+      const alt = projModel(player, o, ac, opp, atHome); if (!alt) continue;
       const sits = !status(u).absent, d = model == null ? 1 : alt.model - model;
       if (Math.abs(d) < 0.03 && Math.abs(alt.mean - (mean ?? alt.mean)) < Math.max(0.05 * (mean || 1), 0.15)) continue;
       items.push({ who: u.n, sits, mean: alt.mean, model: alt.model, d, text: `If ${shortName(u.n)} ${sits ? 'sits' : 'plays'}` });
@@ -1942,9 +1947,10 @@ const PX = (() => {
     // the best edges across every game, at the ticked books
     const now = Date.now(), top = S.rows.filter((r) => r.kind === 'game' && S.gbooks.has(r.o.b) && r.edge > 0.0005 && Date.parse(r.commence) > now).sort((x, y) => y.edge - x.edge).slice(0, 12);
     const topBlock = !books.length ? '' : `<div class="gl-game"><h3>Biggest edges</h3><p class="muted small">Game lines not yet kicked off, ranked by edge. Small edges on the market-only rows come from one book pricing a side better than the other.</p>${top.length
-      ? `<div class="scroll"><table class="gl-table"><thead><tr><th>Game</th><th>Pick</th><th>Book</th><th class="r">Price</th><th class="r">Model</th><th class="r">Market</th><th class="r">Edge</th></tr></thead><tbody>${top.map((r) => `<tr><td class="pname">${esc(r.game)}</td><td>${esc(GAME[r.o.m])}: ${esc(pickName(r))}</td><td>${BOOK_NAMES[r.o.b]}</td><td class="r num">${PM.fmtAm(r.o.pr)}</td><td class="r num">${r.model == null ? '<span class="muted">—</span>' : pct(r.model)}</td><td class="r num">${pct(r.fair)}</td><td class="r">${pill(r)}</td></tr>`).join('')}</tbody></table></div>`
+      ? `<div class="scroll"><table class="gl-table"><colgroup><col style="width:13%"><col style="width:19%"><col style="width:14%"><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup><thead><tr><th>Game</th><th>Pick</th><th>Book</th><th class="r">Price</th><th class="r">Model</th><th class="r">Market</th><th class="r">Edge</th></tr></thead><tbody>${top.map((r) => `<tr><td class="pname">${esc(r.game)}</td><td>${esc(GAME[r.o.m])}: ${esc(pickName(r))}</td><td>${BOOK_NAMES[r.o.b]}</td><td class="r num">${PM.fmtAm(r.o.pr)}</td><td class="r num">${r.model == null ? '<span class="muted">—</span>' : pct(r.model)}</td><td class="r num">${pct(r.fair)}</td><td class="r">${pill(r)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="muted small">No game line has a positive edge at the ticked books right now.</p>'}</div>`;
-    const blocks = [...S.ctx.keys()].map((eventId) => {
+    const kick = (id) => String((S.lines.get(id) || {}).commence || '');
+    const blocks = [...S.ctx.keys()].sort((a, b) => kick(a).localeCompare(kick(b)) || String(S.ctx.get(a).home).localeCompare(String(S.ctx.get(b).home))).map((eventId) => { // kickoff order for the week
       const ec = S.ctx.get(eventId), rows = byEvent.get(eventId) || [], doc = S.lines.get(eventId), g = ec.gm;
       const proj = g ? `Model: ${esc(ec.home)} ${g.home.toFixed(1)}, ${esc(ec.away)} ${g.away.toFixed(1)} (${Math.abs(g.margin) < 0.05 ? 'even' : esc(g.margin > 0 ? ec.home : ec.away) + ' by ' + Math.abs(g.margin).toFixed(1)}, total ${g.total.toFixed(1)})${ec.vac[ec.home].qb || ec.vac[ec.away].qb ? ' with ' + esc([ec.vac[ec.home].qb, ec.vac[ec.away].qb].filter(Boolean).join(' and ')) + ' out' : ''}` : '';
       const head = `<h3>${esc(ec.away)} @ ${esc(ec.home)}</h3><p class="muted small">${esc(kickoff(doc.commence))}${rows.length ? ' · lines pulled ' + esc(kickoff(latest(doc).at)) : ''}</p>${proj ? `<p class="small">${proj}</p>` : ''}`;
@@ -1958,7 +1964,7 @@ const PX = (() => {
         }).join('');
         return lines ? `<tr class="mk"><td colspan="6">${GAME[mk]}${mk === 'totals' ? ' · market only' : ''}</td></tr>${lines}` : '';
       }).join('');
-      return `<div class="gl-game">${head}<div class="scroll"><table class="gl-table"><thead><tr><th>Pick</th><th>Book</th><th class="r">Line</th><th class="r">Model</th><th class="r">Market</th><th class="r">Edge</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
+      return `<div class="gl-game">${head}<div class="scroll"><table class="gl-table"><colgroup><col style="width:32%"><col style="width:14%"><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup><thead><tr><th>Pick</th><th>Book</th><th class="r">Line</th><th class="r">Model</th><th class="r">Market</th><th class="r">Edge</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
     });
     $('games-body').innerHTML = blocks.length ? topBlock + blocks.join('') : `<div class="empty"><h3>${S.ready ? 'No lines loaded yet' : 'Loading saved lines'}</h3><p>Pull this week's games to see moneylines, spreads and totals here.</p>${S.ready ? '<p style="margin-top:12px"><button class="btn primary" data-go="lines">Get lines</button></p>' : ''}</div>`;
   }
