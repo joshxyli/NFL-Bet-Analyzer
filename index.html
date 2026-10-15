@@ -1517,6 +1517,7 @@ const PX = (() => {
     const real = [...S.lines.values()].filter((d) => !d.example && !gameEnded(d)), ex = [...S.lines.values()].some((d) => d.example);
     const last = real.map((d) => latest(d).at).sort().pop();
     const parts = [];
+    if (S.site && S.snapAt) parts.push('Website last updated ' + kickoff(S.snapAt));
     if (!S.ready) parts.push('Loading saved lines…');
     else if (real.length) parts.push(`${real.length} ${real.length === 1 ? 'game' : 'games'} loaded`, 'lines pulled ' + kickoff(last));
     else parts.push(ex ? 'Showing example lines' : [...S.lines.values()].some((d) => !d.example) ? 'No upcoming games loaded: every saved game has ended' : 'No lines loaded');
@@ -1528,7 +1529,8 @@ const PX = (() => {
   function renderCond() {
     const blocks = []; let nOut = 0, nQ = 0; const names = new Set();
     let i = 0;
-    for (const [eventId, ec] of S.ctx) {
+    const kick = (id) => String((S.lines.get(id) || {}).commence || '');
+    for (const [eventId, ec] of [...S.ctx].sort((a, b) => kick(a[0]).localeCompare(kick(b[0])) || String(a[1].home).localeCompare(String(b[1].home)))) { // kickoff order for the week
       const fav = ec.favHome == null ? 'No spread yet' : ec.favHome > 0 ? `${ec.home} −${ec.favHome}` : ec.favHome < 0 ? `${ec.away} −${-ec.favHome}` : 'Pick em';
       const facts = [`<strong>${esc(ec.away)} @ ${esc(ec.home)}</strong>`, `<span>${esc(fav)}${ec.total != null ? ', total ' + ec.total : ''} <span class="muted small">${ec.live ? 'from your pull' : ec.known ? 'from the schedule file' : ''}</span></span>`];
       if (!ec.known) facts.push('<span class="muted small">Game not in the schedule file, so venue is treated as indoors</span>');
@@ -2030,12 +2032,12 @@ const PX = (() => {
   let snapAt = null;
   async function loadSnapshot() {
     let snap; try { const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return false; snap = await r.json(); } catch (e) { return false; }
-    if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at;
+    if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
     S.ro = true; S.site = true; document.documentElement.classList.add('ro');
     for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) local[coll].clear();
     S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
-    $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy.</strong> Lines, injuries and slips as of ${esc(kickoff(snap.at))}. This page picks up new updates on its own.`;
+    $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy, last updated ${esc(kickoff(snap.at))}.</strong> Lines, injuries and slips are as of that time. This page picks up new updates on its own.`;
     S.ready = true; renderAll(); return true;
   }
 })();
