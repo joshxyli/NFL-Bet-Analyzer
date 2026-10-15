@@ -143,7 +143,7 @@ class Data:
                 u[0] += r['v'][8] / max(1, v['att']) / len(last3); u[1] += r['v'][5] / max(1, v['car']) / len(last3)
                 u[2] += self.rz[(r['gid'], pid)] / max(1, self.rzteam[(r['gid'], team)]) / len(last3)
                 u[3] += (1 if r['v'][0] >= 10 else 0) / len(last3)   # share of recent games he was the passer
-            p = dict(n=g[0]['name'], p=g[0]['pos'], t=team, cur=1 if g[0]['season'] == season else 0, g=out, u=[round(x, 3) for x in u])
+            p = dict(n=g[0]['name'], p=g[0]['pos'], t=team, cur=1 if g[0]['season'] == season else 0, g=out, u=[round(x, 3) for x in u], id=pid)
             if sg: p['sg'] = sg
             nxt = self._next_week(team, *tg[team][0][:2]) if tg[team] else None
             st = self.inj.get((nxt[0], nxt[1], pid)) if nxt and next_week_inj else None

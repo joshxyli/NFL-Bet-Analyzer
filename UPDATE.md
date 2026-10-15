@@ -20,11 +20,14 @@ https://joshxyli.github.io/NFL-Bet-Analyzer/ . A scheduled Claude task runs thes
 
 # Rebuilding the stats file (tools/stats)
 
-The app's stats.json (game logs, depth charts, defensive starters) is rebuilt by the "update injuries and weather"
-task before it refreshes the injury report, so depth charts always match the report:
-
-    sh tools/stats/fetch.sh /tmp/nfldata
-    NFL_DATA=/tmp/nfldata python3 -I tools/stats/build_stats.py <current stats.json> <new stats.json>
+Two scheduled tasks keep the app's stats.json current:
+- "fetch game results and update stats" (the Fetch results button) rebuilds everything: game logs, defensive
+  starters and depth charts.
+      sh tools/stats/fetch.sh /tmp/nfldata
+      NFL_DATA=/tmp/nfldata python3 -I tools/stats/build_stats.py <current stats.json> <new stats.json>
+- "update injuries and weather" (the Update injuries button) refreshes only the depth charts, so they match the
+  injury report it writes:
+      NFL_DATA=/tmp/nfldata python3 -I tools/stats/depth_only.py <current stats.json> <new stats.json>
 
 The model fit (league effects, calibration, defensive-starter effects) is historical and carried over from the
-current file. The builder refuses to write a file that looks incomplete.
+current file. Both scripts refuse to write a file that looks incomplete.
