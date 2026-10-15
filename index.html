@@ -1287,6 +1287,13 @@ const PX = (() => {
     const exact = all.filter((c) => c.same);
     return (exact.length ? exact : all).sort((a, b) => b.ev - a.ev)[0];
   }
+  // how the book's line has moved from the one on the slip, and whether that helps or hurts the slip
+  function moveHtml(l, r, book) {
+    const d = Number(r.o.pt) - Number(l.pt), under = l.s === 'Under' || l.s === 'No';
+    const good = under ? d < 0 : d > 0; // the book now asks for more on an over (or less on an under) than you have to clear
+    const amt = Math.abs(d).toFixed(Number.isInteger(d) ? 0 : 1);
+    return `${esc(book)} <span style="color:var(--${good ? 'good' : 'bad'});font-weight:600;white-space:nowrap" title="${esc(`Book line ${d > 0 ? 'up' : 'down'} ${amt} from your ${l.pt}: ${good ? 'in your favor' : 'against you'}`)}">${d > 0 ? '▲' : '▼'}${amt}</span>`;
+  }
   function legCalcHtml(l) {
     const c = legCalc(l);
     if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection or edge.</div>' : '';
@@ -1295,7 +1302,7 @@ const PX = (() => {
     const book = `${BOOKS[r.o.b]} ${r.o.pt != null ? r.o.pt + ' ' : ''}${PM.fmtAm(r.o.pr)}`;
     const note = c.same ? `vs ${book}` : `at your line ${l.pt}; ${book} now, priced at your line from that`;
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
-    return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell('Edge', (c.edge >= 0 ? '+' : '') + (c.edge * 100).toFixed(1) + ' pts', { b: cls === 'flat' ? '' : cls })}${cell('EV per $1', (c.ev >= 0 ? '+' : '') + c.ev.toFixed(2))}${cell(c.same ? 'Line' : 'Priced from', esc(c.same ? book : `${book} now, moved to your ${l.pt}`), { cls: 'src' })}</div>`;
+    return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell('Edge', (c.edge >= 0 ? '+' : '') + (c.edge * 100).toFixed(1) + ' pts', { b: cls === 'flat' ? '' : cls })}${cell('EV per $1', (c.ev >= 0 ? '+' : '') + c.ev.toFixed(2))}${cell(c.same ? 'Line' : 'Book line now', c.same ? esc(book) : moveHtml(l, r, book), { cls: 'src' })}</div>`;
   }
   function renderSlips() {
     const list = slipList(), act = activeSlip();
