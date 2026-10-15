@@ -244,9 +244,6 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <label class="check" for="f-all"><input type="checkbox" id="f-all"> Show every offer, not just the best</label>
           <label class="check" for="f-nowatch"><input type="checkbox" id="f-nowatch"> Hide injury watch</label>
           <div class="field"><label class="label" for="f-weight">Trust in model <span class="num" id="f-weight-val">30%</span></label><input type="range" id="f-weight" min="0" max="100" step="10" value="30"></div>
-          <div class="field"><label class="label" for="f-legs">Picks in slip</label><input type="number" id="f-legs" min="2" max="10" step="1" value="2" inputmode="numeric" style="width:70px"></div>
-          <div class="field"><label class="label" for="f-pay">Payout (x)</label><input type="number" id="f-pay" min="1.5" max="1000" step="0.25" value="3" inputmode="decimal" style="width:80px" title="What the entry pays if every pick hits, e.g. 3 for a 2-pick Power Play paying 3x"></div>
-          <div class="field"><span class="label">Break-even per pick</span><span class="num" id="f-be-val" style="padding-bottom:7px"></span></div>
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
         </div>
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
@@ -292,7 +289,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="tiles" id="bt-tiles"></div>
       <div class="notice" id="bt-warn" hidden><p></p></div>
       <div class="two">
-        <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid?</h3><p class="muted small">One pick on the better side of each player prop, using your current Trust in model and Break-even per pick settings. Edge is the blended chance minus the break-even; a won pick is counted at the break-even payout (1 ÷ break-even per $1), so Return above 0 means the picks beat the hit rate your entries need.</p></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
+        <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid?</h3><p class="muted small">One pick on the better side of each player prop, $1 at the sportsbook price saved before kickoff, using your current Trust in model setting. Edge is the blended chance minus the price's implied chance, so Return above 0 means the picks beat the books' prices.</p></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
         <div class="panel"><div class="panel-pad"><h3>Was the chance right?</h3><p class="muted small">How often overs and yes bets hit, against what the model and the market said. Error is lower when a forecast is better.</p></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Lines</th><th class="r">Hit</th><th class="r">Model said</th><th class="r">Market said</th><th class="r">Model error</th><th class="r">Market error</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
       </div>
       <div class="panel"><div class="panel-pad"><h3>Games</h3></div><div class="scroll"><table class="bt"><thead><tr><th>Game</th><th>Kickoff</th><th>Picks saved</th><th>Final</th><th class="r">Graded</th></tr></thead><tbody id="bt-games"></tbody></table></div></div>
@@ -370,7 +367,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat.</li>
           <li><strong>Market chance.</strong> The book's two prices with its margin removed. This is usually the better estimate.</li>
 <li><strong>Game lines.</strong> Each team has an offense and a defense rating in points, updated after every game since 2002 and pulled a third of the way back to average each season. The projection adds a 2-point home edge and takes about 4.5 points off a team whose starting quarterback is out. The model's chance is blended with the market's by the Trust in model setting on the Game lines tab. Totals use the market only.</li>
-          <li><strong>Edge.</strong> Model and market are blended by the Trust in model setting. On the Player props board, Edge is that blended chance minus the Break-even per pick setting: the hit rate each PrizePicks or Pick6 pick needs for your entry to pay off (about 57.7% for a 2-pick Power Play at 3x, about 55% to 56% for larger entries). Sportsbook prices only feed the market chance. On the Game lines tab, Edge is still measured against the sportsbook price.</li>
+          <li><strong>Edge.</strong> Model and market are blended by the Trust in model setting. Edge is that blended chance minus the chance implied by the sportsbook's own price for that prop, with the book's margin left in (a -120 price needs 54.5%). The figure under it is the expected return per $1 at that price. Game lines work the same way.</li>
         </ul>
         <p class="muted small">Anytime touchdown has only a Yes price, so the book's margin is estimated: about 5% on favorites, rising to about 50% on longshots.</p>
       </div>
@@ -1088,7 +1085,7 @@ const PX = (() => {
         let opened = null;
         if (first) { const f = first.find((x) => x.pl === o.pl && x.m === o.m && x.b === o.b && x.s === o.s); if (f && (f.pt !== o.pt || f.pr !== o.pr)) opened = f; }
         rows.push({ key: legKey(eventId, o), eventId, game: `${away} @ ${home}`, commence: doc.commence, example: !!doc.example, o, player, opp, st, skip,
-          team: player ? player.t : null, pos: player ? player.p : null, proj, model, scored: model != null, fair, p, imp, dec, edge: p - S.be / 100, ev: p - S.be / 100, opened, watch }); // pick'em: measured against the hit rate your entry needs, not the sportsbook price
+          team: player ? player.t : null, pos: player ? player.p : null, proj, model, scored: model != null, fair, p, imp, dec, edge: p - imp, ev: p * dec - 1, opened, watch }); // measured against the sportsbook's own price for this prop, margin included
       }
       // PrizePicks and Pick6: a line with no price. Market chance = the sportsbooks' no-margin chance at their own line, moved to this line.
       const be = S.be / 100, refs = new Map();
@@ -1187,7 +1184,7 @@ const PX = (() => {
         <td class="c-pick"><div class="pick">${esc(r.kind === 'dfs' ? pickText(o).replace(/^Over/, 'More').replace(/^Under/, 'Less') : pickText(o))}</div><div class="price">${r.kind === 'dfs' ? `<span class="book">${BOOKS[o.b]}</span>${r.refText ? ` <span class="muted small">books: ${esc(r.refText)}</span>` : ' <span class="muted small">no sportsbook line</span>'}` : `<span class="book" style="margin-left:0" title="Line from ${BOOK_NAMES[o.b] || o.b}">${BOOKS[o.b]}</span>${r.opened && r.opened.pt != null && r.opened.pt !== o.pt ? ` <span class="muted small">opened at ${r.opened.pt}</span>` : ''}`}</div></td>
         <td class="r c-proj" data-l="Proj">${r.proj ? `<span class="num">${r.proj.mean.toFixed(m.unit === 'yds' ? 0 : 1)}</span> <span class="muted small">${m.unit}</span>${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
         <td class="r c-chance" data-l="Model"><span class="num">${r.model == null ? '—' : pct(r.model)}</span><span class="sub2">market <span class="num">${r.fair == null ? '—' : pct(r.fair)}</span></span></td>
-        <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind !== 'game' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
+        <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
       <td class="r c-add">${addBtn(r)}</td>
       </tr>${S.adding === r.key ? addForm(r) : ''}`;
     }).join('');
@@ -1613,14 +1610,14 @@ const PX = (() => {
     // re-scored snapshots: the same pre-kickoff lines and injury picture, run through the current model with only stats from before the game
     const useRe = S.rescore.size > 0; // always today's model: re-scored games where they exist, otherwise the picks as saved (already today's model)
     const logs = useRe ? [...S.log.values()].map((d) => S.rescore.get(d.eventId) || d) : [...S.log.values()];
-    const bt = PM.backtest(logs, S.results, { keyOf: (d) => `${abbr(d.away)}-${abbr(d.home)}-${etDay(d.commence)}`, abbr, w: S.weight / 100, gw: S.gweight / 100, be: S.be / 100 });
+    const bt = PM.backtest(logs, S.results, { keyOf: (d) => `${abbr(d.away)}-${abbr(d.home)}-${etDay(d.commence)}`, abbr, w: S.weight / 100, gw: S.gweight / 100, be: 0 }); // props graded at the sportsbook price saved before kickoff
     const props = bt.cal.find((c) => c.label === 'All props'), any = bt.bet.props[1], gradedGames = bt.games.filter((x) => x.res).length;
     const roi = (b) => (b.bets ? (b.profit / b.bets * 100 >= 0 ? '+' : '') + (b.profit / b.bets * 100).toFixed(1) + '%' : '—');
     $('bt-tiles').innerHTML = [
       ['Games graded', gradedGames, `${bt.games.length - gradedGames} saved and waiting for results`],
       ['Prop lines graded', props ? props.n : 0, 'each line counted once'],
       ['Forecast error', props ? `${(props.bm / props.n).toFixed(3)} vs ${(props.bk / props.n).toFixed(3)}` : '—', props ? `model vs market, lower is better: ${props.bm < props.bk ? 'model ahead' : props.bm > props.bk ? 'market ahead' : 'level'}` : 'model vs market, once games are graded'],
-      ['Picking every positive edge', any.bets ? roi(any) : '—', any.bets ? `${any.w}-${any.l} on ${any.bets} picks, Trust in model ${S.weight}%, break-even ${S.be}%` : 'no graded picks yet'],
+      ['Picking every positive edge', any.bets ? roi(any) : '—', any.bets ? `${any.w}-${any.l} on ${any.bets} picks at sportsbook prices, Trust in model ${S.weight}%` : 'no graded picks yet'],
     ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     const n = props ? props.n : 0, warn = $('bt-warn');
     warn.hidden = !(n > 0 && n < 500);
@@ -1986,8 +1983,6 @@ const PX = (() => {
     if (t.id === 'slip-price') S.price = t.value;
     if (t.id === 'f-weight' || t.id === 'g-weight') setTimeout(renderBacktest, 0);
     if (t.id === 'g-weight') { S.gweight = Number(t.value); ls.set('pp.gweight', S.gweight); $('g-weight-val').textContent = S.gweight + '%'; buildRows(); renderGames(); renderSlip(); }
-    if (t.id === 'f-legs' || t.id === 'f-pay') { const n = Math.round(Number($('f-legs').value)), x = Number($('f-pay').value);
-      if (Number.isFinite(n) && n >= 2 && n <= 10 && Number.isFinite(x) && x >= 1.5) { S.legs = n; S.pay = x; ls.set('pp.legs', n); ls.set('pp.pay', x); setBe(); buildRows(); renderBoard(); renderBacktest(); } return; }
     if (t.id === 'f-weight') { S.weight = Number(t.value); ls.set('pp.weight', S.weight); $('f-weight-val').textContent = S.weight + '%'; buildRows(); renderBoard(); renderSlip(); }
   });
   document.addEventListener('submit', (e) => {
@@ -2020,7 +2015,7 @@ const PX = (() => {
 
   /* ---------- boot ---------- */
   renderGroups();
-  $('f-nowatch').checked = !!ls.get('pp.nowatch', false); $('f-legs').value = S.legs; $('f-pay').value = S.pay; setBe(); $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
+  $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
   const start = (location.hash || '').slice(1); if (['games', 'tracker', 'backtest', 'lines', 'method'].includes(start)) show(start);
   fetch('stats.json').then((r) => r.json()).then((stats) => {
     S.stats = stats; $('asof').textContent = new Date(stats.asOf + 'T12:00:00').toLocaleDateString([], { month: 'long', day: 'numeric' });
