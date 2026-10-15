@@ -164,6 +164,8 @@ tr.game-row td { background: var(--sunk); font: 700 15px var(--display); letter-
 .gl-table td, .gl-table th { vertical-align: middle }
 .gl-table tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-block: 5px }
 table.bt { min-width: 480px }
+table tr.mk { display: table-row }
+table.bt tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-block: 8px 5px }
 .gl-game { border-top: 1px solid var(--line) }
 .gl-game > h3 { padding: 12px 16px 4px }
 .gl-game > p { padding: 0 16px 8px }
@@ -284,10 +286,6 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
         <p class="muted small">Every game's picks are saved as they stood before kickoff, with the model's chance and the market's. After the game, fetch the final box scores and each saved pick is graded. Nothing is recalculated afterwards, so the model cannot see the result it is being tested on. When the model changes, past weeks can also be re-scored: the same saved lines and injury picture, run through the new model using only stats from before each game.</p>
         <div class="row"><button class="btn primary" id="grade-go">Fetch results and update stats</button><span class="small" id="grade-state" style="flex:1 1 260px;min-width:0"></span></div>
         <div id="grade-msg" role="status"></div>
-        <fieldset class="row" id="bt-src-row" hidden style="border:0;padding:0;margin:0;gap:16px"><legend class="label" style="margin-bottom:6px">Model numbers</legend>
-          <label class="opt" for="bt-src-saved"><input type="radio" name="bt-src" id="bt-src-saved" value="saved"> As saved before kickoff</label>
-          <label class="opt" for="bt-src-rescore"><input type="radio" name="bt-src" id="bt-src-rescore" value="rescore"> Re-scored with today's model</label>
-          <span class="muted small" id="bt-src-note" style="flex:1 1 260px;min-width:0"></span></fieldset>
       </div>
       <div class="tiles" id="bt-tiles"></div>
       <div class="notice" id="bt-warn" hidden><p></p></div>
@@ -1529,6 +1527,7 @@ const PX = (() => {
   function renderCond() {
     const blocks = []; let nOut = 0, nQ = 0; const names = new Set();
     let i = 0;
+    const withProp = new Set(); for (const r of S.rows || []) if (r.kind !== 'game' && r.player) withProp.add(r.player); // only players with a prop on the board are listed
     const kick = (id) => String((S.lines.get(id) || {}).commence || '');
     for (const [eventId, ec] of [...S.ctx].sort((a, b) => kick(a[0]).localeCompare(kick(b[0])) || String(a[1].home).localeCompare(String(b[1].home)))) { // kickoff order for the week
       const fav = ec.favHome == null ? 'No spread yet' : ec.favHome > 0 ? `${ec.home} −${ec.favHome}` : ec.favHome < 0 ? `${ec.away} −${-ec.favHome}` : 'Pick em';
@@ -1541,6 +1540,7 @@ const PX = (() => {
       for (const t of [ec.away, ec.home]) (S.byTeam.get(t) || []).forEach((pl) => { names.add(pl.n); const st = status(pl), manualIn = S.over.in.includes(PM.normName(pl.n));
         const relevant = (pl.u && pl.u[0] + pl.u[1] + pl.u[2] > 0.02) || pl.p === 'QB';
         if (!(st.label || manualIn) || !(relevant || st.note === 'marked out by you')) return;
+        if (!withProp.has(pl)) return;
         // definitely out (official Out, injured reserve or suspended, off the depth chart): counted, and the model treats him as out, but not listed
         const r = reported(pl), mine = manualIn || S.over.out.includes(PM.normName(pl.n));
         if (!mine && st.absent && (r.st === 'Out' || r.st === 'News' || (pl.off && !UNSURE.includes(r.st)))) { nOut++; return; }
@@ -1550,14 +1550,14 @@ const PX = (() => {
       if (list.length) blocks.push(`<div class="gctx"><div class="facts">${facts[0]}</div><div class="label">Tick players who will not play</div><div class="opts">${list.join('')}</div></div>`);
       i++;
     }
-    $('cond-sum').textContent = 'Injuries' + (S.ctx.size ? ` · ${nQ} uncertain · ${nOut} ruled out (not listed)` : '');
+    $('cond-sum').textContent = 'Injuries' + (S.ctx.size ? ` · ${nQ} uncertain with props · ${nOut} ruled out (not listed)` : '');
     const injBusy = injBusyNow(), ij = S.inj;
     const injState = injBusy ? 'Claude is refreshing the depth charts, reading the NFL.com injury report and the latest news on each questionable player, and pulling the wind forecast for outdoor games. This panel updates on its own in several minutes.'
       : ij && ij.status === 'done' ? `Injuries updated ${kickoff(ij.at)} from the NFL.com injury report and current news. ${ij.message || ''}`
       : ij && ij.status === 'error' ? `Last update ${kickoff(ij.at)} failed: ${ij.message || 'no reason given.'}`
       : `Injury reports are from ${new Date(S.stats.asOf + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}.`;
     const injBar = `<div class="stack" style="gap:6px"><div class="row"><button class="btn sm primary" id="inj-go" ${injBusy || S.injFiring ? 'disabled' : ''}>${S.injFiring ? 'Starting…' : injBusy ? 'Update in progress' : 'Update injuries, depth charts and weather'}</button><span class="small" style="flex:1 1 240px;min-width:0${ij && ij.status === 'error' && !injBusy ? ';color:var(--bad)' : ''}">${esc(injState)}</span></div>${S.injMsg ? `<div class="msg ${S.injMsg.bad ? 'err' : 'ok'}" role="status">${esc(S.injMsg.text)}</div>` : ''}</div>`;
-    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button></div><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
+    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button></div><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
   }
   /* ---------- backtest ---------- */
   // Freeze each game's picks before kickoff. Written once per change in the inputs (a new pull, an injury update, a tick), never after kickoff.
@@ -1604,9 +1604,7 @@ const PX = (() => {
     st.textContent = busy ? 'Claude is downloading final box scores and rebuilding the player stats and depth charts. This page updates on its own in a few minutes.' : g && g.status === 'done' ? `Last fetch ${kickoff(g.at)}: ${g.message || ''}` : g && g.status === 'error' ? `Last fetch ${kickoff(g.at)} failed: ${g.message || 'no reason given.'}` : 'Box scores are usually posted the morning after a game.';
     if (g && g.status === 'error' && !busy) st.style.color = 'var(--bad)';
     // re-scored snapshots: the same pre-kickoff lines and injury picture, run through the current model with only stats from before the game
-    const hasRe = S.rescore.size > 0, useRe = hasRe && S.btsrc === 'rescore';
-    $('bt-src-row').hidden = !hasRe; $('bt-src-saved').checked = !useRe; $('bt-src-rescore').checked = useRe;
-    if (hasRe) { const r0 = [...S.rescore.values()][0]; $('bt-src-note').textContent = useRe ? `Re-scored ${r0.rescoredAt ? kickoff(r0.rescoredAt) : ''}: ${r0.note || ''}`.trim() : 'The numbers the board showed at the time.'; }
+    const useRe = S.rescore.size > 0; // always today's model: re-scored games where they exist, otherwise the picks as saved (already today's model)
     const logs = useRe ? [...S.log.values()].map((d) => S.rescore.get(d.eventId) || d) : [...S.log.values()];
     const bt = PM.backtest(logs, S.results, { keyOf: (d) => `${abbr(d.away)}-${abbr(d.home)}-${etDay(d.commence)}`, abbr, w: S.weight / 100, gw: S.gweight / 100, be: S.be / 100 });
     const props = bt.cal.find((c) => c.label === 'All props'), any = bt.bet.props[1], gradedGames = bt.games.filter((x) => x.res).length;
@@ -1979,7 +1977,6 @@ const PX = (() => {
     const t = e.target;
     if (t.id === 'slip-stake') { S.stake = t.value; ls.set('pp.stake', S.stake); }
     if (t.id === 'slip-price') S.price = t.value;
-    if (t.name === 'bt-src') { S.btsrc = t.value; ls.set('pp.btsrc', S.btsrc); renderBacktest(); }
     if (t.id === 'f-weight' || t.id === 'g-weight') setTimeout(renderBacktest, 0);
     if (t.id === 'g-weight') { S.gweight = Number(t.value); ls.set('pp.gweight', S.gweight); $('g-weight-val').textContent = S.gweight + '%'; buildRows(); renderGames(); renderSlip(); }
     if (t.id === 'f-be') { const v = Number(t.value); if (Number.isFinite(v) && v >= 50 && v <= 70) { S.be = v; ls.set('pp.be', v); buildRows(); renderBoard(); renderBacktest(); } return; }
