@@ -17,3 +17,14 @@ https://joshxyli.github.io/NFL-Bet-Analyzer/ . A scheduled Claude task runs thes
 4. Commit and push to `main` if anything changed:
    `git add -A && git commit -m "Update data <UTC time>" && git push origin HEAD:main`.
    The site updates about a minute after the push.
+
+# Rebuilding the stats file (tools/stats)
+
+The app's stats.json (game logs, depth charts, defensive starters) is rebuilt by the "update injuries and weather"
+task before it refreshes the injury report, so depth charts always match the report:
+
+    sh tools/stats/fetch.sh /tmp/nfldata
+    NFL_DATA=/tmp/nfldata python3 -I tools/stats/build_stats.py <current stats.json> <new stats.json>
+
+The model fit (league effects, calibration, defensive-starter effects) is historical and carried over from the
+current file. The builder refuses to write a file that looks incomplete.
