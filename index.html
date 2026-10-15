@@ -244,7 +244,9 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <label class="check" for="f-all"><input type="checkbox" id="f-all"> Show every offer, not just the best</label>
           <label class="check" for="f-nowatch"><input type="checkbox" id="f-nowatch"> Hide injury watch</label>
           <div class="field"><label class="label" for="f-weight">Trust in model <span class="num" id="f-weight-val">30%</span></label><input type="range" id="f-weight" min="0" max="100" step="10" value="30"></div>
-          <div class="field"><label class="label" for="f-be">Break-even per pick %</label><input type="number" id="f-be" min="50" max="70" step="0.1" value="55" inputmode="decimal" style="width:80px" title="The hit rate each pick needs for your entry to break even, e.g. about 57.7% for a 2-pick Power Play paying 3x"></div>
+          <div class="field"><label class="label" for="f-legs">Picks in slip</label><input type="number" id="f-legs" min="2" max="10" step="1" value="2" inputmode="numeric" style="width:70px"></div>
+          <div class="field"><label class="label" for="f-pay">Payout (x)</label><input type="number" id="f-pay" min="1.5" max="1000" step="0.25" value="3" inputmode="decimal" style="width:80px" title="What the entry pays if every pick hits, e.g. 3 for a 2-pick Power Play paying 3x"></div>
+          <div class="field"><span class="label">Break-even per pick</span><span class="num" id="f-be-val" style="padding-bottom:7px"></span></div>
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
         </div>
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
@@ -846,7 +848,7 @@ const PX = (() => {
   const S = {
     stats: null, byName: new Map(), dByTeam: new Map(), dByName: new Map(), injByTeam: new Map(), db: null, ready: false,
     lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
-    slip: [], be: Math.min(70, Math.max(50, Number(ls.get('pp.be', 55)) || 55)), gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 30), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
+    slip: [], legs: Math.min(10, Math.max(2, Math.round(Number(ls.get('pp.legs', 2)) || 2))), pay: Math.max(1.5, Number(ls.get('pp.pay', 3)) || 3), be: 57.7, gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 30), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
     stake: ls.get('pp.stake', 10), off: { game: new Set(), market: new Set((ls.get('pp.off3', {}).market) || []), book: new Set((ls.get('pp.off3', {}).book) || []) }, price: '', confirmDel: null, rows: [], rowByKey: new Map(), sort: ls.get('pp.sort', { key: 'edge', dir: 'desc' }),
   };
 
@@ -1524,6 +1526,11 @@ const PX = (() => {
     $('example-note').hidden = !ex;
     renderGroups();
   }
+  // break-even per pick: the hit rate each pick needs so that hitting every pick at this payout breaks even, (1 / payout) ^ (1 / picks)
+  function setBe() {
+    S.be = Math.round(1000 * Math.pow(1 / S.pay, 1 / S.legs)) / 10;
+    const el = $('f-be-val'); if (el) el.textContent = S.be + '%';
+  }
   function renderCond() {
     const blocks = []; let nOut = 0, nQ = 0; const names = new Set();
     let i = 0;
@@ -1979,7 +1986,8 @@ const PX = (() => {
     if (t.id === 'slip-price') S.price = t.value;
     if (t.id === 'f-weight' || t.id === 'g-weight') setTimeout(renderBacktest, 0);
     if (t.id === 'g-weight') { S.gweight = Number(t.value); ls.set('pp.gweight', S.gweight); $('g-weight-val').textContent = S.gweight + '%'; buildRows(); renderGames(); renderSlip(); }
-    if (t.id === 'f-be') { const v = Number(t.value); if (Number.isFinite(v) && v >= 50 && v <= 70) { S.be = v; ls.set('pp.be', v); buildRows(); renderBoard(); renderBacktest(); } return; }
+    if (t.id === 'f-legs' || t.id === 'f-pay') { const n = Math.round(Number($('f-legs').value)), x = Number($('f-pay').value);
+      if (Number.isFinite(n) && n >= 2 && n <= 10 && Number.isFinite(x) && x >= 1.5) { S.legs = n; S.pay = x; ls.set('pp.legs', n); ls.set('pp.pay', x); setBe(); buildRows(); renderBoard(); renderBacktest(); } return; }
     if (t.id === 'f-weight') { S.weight = Number(t.value); ls.set('pp.weight', S.weight); $('f-weight-val').textContent = S.weight + '%'; buildRows(); renderBoard(); renderSlip(); }
   });
   document.addEventListener('submit', (e) => {
@@ -2012,7 +2020,7 @@ const PX = (() => {
 
   /* ---------- boot ---------- */
   renderGroups();
-  $('f-nowatch').checked = !!ls.get('pp.nowatch', false); $('f-be').value = S.be; $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
+  $('f-nowatch').checked = !!ls.get('pp.nowatch', false); $('f-legs').value = S.legs; $('f-pay').value = S.pay; setBe(); $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
   const start = (location.hash || '').slice(1); if (['games', 'tracker', 'backtest', 'lines', 'method'].includes(start)) show(start);
   fetch('stats.json').then((r) => r.json()).then((stats) => {
     S.stats = stats; $('asof').textContent = new Date(stats.asOf + 'T12:00:00').toLocaleDateString([], { month: 'long', day: 'numeric' });
