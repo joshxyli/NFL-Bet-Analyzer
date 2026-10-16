@@ -18,8 +18,6 @@ https://joshxyli.github.io/NFL-Bet-Analyzer/ . A scheduled Claude task runs thes
    `git add -A && git commit -m "Update data <UTC time>" && git push origin HEAD:main`.
    The site updates about a minute after the push.
 
-# Rebuilding the stats file (tools/stats)
-
 The stats builder is not kept in this repo. Its code lives in the instructions of the two scheduled tasks that use it
 (‘fetch game results and update stats’ and ‘update injuries, depth charts and weather’). To change the builder,
 update those tasks.
