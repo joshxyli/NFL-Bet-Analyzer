@@ -4,7 +4,7 @@ Stats run through the last completed week; the board's games are the next week's
 (league effects, calibration, defensive-starter effects) is historical and carried over from the previous file."""
 import sys, os, json, csv, datetime, collections
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import nfl, dst
+import nfl, dst, jersey
 prev_path, out_path = sys.argv[1], sys.argv[2]
 D = nfl.D
 G = list(csv.DictReader(open(D + 'games.csv')))
@@ -22,6 +22,7 @@ fmt = lambda iso: datetime.date.fromisoformat(iso[:10]).strftime('%a %b %-d')
 note = f'Stats through {fmt(last_day)} (Week {week}) · depth charts as of {fmt(d.depth_dt)}'
 out = dict(gm=prev['gm'], asOf=datetime.date.today().isoformat(), note=note, depthAsOf=d.depth_dt, games=games, **s)
 out['dst'] = dst.build(season, week); out['dstAsOf'] = datetime.date.today().isoformat()
+nj = jersey.add(out, D, prev)
 if len(out['players']) < 300 or len(out['dst']) < 28: sys.exit('REFUSED: the rebuilt file looks incomplete (%d players, %d teams)' % (len(out['players']), len(out['dst'])))
 json.dump(out, open(out_path, 'w'), separators=(',', ':'))
-print('BUILT', note, '|', len(out['players']), 'players |', len(games), 'games')
+print('BUILT', note, '|', len(out['players']), 'players |', len(games), 'games |', nj, 'jersey numbers')

@@ -3,7 +3,7 @@ leaving game logs and everything else as they are. Run by the injury update so d
 Usage: NFL_DATA=<dir with depth_charts_2026.csv> python3 -I depth_only.py <current stats.json> <output stats.json>"""
 import sys, os, csv, json, datetime, re, unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import nfl
+import nfl, jersey
 src, out_path = sys.argv[1], sys.argv[2]
 s = json.load(open(src))
 rows = list(csv.DictReader(open(nfl.D + 'depth_charts_2026.csv'))); mx = max(r['dt'] for r in rows)
@@ -23,8 +23,9 @@ for p in s['players']:
     if d and d[0] == p['t']: p['dr'] = d[1]
     elif p['cur']: p['off'] = 1
     changed += old != (p.get('dr'), p.get('off'))
+nj = jersey.add(s, nfl.D, s)
 s['depthAsOf'] = mx
 fmt = datetime.date.fromisoformat(mx[:10]).strftime('%a %b %-d')
 s['note'] = re.sub(r'depth charts as of [A-Za-z]{3} [A-Za-z]{3} \d+', 'depth charts as of ' + fmt, s['note'])
 json.dump(s, open(out_path, 'w'), separators=(',', ':'))
-print('DEPTH', mx, '|', changed, 'players changed spot |', s['note'])
+print('DEPTH', mx, '|', changed, 'players changed spot |', nj, 'jersey numbers |', s['note'])
