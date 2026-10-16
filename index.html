@@ -1264,7 +1264,18 @@ const PX = (() => {
     return { code: live ? 'live' : 'up', label: done ? `${hit} of ${n} hit, ${n - done} to go` : live ? 'In play' : 'Upcoming', hit, lost, n, open: n - done };
   }
   const markBtns = (pk, cur) => `<span class="mk" role="group" aria-label="Mark this prop"><button class="w" data-mark="w" data-pk="${esc(pk)}" aria-pressed="${cur === 'w'}" title="Mark hit">✓</button><button class="l" data-mark="l" data-pk="${esc(pk)}" aria-pressed="${cur === 'l'}" title="Mark missed">✗</button>${cur ? `<button data-mark="" data-pk="${esc(pk)}" title="Clear your mark">↺</button>` : ''}</span>`;
-  function legText(l) { return `${l.name || l.pl} · ${pickText(l)}`; }
+  // jersey number from the stats file (roster), matched by name and team
+  let jerseyMap = null, jerseyFor = null;
+  function jerseyOf(l) {
+    if (!S.stats || !S.stats.players) return '';
+    if (jerseyFor !== S.stats) { jerseyFor = S.stats; jerseyMap = new Map(); S.stats.players.forEach((p) => { if (p.j) { jerseyMap.set(PM.normName(p.n) + '|' + p.t, p.j); if (!jerseyMap.has(PM.normName(p.n))) jerseyMap.set(PM.normName(p.n), p.j); } }); }
+    const nm = PM.normName(l.name || l.pl);
+    return jerseyMap.get(nm + '|' + (l.team || '')) || jerseyMap.get(nm) || '';
+  }
+  // team, then player, then prop: the order props are listed in on the slips tab
+  function legTeam(l) { if (l.team) return l.team; const nm = PM.normName(l.name || l.pl), p = S.stats && S.stats.players.find((x) => PM.normName(x.n) === nm && (x.t === abbr(l.home) || x.t === abbr(l.away))); return p ? p.t : ''; }
+  const legOrder = (a, b) => legTeam(a).localeCompare(legTeam(b)) || String(a.name || a.pl).localeCompare(String(b.name || b.pl)) || String(a.m).localeCompare(String(b.m));
+  function legText(l) { const j = jerseyOf(l); return `${l.name || l.pl}${j ? ' #' + j : ''} · ${pickText(l)}`; }
   // projection, chance and edge at the exact line on the slip, from the board's current numbers for the same player, prop and side
   function legCalc(l) {
     const nm = PM.normName(l.name || l.pl), under = l.s === 'Under' || l.s === 'No';
@@ -1325,18 +1336,19 @@ const PX = (() => {
     ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     // every prop, grouped by game, soonest first
     const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide;
-    const shownProps = [...props.values()].filter((e) => !hide || !DONE.includes(legState(e.l).code));
+    // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
+    const shownProps = [...props.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
-    const shownSlips = states.filter((y) => !hide || !doneSlip(y.st));
+    const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l))));
     const hp = props.size - shownProps.length, hs = states.length - shownSlips.length;
     $('slip-hidden-note').textContent = hide && (hp || hs) ? `${hp} completed ${hp === 1 ? 'prop' : 'props'} and ${hs} finished ${hs === 1 ? 'slip' : 'slips'} hidden` : '';
-    const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || a.l.pl.localeCompare(b.l.pl)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
+    const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || String(a.l.game).localeCompare(String(b.l.game)) || legOrder(a.l, b.l)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
     $('myprops-panel').hidden = !shownProps.length;
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
-      return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${st.code === 'up' ? legCalcHtml(e.l) : ''}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${esc(e.slips.join(', '))}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
+      return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${esc(e.slips.join(', '))}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
     $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span><span class="row" style="gap:6px">${act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
-      ${x.legs.length ? `<div class="scroll"><table class="legs">${x.legs.map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
+      ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
         return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the line" aria-label="Change the line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
   }
