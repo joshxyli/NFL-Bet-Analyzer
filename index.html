@@ -165,6 +165,13 @@ tr.game-row td { background: var(--sunk); font: 700 15px var(--display); letter-
 .gl-table td, .gl-table th { vertical-align: middle }
 .gl-table tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-block: 5px }
 table.bt { min-width: 480px }
+.money { display: inline-flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted) }
+.money label { display: inline-flex; gap: 4px; align-items: center }
+.slipcard .hd .money input { font: 600 14px var(--mono); width: 78px; border: 1px solid var(--line); background: var(--sunk); padding: 3px 6px; color: var(--ink) }
+.money .net { font: 600 13px var(--mono) }
+.slipcard .hd { justify-content: flex-start }
+.slipcard .hd > .row { margin-left: auto; order: 2 }
+.slipcard .hd > .money { order: 3; flex-basis: 100% }
 .lc { display: flex; flex-wrap: wrap; margin: 6px 0 4px; border: 1px solid var(--line); background: var(--sunk); width: fit-content; max-width: 100% }
 .lc > span { display: flex; flex-direction: column; gap: 1px; padding: 4px 10px; border-right: 1px solid var(--line); min-width: 0 }
 .lc > span:last-child { border-right: 0 }
@@ -1275,6 +1282,25 @@ const PX = (() => {
   // team, then player, then prop: the order props are listed in on the slips tab
   function legTeam(l) { if (l.team) return l.team; const nm = PM.normName(l.name || l.pl), p = S.stats && S.stats.players.find((x) => PM.normName(x.n) === nm && (x.t === abbr(l.home) || x.t === abbr(l.away))); return p ? p.t : ''; }
   const legOrder = (a, b) => legTeam(a).localeCompare(legTeam(b)) || String(a.name || a.pl).localeCompare(String(b.name || b.pl)) || String(a.m).localeCompare(String(b.m));
+  // bet amount and payout per slip: kept in the app, never shown on the website copy
+  const slipAmt = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+  const usd = (v) => '$' + (Math.round(v * 100) / 100).toFixed(Math.abs(v - Math.round(v)) < 0.005 ? 0 : 2);
+  function slipNet(x, st) { const b = slipAmt(x.stake), p = slipAmt(x.payout); if (b == null) return null;
+    if (st.code === 'w') return p == null ? null : p - b; if (st.code === 'l') return -b; if (st.code === 'v') return 0; return undefined; }
+  function moneyHtml(x, st) {
+    if (S.site) return '';
+    const n = slipNet(x, st), net = n == null ? '' : n === undefined ? '' : `<span class="net" style="color:var(--${n > 0 ? 'good' : n < 0 ? 'bad' : 'muted'})">${n > 0 ? '+' : n < 0 ? '−' : ''}${usd(Math.abs(n))}</span>`;
+    const f = (k, lab) => `<label>${lab} $<input type="number" min="0" step="0.01" inputmode="decimal" value="${x[k] ?? ''}" data-slipmoney="${k}" data-slipid="${esc(x.id)}" aria-label="${lab} in dollars" placeholder="0"></label>`;
+    return `<span class="money">${f('stake', 'Bet')}${f('payout', 'Pays')}${net}</span>`;
+  }
+  function moneyTile(states) {
+    if (S.site) return [];
+    const withBet = states.filter((y) => slipAmt(y.x.stake) != null); if (!withBet.length) return [];
+    const bet = withBet.reduce((s, y) => s + slipAmt(y.x.stake), 0);
+    const settled = withBet.map((y) => slipNet(y.x, y.st)).filter((n) => n != null && n !== undefined), net = settled.reduce((s, n) => s + n, 0);
+    const open = withBet.filter((y) => slipNet(y.x, y.st) === undefined), toWin = open.reduce((s, y) => s + (slipAmt(y.x.payout) || 0), 0);
+    return [['Net P/L', (net > 0 ? '+' : net < 0 ? '−' : '') + usd(Math.abs(net)), `${usd(bet)} bet on ${withBet.length} ${withBet.length === 1 ? 'slip' : 'slips'}${open.length ? ` · ${usd(toWin)} possible on ${open.length} still open` : ''}`]];
+  }
   function legText(l) { const j = jerseyOf(l); return `${l.name || l.pl}${j ? ' #' + j : ''} · ${pickText(l)}`; }
   // projection, chance and edge at the exact line on the slip, from the board's current numbers for the same player, prop and side
   function legCalc(l) {
@@ -1333,7 +1359,7 @@ const PX = (() => {
       ['Won', won, 'every leg hit'],
       ['Lost', lost, 'at least one leg missed'],
       ['Props', props.size, `${pst.filter((x) => x.code === 'w').length} hit · ${pst.filter((x) => x.code === 'l').length} missed · ${pst.filter((x) => !['w', 'l', 'p', 'v'].includes(x.code)).length} open`],
-    ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
+    ].concat(moneyTile(states)).map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     // every prop, grouped by game, soonest first
     const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide;
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
@@ -1347,7 +1373,7 @@ const PX = (() => {
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
       return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${esc(e.slips.join(', '))}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
-    $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span><span class="row" style="gap:6px">${act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
+    $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
       ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
         return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the line" aria-label="Change the line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
@@ -2058,6 +2084,8 @@ const PX = (() => {
     { const t = e.target;
       if (t.id === 'slip-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); return; }
       if (t.id === 'slip-sel' && t.value) { S.activeSlip = t.value; ls.set('pp.activeSlip', t.value); renderSlips(); renderBoard(); return; }
+      if (t.dataset && t.dataset.slipmoney) { const cur = S.slips.get(t.dataset.slipid), k = t.dataset.slipmoney, v = t.value === '' ? null : Math.max(0, Math.round(Number(t.value) * 100) / 100);
+        if (cur && (v === null || Number.isFinite(v)) && v !== (cur[k] ?? null)) { const d = { ...cur }; if (v === null) delete d[k]; else d[k] = v; save('slips', t.dataset.slipid, d).then(() => renderSlips()); } return; }
       if (t.dataset && t.dataset.slipname) { const cur = S.slips.get(t.dataset.slipname), name = t.value.trim().slice(0, 40); if (cur && name && name !== cur.name) save('slips', t.dataset.slipname, { ...cur, name }); return; } }
     const t = e.target;
     if (t.dataset.g) {
