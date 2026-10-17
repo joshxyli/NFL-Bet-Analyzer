@@ -167,7 +167,8 @@ tr.game-row td { background: var(--sunk); font: 700 15px var(--display); letter-
 table.bt { min-width: 480px }
 .money { display: inline-flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted) }
 .money label { display: inline-flex; gap: 4px; align-items: center }
-.slipcard .hd .money input { font: 600 14px var(--mono); width: 78px; border: 1px solid var(--line); background: var(--sunk); padding: 3px 6px; color: var(--ink) }
+.slipbar .money { margin-left: 4px }
+.slipcard .hd .money input, .slipbar .money input { font: 600 14px var(--mono); width: 78px; border: 1px solid var(--line); background: var(--sunk); padding: 3px 6px; color: var(--ink) }
 .money .net { font: 600 13px var(--mono) }
 .slipcard .hd { justify-content: flex-start }
 .slipcard .hd > .row { margin-left: auto; order: 2 }
@@ -263,7 +264,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
         </div>
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
-        <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><span class="muted small" id="slip-sum"></span></div>
+        <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><span id="slip-money"></span><span class="muted small" id="slip-sum"></span></div>
         <div class="board-wrap"><table id="board">
           <thead><tr><th><button class="sort" data-sort="player">Player<i></i></button></th><th><button class="sort" data-sort="pick">Pick<i></i></button></th><th class="r"><button class="sort" data-sort="proj">Projection<i></i></button></th><th class="r"><button class="sort" data-sort="chance">Chance<i></i></button></th><th class="r"><button class="sort" data-sort="edge">Edge<i></i></button></th><th class="r"><span class="sr">Add to slip</span></th></tr></thead>
           <tbody id="board-body"></tbody>
@@ -733,7 +734,7 @@ const PM = (() => {
     for (const o of picks) { if (o.model == null || o.out === 'v') continue; if (o.kind === 'game' && o.b !== 'fanduel') continue;
       // props are scored as pick'em picks: each pick pays 1 / break-even (a fair share of the entry), so the bar is the break-even, not the sportsbook price
       const w = o.kind === 'game' ? opt.gw : opt.w, p = w * o.model + (1 - w) * o.fair, pe = o.kind === 'prop' && opt.be, dec = pe ? 1 / opt.be : toDecimal(o.pr), c = { o, p, edge: p - 1 / dec, ev: p * dec - 1, dec };
-      const k = o.kind + '|' + o.eventId + '|' + (o.kind === 'game' ? o.m : o.pl + '|' + o.m), cur = groups.get(k); if (!cur || c.ev > cur.ev) groups.set(k, c); }
+      const k = o.kind + '|' + o.eventId + '|' + (o.kind === 'game' ? o.m : normName(o.pl) + '|' + o.m), cur = groups.get(k); if (!cur || c.ev > cur.ev) groups.set(k, c); }
     const mk = (label) => ({ label, bets: 0, w: 0, l: 0, p: 0, exp: 0, profit: 0 });
     const bet = { props: [mk('Every pick, no filter'), mk('Any positive edge'), mk('Edge 0 to 2 pts'), mk('Edge 2 to 5 pts'), mk('Edge 5 pts or more')], games: [mk('Every pick, no filter'), mk('Any positive edge')] };
     for (const c of groups.values()) { const set = bet[c.o.kind === 'game' ? 'games' : 'props'], e = c.edge * 100;
@@ -1161,7 +1162,7 @@ const PX = (() => {
     let rows = S.rows.filter((r) => r.kind !== 'game' && !S.off.game.has(r.eventId) && !S.off.market.has(r.o.m) && !S.off.book.has(r.o.b));
     if (!all) { // best offer per player and prop
       const best = new Map();
-      rows.forEach((r) => { const k = r.eventId + '|' + r.o.pl + '|' + r.o.m + (r.kind === 'game' ? '|' + r.o.s : ''); const b = best.get(k); if (!b || r.ev > b.ev) best.set(k, r); });
+      rows.forEach((r) => { const k = r.eventId + '|' + (r.kind === 'game' ? r.o.pl : PM.normName(r.o.pl)) + '|' + r.o.m + (r.kind === 'game' ? '|' + r.o.s : ''); /* books spell names differently (Ted Hurst / Ted Hurst III) */ const b = best.get(k); if (!b || r.ev > b.ev) best.set(k, r); });
       rows = [...best.values()];
     }
     if (posOnly) rows = rows.filter((r) => r.scored && r.edge > 0);
@@ -1349,6 +1350,7 @@ const PX = (() => {
     // picker above the board
     $('slip-sel').innerHTML = list.length ? list.map((x) => `<option value="${esc(x.id)}" ${act && x.id === act.id ? 'selected' : ''}>${esc(x.name)} (${x.legs.length})</option>`).join('') : '<option value="">No slips yet: + starts Slip 1</option>';
     $('slip-sum').textContent = act ? `${act.legs.length} ${act.legs.length === 1 ? 'prop' : 'props'} in ${act.name}` : '';
+    { const sm = $('slip-money'), foc = document.activeElement; if (sm && !(foc && sm.contains(foc))) sm.innerHTML = act ? moneyHtml(act, slipState(act)) : ''; }
     if ($('view-slips').hidden && !$('slip-cards').dataset.init) return; $('slip-cards').dataset.init = '1';
     const states = list.map((x) => ({ x, st: slipState(x) }));
     const won = states.filter((y) => y.st.code === 'w').length, lost = states.filter((y) => y.st.code === 'l').length, alive = states.filter((y) => !['w', 'l', 'v'].includes(y.st.code) && y.st.n).length;
