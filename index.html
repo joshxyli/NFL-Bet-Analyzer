@@ -1303,7 +1303,7 @@ const PX = (() => {
     const open = withBet.filter((y) => slipNet(y.x, y.st) === undefined), toWin = open.reduce((s, y) => s + (slipAmt(y.x.payout) || 0), 0);
     return [['Net P/L', (net > 0 ? '+' : net < 0 ? '−' : '') + usd(Math.abs(net)), `${usd(bet)} bet on ${withBet.length} ${withBet.length === 1 ? 'slip' : 'slips'}${open.length ? ` · ${usd(toWin)} possible on ${open.length} still open` : ''}`]];
   }
-  function legText(l) { const j = jerseyOf(l); return `${l.name || l.pl}${j ? ' #' + j : ''} · ${pickText(l)}`; }
+  function legText(l) { const j = jerseyOf(l), t = legTeam(l); return `${l.name || l.pl} · ${[t, j ? '#' + j : ''].filter(Boolean).join(' ')}${t || j ? ' · ' : ''}${pickText(l)}`; }
   // projection, chance and edge at the exact line on the slip, from the board's current numbers for the same player, prop and side
   function legCalc(l) {
     const nm = PM.normName(l.name || l.pl), under = l.s === 'Under' || l.s === 'No';
