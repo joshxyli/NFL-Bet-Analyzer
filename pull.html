@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pull All Lines</title>
+<style>
+:root { --bg: #e9edf4; --surface: #fff; --sunk: #f3f5f9; --ink: #121a2c; --muted: #58637c; --line: #d3dae6; --accent: #a85f00; --accent-ink: #fff; --good: #0c7a4d; --bad: #b2332a;
+  --body: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color-scheme: light }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0a111e; --surface: #131c2e; --sunk: #0e1626; --ink: #e7ecf6; --muted: #92a0bb; --line: #26324b; --accent: #ffb63d; --accent-ink: #1b1200; --good: #52d39b; --bad: #ff8576; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #0a111e; --surface: #131c2e; --sunk: #0e1626; --ink: #e7ecf6; --muted: #92a0bb; --line: #26324b; --accent: #ffb63d; --accent-ink: #1b1200; --good: #52d39b; --bad: #ff8576; color-scheme: dark }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--body) }
+.wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 14px }
+h1 { font-size: 24px; margin: 0; text-transform: uppercase; letter-spacing: .02em }
+.panel { background: var(--surface); border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 10px }
+.muted { color: var(--muted) } .small { font-size: 13px }
+.row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center }
+input[type="password"] { font: 500 14px var(--body); color: var(--ink); background: var(--sunk); border: 1px solid var(--line); padding: 7px 9px; flex: 1 1 220px; min-width: 0 }
+.btn { font: 600 14px var(--body); letter-spacing: .04em; text-transform: uppercase; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); padding: 7px 14px; cursor: pointer }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.btn[disabled] { opacity: .45; cursor: not-allowed }
+.games { display: flex; flex-direction: column; gap: 4px }
+.games label { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line) }
+.games label:last-child { border-bottom: 0 }
+.games input { accent-color: var(--accent) }
+.st { font: 12px var(--mono); margin-left: auto; color: var(--muted) }
+.st.ok { color: var(--good) } .st.err { color: var(--bad) }
+textarea { width: 100%; min-height: 140px; font: 12px/1.4 var(--mono); color: var(--ink); background: var(--sunk); border: 1px solid var(--line); padding: 8px; resize: vertical }
+.msg { font-size: 14px } .msg.err { color: var(--bad) } .msg.ok { color: var(--good) }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Pull all lines</h1>
+  <p class="muted small">For NFL Bet Analyzer. This page fetches The Odds API props and game lines for every remaining game this week, from FanDuel and DraftKings, then gives you one block to paste into the app's Get lines tab. Your key stays in this browser; it is never saved to the website.</p>
+
+  <div class="panel">
+    <div class="row"><input type="password" id="key" placeholder="Your Odds API key" autocomplete="off" aria-label="Your Odds API key"><button class="btn" id="load">Find games</button></div>
+    <p class="msg small" id="msg" role="status"></p>
+  </div>
+
+  <div class="panel" id="pick" hidden>
+    <div class="row" style="justify-content:space-between"><strong id="count"></strong><span class="row small"><button class="btn" id="all" style="padding:3px 8px">All</button><button class="btn" id="none" style="padding:3px 8px">None</button></span></div>
+    <div class="games" id="games"></div>
+    <div class="row"><button class="btn primary" id="go">Pull</button><span class="muted small" id="cost"></span></div>
+  </div>
+
+  <div class="panel" id="out" hidden>
+    <div class="row" style="justify-content:space-between"><strong>Copy this into the app</strong><button class="btn primary" id="copy">Copy all</button></div>
+    <textarea id="json" readonly spellcheck="false" aria-label="Lines to paste into the app"></textarea>
+    <p class="muted small">In NFL Bet Analyzer, open Get lines, paste into the box and choose Add to board.</p>
+  </div>
+</div>
+<script>
+(() => {
+  const API = 'https://api.the-odds-api.com/v4/sports/americanfootball_nfl';
+  const MARKETS = 'player_pass_yds,player_pass_tds,player_rush_yds,player_receptions,player_reception_yds,player_anytime_td,h2h,spreads,totals';
+  const PER_GAME = 9; // one credit per market per game for one region
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const msg = (t, cls) => { const m = $('msg'); m.textContent = t || ''; m.className = 'msg small' + (cls ? ' ' + cls : ''); };
+  let events = [], remaining = null;
+
+  // key from the app's link (#key=...), then removed from the address bar; otherwise the one saved in this browser
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('key')) { ls.set('pull.key', h.get('key')); history.replaceState(null, '', location.pathname + location.search); }
+  $('key').value = ls.get('pull.key') || '';
+
+  // this NFL week: Tuesday 4 AM Eastern to the next Tuesday 4 AM Eastern
+  function weekEnd() {
+    const now = new Date(), et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' })), off = now - et;
+    const end = new Date(et); end.setHours(4, 0, 0, 0); end.setDate(end.getDate() + ((2 - end.getDay() + 7) % 7));
+    if (end <= et) end.setDate(end.getDate() + 7);
+    return new Date(end.getTime() + off);
+  }
+  const fmt = (iso) => new Date(iso).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  const noteCredits = (r) => { const v = r.headers.get('x-requests-remaining'); if (v != null && v !== '') remaining = Number(v); };
+  async function getJSON(url) {
+    const r = await fetch(url); noteCredits(r);
+    const j = await r.json().catch(() => null);
+    if (!r.ok) throw new Error((j && (j.message || j.error)) || ('HTTP ' + r.status));
+    return j;
+  }
+  function renderCost() {
+    const n = [...document.querySelectorAll('#games input:checked')].length;
+    $('go').disabled = !n; $('go').textContent = n ? `Pull ${n} ${n === 1 ? 'game' : 'games'}` : 'Pull';
+    $('cost').textContent = n ? `Uses about ${n * PER_GAME} credits${remaining != null ? ` (you have ${remaining} left)` : ''}.` : '';
+  }
+
+  $('load').onclick = async () => {
+    const key = $('key').value.trim(); if (!key) return msg('Paste your Odds API key first.', 'err');
+    ls.set('pull.key', key); msg('Finding games…'); $('out').hidden = true;
+    try {
+      const all = await getJSON(`${API}/events?apiKey=${encodeURIComponent(key)}`); // the game list is free
+      const now = Date.now(), end = weekEnd().getTime();
+      events = (all || []).filter((e) => { const t = Date.parse(e.commence_time); return t > now && t < end; }).sort((a, b) => a.commence_time.localeCompare(b.commence_time));
+      if (!events.length) { $('pick').hidden = true; return msg('No games left to play this week.'); }
+      $('games').innerHTML = events.map((e, i) => `<label><input type="checkbox" checked data-i="${i}"> ${esc(e.away_team)} @ ${esc(e.home_team)} <span class="muted small">${esc(fmt(e.commence_time))}</span><span class="st" id="st-${i}"></span></label>`).join('');
+      $('count').textContent = `${events.length} games left this week`; $('pick').hidden = false; msg(''); renderCost();
+    } catch (e) { msg('The Odds API said: ' + e.message, 'err'); }
+  };
+  $('games').onchange = renderCost;
+  $('all').onclick = () => { document.querySelectorAll('#games input').forEach((c) => { c.checked = true; }); renderCost(); };
+  $('none').onclick = () => { document.querySelectorAll('#games input').forEach((c) => { c.checked = false; }); renderCost(); };
+
+  $('go').onclick = async () => {
+    const key = $('key').value.trim(), picked = [...document.querySelectorAll('#games input:checked')].map((c) => Number(c.dataset.i));
+    if (!picked.length) return;
+    $('go').disabled = true; $('load').disabled = true; const got = []; let failed = 0;
+    for (const i of picked) {
+      const st = $('st-' + i); st.className = 'st'; st.textContent = 'pulling…';
+      try {
+        const j = await getJSON(`${API}/events/${encodeURIComponent(events[i].id)}/odds?apiKey=${encodeURIComponent(key)}&bookmakers=fanduel,draftkings&markets=${MARKETS}&oddsFormat=american`);
+        const n = (j.bookmakers || []).reduce((s, b) => s + (b.markets || []).reduce((t, m) => t + (m.outcomes || []).length, 0), 0);
+        got.push(j); st.className = 'st ok'; st.textContent = `${n} prices`;
+      } catch (e) { failed++; st.className = 'st err'; st.textContent = e.message.slice(0, 60); if (/quota|credits|usage/i.test(e.message)) break; }
+    }
+    $('json').value = got.length ? JSON.stringify(got) : '';
+    $('out').hidden = !got.length; $('go').disabled = false; $('load').disabled = false; renderCost();
+    msg(`${got.length} ${got.length === 1 ? 'game' : 'games'} pulled${failed ? `, ${failed} failed` : ''}${remaining != null ? ` · ${remaining} credits left` : ''}.`, failed ? 'err' : 'ok');
+  };
+  $('copy').onclick = async () => {
+    const t = $('json'); try { await navigator.clipboard.writeText(t.value); $('copy').textContent = 'Copied'; }
+    catch (e) { t.focus(); t.select(); $('copy').textContent = 'Press Ctrl+C'; }
+    setTimeout(() => { $('copy').textContent = 'Copy all'; }, 2500);
+  };
+  if ($('key').value) $('load').click();
+})();
+</script>
+</body>
+</html>
