@@ -337,7 +337,8 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
             <p><a class="btn sm" id="events-link" target="_blank" rel="noopener">Open the game list</a> <span class="muted small">Free. Select all, copy, paste below.</span></p>
           </div></div>
           <div class="step" data-src="odds"><div class="stack">
-            <p>Open props for each game you want from the list on the right, then paste each one below.</p>
+            <p><a class="btn sm" id="odds-all-link" target="_blank" rel="noopener">Pull every game at once</a> <span class="muted small">Opens a page on your website that fetches props and game lines for each game left this week (about 9 credits a game; you can untick games first), then gives you one block to copy. Paste it below.</span></p>
+            <p class="muted small">Or open props for one game at a time from the list on the right and paste each one below.</p>
           </div></div>
           <div class="step"><div class="stack">
             <label class="label" for="paste">Paste what the link shows</label>
@@ -1514,6 +1515,8 @@ const PX = (() => {
     document.querySelectorAll('#view-lines .step[data-src]').forEach((el) => { el.hidden = el.dataset.src !== S.hsrc; });
     const al = $('all-link'); if (S.pkey) { al.href = parlayUrl(); al.removeAttribute('aria-disabled'); al.classList.remove('quiet'); } else { al.removeAttribute('href'); al.setAttribute('aria-disabled', 'true'); al.classList.add('quiet'); }
     $('paste').placeholder = par ? '[{"id":"…","bookmakers":[…]}, …]' : '[{"id":"…","commence_time":"…"}]  or  {"id":"…","bookmakers":[…]}';
+    const oa = $('odds-all-link');
+    if (oa) { if (S.key) { oa.href = 'https://joshxyli.github.io/NFL-Bet-Analyzer/pull.html#key=' + encodeURIComponent(S.key); oa.removeAttribute('aria-disabled'); oa.classList.remove('quiet'); } else { oa.removeAttribute('href'); oa.setAttribute('aria-disabled', 'true'); oa.classList.add('quiet'); } }
     const ev = $('events-link');
     if (S.key) { ev.href = `${API}/events?apiKey=${encodeURIComponent(S.key)}`; ev.removeAttribute('aria-disabled'); ev.classList.remove('quiet'); } else { ev.removeAttribute('href'); ev.setAttribute('aria-disabled', 'true'); ev.classList.add('quiet'); }
     const showAll = $('g-all').checked, now = Date.now(), seen = new Set(), list = [];
