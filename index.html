@@ -97,12 +97,16 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .legs .gm td { background: var(--sunk); font: 600 12px var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-block: 5px }
 .st { font: 600 11px var(--mono); padding: 2px 6px; border-radius: 2px; white-space: nowrap }
 .st.w { background: var(--good-soft, #e3f3e8); color: var(--good, #1d7a3e) } .st.l { background: var(--bad-soft); color: var(--bad) }
-.st.p, .st.v, .st.up { background: var(--sunk); color: var(--muted) } .st.live { background: var(--warn-soft); color: var(--warn) }
+.st.p, .st.v, .st.up { background: var(--sunk); color: var(--muted) } .st.pend { background: var(--warn-soft); color: var(--warn) } .st.live { background: var(--warn-soft); color: var(--warn) }
 .mk { display: inline-flex; gap: 4px } .mk button { font: 600 12px var(--mono); min-width: 28px; height: 26px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; border-radius: 2px }
 .mk button[aria-pressed="true"].w { background: var(--good, #1d7a3e); border-color: var(--good, #1d7a3e); color: #fff } .mk button[aria-pressed="true"].l { background: var(--bad); border-color: var(--bad); color: #fff }
+.mk button.v { font-size: 11px; padding: 0 6px } .mk button[aria-pressed="true"].v { background: var(--muted); border-color: var(--muted); color: var(--surface) }
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
-.ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro label[for="out-name"], .ro #out-name { display: none !important }
-.ro #cond-body input, .ro .slipcard .hd input { pointer-events: none }
+.ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro [data-slipreopen], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro label[for="out-name"], .ro #out-name { display: none !important }
+.ro #cond-body input, .ro .slipcard .hd input, .ro .slipcard .hd select { pointer-events: none }
+.slipbar .money select { min-width: 0 }
+.money input[type="checkbox"] { width: auto !important; accent-color: var(--accent); margin: 0 }
+.slipcard .hd .money select, .slipbar .money select { font: 500 13px var(--body); padding: 3px 6px; background: var(--sunk); border: 1px solid var(--line); color: var(--ink) }
 .ro #cond-body .opt input { display: none }
 .tag.watch { background: var(--warn-soft); color: var(--warn); border: 1px solid currentColor }
 #board-body tr.watch td:first-child { box-shadow: inset 3px 0 0 var(--warn) }
@@ -170,6 +174,8 @@ table.bt { min-width: 480px }
 .slipbar .money { margin-left: 4px }
 .slipcard .hd .money input, .slipbar .money input { font: 600 14px var(--mono); width: 78px; border: 1px solid var(--line); background: var(--sunk); padding: 3px 6px; color: var(--ink) }
 .money .net { font: 600 13px var(--mono) }
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%); max-width: min(560px, calc(100vw - 32px)); background: var(--ink); color: var(--bg); padding: 10px 16px; font-size: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 50 }
+.toast.bad { background: var(--bad); color: #fff }
 .slipcard .hd { justify-content: flex-start }
 .slipcard .hd > .row { margin-left: auto; order: 2 }
 .slipcard .hd > .money { order: 3; flex-basis: 100% }
@@ -264,7 +270,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
         </div>
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
-        <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><span id="slip-money"></span><span class="muted small" id="slip-sum"></span></div>
+        <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><span id="slip-money"></span><button class="btn sm primary" id="slip-submit">Submit slip</button><span class="muted small" id="slip-sum"></span></div>
         <div class="board-wrap"><table id="board">
           <thead><tr><th><button class="sort" data-sort="player">Player<i></i></button></th><th><button class="sort" data-sort="pick">Pick<i></i></button></th><th class="r"><button class="sort" data-sort="proj">Projection<i></i></button></th><th class="r"><button class="sort" data-sort="chance">Chance<i></i></button></th><th class="r"><button class="sort" data-sort="edge">Edge<i></i></button></th><th class="r"><span class="sr">Add to slip</span></th></tr></thead>
           <tbody id="board-body"></tbody>
@@ -286,7 +292,8 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="panel panel-pad stack">
         <div class="row" style="justify-content:space-between;align-items:baseline"><h2>My slips</h2><span class="row" style="gap:6px"><button class="btn sm" id="slip-xlsx" hidden>Export to Excel</button><button class="btn sm" id="slip-pdf" hidden>Export to PDF</button><button class="btn sm" id="slip-new2">New slip</button></span></div>
         <span class="small muted" id="slip-exp-msg" role="status"></span>
-        <div class="row" style="gap:10px"><label class="check" for="slip-hidedone"><input type="checkbox" id="slip-hidedone"> Hide completed props and slips</label><span class="muted small" id="slip-hidden-note"></span></div>
+        <div class="row" style="gap:10px"><label class="label" for="slip-week">Week</label><select id="slip-week"></select><label class="label" for="slip-appf">App</label><select id="slip-appf"></select><label class="check" for="slip-hidedone"><input type="checkbox" id="slip-hidedone"> Hide completed props and slips</label><span class="muted small" id="slip-hidden-note"></span></div>
+        <div class="notice" id="slip-pending" hidden><p></p><button class="btn sm" id="slip-pending-show">Show them</button></div>
         <p class="muted small">Add props from the Player props board with the + button; the slip picker above the board says which slip they go into. The same prop can sit in as many slips as you like. While games are on, mark each prop hit or missed once and every slip holding it updates. After the final whistle, Fetch results on the Backtest tab grades anything you have not marked from the official box score.</p>
       </div>
       <div class="tiles" id="slip-tiles"></div>
@@ -862,7 +869,7 @@ const PX = (() => {
 
   const S = {
     stats: null, byName: new Map(), dByTeam: new Map(), dByName: new Map(), injByTeam: new Map(), db: null, ready: false,
-    lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
+    lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipWeek: ls.get('pp.slipweek', null), slipApp: ls.get('pp.slipapp', ''), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
     slip: [], legs: Math.min(10, Math.max(2, Math.round(Number(ls.get('pp.legs', 2)) || 2))), pay: Math.max(1.5, Number(ls.get('pp.pay', 3)) || 3), be: 57.7, gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 30), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
     stake: ls.get('pp.stake', 10), off: { game: new Set(), market: new Set((ls.get('pp.off3', {}).market) || []), book: new Set((ls.get('pp.off3', {}).book) || []) }, price: '', confirmDel: null, rows: [], rowByKey: new Map(), sort: ls.get('pp.sort', { key: 'edge', dir: 'desc' }),
   };
@@ -904,6 +911,9 @@ const PX = (() => {
   const GAME = { h2h: 'Moneyline', spreads: 'Spread', totals: 'Total' }, ALLK = [...MKEYS, 'h2h', 'spreads', 'totals'];
   const pickText = (o) => o.m === 'h2h' ? 'Moneyline' : o.m === 'spreads' ? `Spread ${o.pt > 0 ? '+' : ''}${o.pt}` : o.m === 'totals' ? `${o.s} ${o.pt} points` : o.m === 'player_anytime_td' ? 'Anytime TD' : `${o.s} ${o.pt} ${PM.MARKETS[o.m] ? PM.MARKETS[o.m].label.toLowerCase() : o.m}`;
   function flash(text, bad) { const m = $('paste-msg'); m.className = 'msg ' + (bad ? 'err' : 'ok'); m.textContent = text; }
+  // a short message at the bottom of the screen, whichever tab is open
+  function toast(text, bad) { let el = document.querySelector('.toast'); if (!el) { el = document.createElement('div'); el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.className = 'toast' + (bad ? ' bad' : ''); el.textContent = text; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 7000); }
 
   /* ---------- scoring ---------- */
   // Report status plus your own marks. absent = no projection, and his share goes to teammates.
@@ -1238,7 +1248,16 @@ const PX = (() => {
     return { eventId: r.eventId, game: r.game, commence: r.commence, home: doc.home || '', away: doc.away || '', pl: r.o.pl, name: r.player ? r.player.n : r.o.pl, team: r.player ? r.player.t : '',
       m: r.o.m, s: r.o.s, pt: r.o.pt ?? null, at: new Date().toISOString() };
   }
-  function activeSlip() { const l = slipList(); return l.find((x) => x.id === S.activeSlip) || l[0] || null; }
+  // the slip being built: never a submitted one; after a submit (activeSlip 'new') the next + starts a new slip
+  function activeSlip() { const l = slipList().filter((x) => !x.submittedAt); if (S.activeSlip === 'new') return null; return l.find((x) => x.id === S.activeSlip) || l[0] || null; }
+  async function submitSlip() {
+    const act = activeSlip(); if (!act || !act.legs.length) return;
+    const cur = S.slips.get(act.id) || act;
+    if (!cur.app) { toast('Pick which app this slip is on (PrizePicks, DK Pick6 or DK Predictions), then submit.', true); const a = document.querySelector('#slip-money [data-slipapp]'); if (a) a.focus(); return; }
+    S.activeSlip = 'new'; ls.set('pp.activeSlip', 'new');
+    if (await save('slips', act.id, { ...cur, submittedAt: new Date().toISOString() })) toast(`${cur.name} submitted. The next prop you add starts a new slip.`);
+    renderSlips(); renderBoard();
+  }
   function addBtn(r) {
     if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
     const id = legId(legOf(r)), act = activeSlip(), held = (x) => x.legs.find((l) => legId(l) === id), inAct = !!act && !!held(act);
@@ -1267,12 +1286,16 @@ const PX = (() => {
   function slipState(sl) {
     const st = sl.legs.map(legState), n = st.length, hit = st.filter((x) => x.code === 'w').length, lost = st.filter((x) => x.code === 'l').length, done = st.filter((x) => ['w', 'l', 'p', 'v'].includes(x.code)).length;
     if (!n) return { code: 'up', label: 'Empty', hit, lost, n, open: 0 };
-    if (lost) return { code: 'l', label: lost === 1 ? 'Lost: 1 leg missed' : `Lost: ${lost} legs missed`, hit, lost, n, open: n - done };
+    if (lost && !sl.flex) return { code: 'l', label: lost === 1 ? 'Lost: 1 leg missed' : `Lost: ${lost} legs missed`, hit, lost, n, open: n - done };
+    // flex: a miss does not end the slip; once every leg is settled, what it paid decides the result
+    if (sl.flex && lost && done === n) { const paid = slipAmt(sl.paid), bet = slipAmt(sl.stake), base = { hit, lost, n, open: 0 };
+      if (paid == null) return { code: 'pend', label: `Flex: ${hit} of ${n} hit, enter what it paid`, ...base };
+      return { code: bet == null || paid > bet ? 'w' : paid < bet ? 'l' : 'v', label: `Flex: ${hit} of ${n} hit, paid ${usd(paid)}`, ...base }; }
     if (done === n) return hit ? { code: 'w', label: 'Won', hit, lost, n, open: 0 } : { code: 'v', label: 'Void', hit, lost, n, open: 0 };
     const live = st.some((x) => x.code === 'live');
     return { code: live ? 'live' : 'up', label: done ? `${hit} of ${n} hit, ${n - done} to go` : live ? 'In play' : 'Upcoming', hit, lost, n, open: n - done };
   }
-  const markBtns = (pk, cur) => `<span class="mk" role="group" aria-label="Mark this prop"><button class="w" data-mark="w" data-pk="${esc(pk)}" aria-pressed="${cur === 'w'}" title="Mark hit">✓</button><button class="l" data-mark="l" data-pk="${esc(pk)}" aria-pressed="${cur === 'l'}" title="Mark missed">✗</button>${cur ? `<button data-mark="" data-pk="${esc(pk)}" title="Clear your mark">↺</button>` : ''}</span>`;
+  const markBtns = (pk, cur) => `<span class="mk" role="group" aria-label="Mark this prop"><button class="w" data-mark="w" data-pk="${esc(pk)}" aria-pressed="${cur === 'w'}" title="Mark hit">✓</button><button class="l" data-mark="l" data-pk="${esc(pk)}" aria-pressed="${cur === 'l'}" title="Mark missed">✗</button><button class="v" data-mark="v" data-pk="${esc(pk)}" aria-pressed="${cur === 'v'}" title="Mark void: he did not play, so the book dropped the pick">Void</button>${cur ? `<button data-mark="" data-pk="${esc(pk)}" title="Clear your mark">↺</button>` : ''}</span>`;
   // jersey number from the stats file (roster), matched by name and team
   let jerseyMap = null, jerseyFor = null;
   function jerseyOf(l) {
@@ -1287,13 +1310,19 @@ const PX = (() => {
   // bet amount and payout per slip: kept in the app, never shown on the website copy
   const slipAmt = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
   const usd = (v) => '$' + (Math.round(v * 100) / 100).toFixed(Math.abs(v - Math.round(v)) < 0.005 ? 0 : 2);
-  function slipNet(x, st) { const b = slipAmt(x.stake), p = slipAmt(x.payout); if (b == null) return null;
+  function slipNet(x, st) { const b = slipAmt(x.stake), p = slipAmt(x.flex && x.paid != null ? x.paid : x.payout); if (b == null) return null;
+    if (x.flex && st.lost && st.open === 0) { const paid = slipAmt(x.paid); return paid == null ? undefined : paid - b; }
     if (st.code === 'w') return p == null ? null : p - b; if (st.code === 'l') return -b; if (st.code === 'v') return 0; return undefined; }
+  const APPS = ['PrizePicks', 'DK Pick6', 'DK Predictions'];
+  const appOptions = (cur, blank) => `<option value="">${blank}</option>` + APPS.map((a) => `<option ${cur === a ? 'selected' : ''}>${a}</option>`).join('');
   function moneyHtml(x, st) {
-    if (S.site) return '';
+    const app = `<label>App <select data-slipapp="${esc(x.id)}" aria-label="Which app this slip is on">${appOptions(x.app, '—')}</select></label>`;
+    if (S.site) return x.app ? `<span class="money"><span>${esc(x.app)}</span></span>` : '';
     const n = slipNet(x, st), net = n == null ? '' : n === undefined ? '' : `<span class="net" style="color:var(--${n > 0 ? 'good' : n < 0 ? 'bad' : 'muted'})">${n > 0 ? '+' : n < 0 ? '−' : ''}${usd(Math.abs(n))}</span>`;
     const f = (k, lab) => `<label>${lab} $<input type="number" min="0" step="0.01" inputmode="decimal" value="${x[k] ?? ''}" data-slipmoney="${k}" data-slipid="${esc(x.id)}" aria-label="${lab} in dollars" placeholder="0"></label>`;
-    return `<span class="money">${f('stake', 'Bet')}${f('payout', 'Pays')}${net}</span>`;
+    const flex = `<label title="Flex: the slip still pays something when a leg misses"><input type="checkbox" data-slipflex="${esc(x.id)}" ${x.flex ? 'checked' : ''}> Flex</label>`;
+    const paid = x.flex && st.n && st.open === 0 && st.lost ? f('paid', 'Paid') : ''; // after a flex slip settles with a miss, what it actually paid
+    return `<span class="money">${app}${flex}${f('stake', 'Bet')}${f('payout', x.flex ? 'Max pays' : 'Pays')}${paid}${net}</span>`;
   }
   function moneyTile(states) {
     if (S.site) return [];
@@ -1343,25 +1372,40 @@ const PX = (() => {
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
     return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell('Edge', (c.edge >= 0 ? '+' : '') + (c.edge * 100).toFixed(1) + ' pts', { b: cls === 'flat' ? '' : cls })}${cell('EV per $1', (c.ev >= 0 ? '+' : '') + c.ev.toFixed(2))}${cell(c.same ? 'Line' : 'Book line now', c.same ? esc(book) : moveHtml(l, r, book), { cls: 'src' })}</div>`;
   }
+  // NFL week of a slip (Tuesday 4 AM Eastern to the next Tuesday), from its earliest game, or when it was made if it has none
+  const WEEK_ANCHOR = { idx: null, wk: 6, at: '2026-10-18T18:00:00Z' }; // Week 6 of the 2026 season includes Oct 18
+  const nflWeek = (idx) => { if (WEEK_ANCHOR.idx == null) WEEK_ANCHOR.idx = weekIdx(WEEK_ANCHOR.at); return idx - WEEK_ANCHOR.idx + WEEK_ANCHOR.wk; };
+  function slipWeek(x) { const ts = (x.legs || []).map((l) => l.commence).filter(Boolean).sort(); return weekIdx(ts[0] || x.createdAt); }
+  function weekLabel(idx) { const s = new Date(Date.UTC(2024, 0, 2) + idx * 7 * 86400e3), e = new Date(s.getTime() + 6 * 86400e3), f = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }); const w = nflWeek(idx); return `${w >= 1 && w <= 22 ? 'Week ' + w + ' · ' : ''}${f(s)} – ${f(e)}`; }
   function renderSlips() {
-    const list = slipList(), act = activeSlip();
+    const listAll = slipList(), act = activeSlip(); let list = listAll;
     // active = has props and is not yet won, lost or void (the same rule as "still alive" on the tiles)
     const nActive = list.filter((x) => { const st = slipState(x); return st.n > 0 && !['w', 'l', 'v'].includes(st.code); }).length;
     $('slips-count').textContent = list.length ? `(${nActive})` : '';
     // picker above the board
-    $('slip-sel').innerHTML = list.length ? list.map((x) => `<option value="${esc(x.id)}" ${act && x.id === act.id ? 'selected' : ''}>${esc(x.name)} (${x.legs.length})</option>`).join('') : '<option value="">No slips yet: + starts Slip 1</option>';
+    const open = list.filter((x) => !x.submittedAt);
+    $('slip-sel').innerHTML = (act ? '' : '<option value="new" selected>New slip: starts with the next +</option>') + open.map((x) => `<option value="${esc(x.id)}" ${act && x.id === act.id ? 'selected' : ''}>${esc(x.name)} (${x.legs.length})</option>`).join('');
+    { const sb = $('slip-submit'); if (sb) { sb.disabled = !act || !act.legs.length; sb.title = !act ? 'Add a prop to start a slip' : act.legs.length ? `Mark ${act.name} as submitted and start a new slip` : 'Add a prop first'; } }
     $('slip-sum').textContent = act ? `${act.legs.length} ${act.legs.length === 1 ? 'prop' : 'props'} in ${act.name}` : '';
+    { const sa = $('slip-app'); if (sa && document.activeElement !== sa) { sa.innerHTML = appOptions(act && act.app, 'App…'); sa.disabled = !act; } }
     { const sm = $('slip-money'), foc = document.activeElement; if (sm && !(foc && sm.contains(foc))) sm.innerHTML = act ? moneyHtml(act, slipState(act)) : ''; }
     if ($('view-slips').hidden && !$('slip-cards').dataset.init) return; $('slip-cards').dataset.init = '1';
+    { const weeks = [...new Set(listAll.map(slipWeek))].sort((a, b) => b - a), ws = $('slip-week');
+      if (S.slipWeek != null && !weeks.includes(S.slipWeek)) S.slipWeek = null;
+      ws.innerHTML = '<option value="">All weeks</option>' + weeks.map((w) => `<option value="${w}" ${S.slipWeek === w ? 'selected' : ''}>${esc(weekLabel(w))}</option>`).join('');
+      if (S.slipWeek != null) list = listAll.filter((x) => slipWeek(x) === S.slipWeek); }
+    { const af = $('slip-appf'), opts = [['', 'All apps'], ...APPS.map((a) => [a, a]), ['-', 'No app set']];
+      if (!opts.some(([v]) => v === S.slipApp)) S.slipApp = '';
+      af.innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}" ${S.slipApp === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
+      if (S.slipApp) list = list.filter((x) => (S.slipApp === '-' ? !x.app : x.app === S.slipApp)); }
     const states = list.map((x) => ({ x, st: slipState(x) }));
     const won = states.filter((y) => y.st.code === 'w').length, lost = states.filter((y) => y.st.code === 'l').length, alive = states.filter((y) => !['w', 'l', 'v'].includes(y.st.code) && y.st.n).length;
     const props = new Map(); list.forEach((x) => x.legs.forEach((l) => { const k = propKey(l), e = props.get(k) || props.set(k, { l, slips: [] }).get(k); if (!e.slips.includes(x.name)) e.slips.push(x.name); }));
     const pst = [...props.values()].map((e) => legState(e.l));
     $('slip-tiles').innerHTML = [
-      ['Slips', list.length, `${alive} still alive`],
-      ['Won', won, 'every leg hit'],
-      ['Lost', lost, 'at least one leg missed'],
-      ['Props', props.size, `${pst.filter((x) => x.code === 'w').length} hit · ${pst.filter((x) => x.code === 'l').length} missed · ${pst.filter((x) => !['w', 'l', 'p', 'v'].includes(x.code)).length} open`],
+      ['Slips win rate', won + lost ? Math.round(100 * won / (won + lost)) + '%' : '—', `${won} won · ${lost} lost · ${alive} open · ${list.length} slips`], /* won and lost only, not voided or open slips */
+      (() => { const h = pst.filter((x) => x.code === 'w').length, m = pst.filter((x) => x.code === 'l').length, o = pst.filter((x) => !['w', 'l', 'p', 'v'].includes(x.code)).length; // win rate counts hits and misses only, not pushes, voids or open props
+        return ['Props win rate', h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${props.size} props`]; })(),
     ].concat(moneyTile(states)).map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     // every prop, grouped by game, soonest first
     const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide;
@@ -1370,18 +1414,25 @@ const PX = (() => {
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
     const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l))));
     const hp = props.size - shownProps.length, hs = states.length - shownSlips.length;
+    // props whose game is over but have no result yet (not marked, no box score): hidden by Hide completed, so say so
+    const pending = [...props.values()].filter((e) => gameEnded(e.l) && !DONE.includes(legState(e.l).code)); S.slipPending = pending.length;
+    { const pn = $('slip-pending'); pn.hidden = !(hide && pending.length);
+      if (!pn.hidden) pn.querySelector('p').innerHTML = `<strong>${pending.length} ${pending.length === 1 ? 'prop from a finished game has' : 'props from finished games have'} no result yet</strong> and ${pending.length === 1 ? 'is' : 'are'} hidden: ${esc(pending.slice(0, 6).map((e) => legText(e.l)).join('; '))}${pending.length > 6 ? `; and ${pending.length - 6} more` : ''}. Mark ${pending.length === 1 ? 'it' : 'them'} hit, missed or void, or press Fetch results on the Backtest tab.`; }
     $('slip-hidden-note').textContent = hide && (hp || hs) ? `${hp} completed ${hp === 1 ? 'prop' : 'props'} and ${hs} finished ${hs === 1 ? 'slip' : 'slips'} hidden` : '';
     const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || String(a.l.game).localeCompare(String(b.l.game)) || legOrder(a.l, b.l)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
     $('myprops-panel').hidden = !shownProps.length;
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
       return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${esc(e.slips.join(', '))}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
-    $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
+    $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
       ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
         return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the line" aria-label="Change the line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
   }
-  async function newSlip(name) { const id = newId(), n = slipList().length + 1; S.activeSlip = id; ls.set('pp.activeSlip', id); await save('slips', id, { name: name || `Slip ${n}`, createdAt: new Date().toISOString(), legs: [] }); return id; }
+  async function newSlip(name) { const id = newId(); /* the next number after the highest "Slip N", so a deleted slip's number is never reused */
+    const auto = 'Slip ' + (Math.max(0, ...slipList().map((x) => { const m = /^Slip (\d+)$/.exec(String(x.name).trim()); return m ? Number(m[1]) : 0; })) + 1);
+    const doc = { name: name || auto, createdAt: new Date().toISOString(), legs: [] }; S.newSlipDoc = { id, doc };
+    S.activeSlip = id; ls.set('pp.activeSlip', id); await save('slips', id, doc); return id; }
   // + on the board: already in the slip -> take it out; otherwise open a small form to confirm the line you actually got
   function addForm(r) {
     const act = activeSlip(), anytime = r.o.m === 'player_anytime_td';
@@ -1396,7 +1447,7 @@ const PX = (() => {
     const r = S.rowByKey.get(key); if (!r) return;
     const act = activeSlip(), id = legId(legOf(r));
     if (act) { const cur = S.slips.get(act.id) || act, legs = (cur.legs || []).slice(), i = legs.findIndex((l) => legId(l) === id);
-      if (i >= 0) { legs.splice(i, 1); S.adding = null; return save('slips', act.id, { name: cur.name, createdAt: cur.createdAt, legs }); } }
+      if (i >= 0) { legs.splice(i, 1); S.adding = null; return save('slips', act.id, { ...cur, legs }); } }
     S.adding = S.adding === key ? null : key; renderBoard();
     if (S.adding) { const f = document.querySelector('form[data-addform] input'); if (f) f.focus(); }
   }
@@ -1406,10 +1457,10 @@ const PX = (() => {
     const pt = form.elements.pt ? Number(form.elements.pt.value) : null;
     if (form.elements.pt && !Number.isFinite(pt)) { form.elements.pt.focus(); return; }
     if (form.elements.pt) leg.pt = pt;
-    let act = activeSlip(); if (!act) { const nid = await newSlip(); act = { id: nid, name: 'Slip 1', legs: [], createdAt: new Date().toISOString() }; }
-    const cur = S.slips.get(act.id) || act, legs = (cur.legs || []).filter((l) => legId(l) !== legId(leg));
+    let act = activeSlip(); if (!act) { const nid = await newSlip(); act = { id: nid, ...(S.slips.get(nid) || S.newSlipDoc.doc) }; }
+    const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id; const legs = (cur.legs || []).filter((l) => legId(l) !== legId(leg));
     legs.push(leg); S.adding = null;
-    await save('slips', act.id, { name: cur.name, createdAt: cur.createdAt, legs });
+    await save('slips', act.id, { ...cur, legs });
   }
   async function saveLegEdit(form) {
     const [sid, ...rest] = form.dataset.legform.split('|'), lid = rest.join('|'), cur = S.slips.get(sid); if (!cur) return;
@@ -2036,6 +2087,9 @@ const PX = (() => {
     if (t.dataset.legedit) { S.editLeg = S.editLeg === t.dataset.legedit ? null : t.dataset.legedit; renderSlips(); const f = document.querySelector('form[data-legform] input'); if (f) f.focus(); return; }
     if (t.dataset.editcancel) { S.editLeg = null; return renderSlips(); }
     if (t.id === 'slip-new' || t.id === 'slip-new2') return newSlip();
+    if (t.id === 'slip-submit') return submitSlip();
+    if (t.id === 'slip-pending-show') { S.hideDone = false; ls.set('pp.hidedone', false); renderSlips(); return; }
+    if (t.dataset.slipreopen) { const cur = S.slips.get(t.dataset.slipreopen); if (!cur) return; const d = { ...cur }; delete d.submittedAt; S.activeSlip = t.dataset.slipreopen; ls.set('pp.activeSlip', S.activeSlip); return save('slips', t.dataset.slipreopen, d).then(() => { renderSlips(); renderBoard(); }); }
     if (t.dataset.mark != null && t.dataset.pk) return setMark(t.dataset.pk, t.dataset.mark || null);
     if (t.dataset.slipuse) { S.activeSlip = t.dataset.slipuse; ls.set('pp.activeSlip', S.activeSlip); renderSlips(); renderBoard(); return; }
     if (t.dataset.slipdel) { const id = t.dataset.slipdel; if (S.slipConfirm !== id) { S.slipConfirm = id; return renderSlips(); } S.slipConfirm = null; if (S.activeSlip === id) { S.activeSlip = null; ls.set('pp.activeSlip', null); } return remove('slips', id); }
@@ -2087,8 +2141,12 @@ const PX = (() => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.adding || S.editLeg)) { S.adding = null; S.editLeg = null; renderBoard(); renderSlips(); } });
   document.addEventListener('change', (e) => {
     { const t = e.target;
-      if (t.id === 'slip-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); return; }
+      if (t.id === 'slip-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
+      if (t.id === 'slip-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
+      if (t.id === 'slip-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); if (t.checked && S.slipPending) toast(`${S.slipPending} ${S.slipPending === 1 ? 'prop from a finished game still needs' : 'props from finished games still need'} a result. ${S.slipPending === 1 ? 'It is' : 'They are'} listed at the top of My slips.`, true); return; }
       if (t.id === 'slip-sel' && t.value) { S.activeSlip = t.value; ls.set('pp.activeSlip', t.value); renderSlips(); renderBoard(); return; }
+      if (t.dataset && t.dataset.slipflex) { const id = t.dataset.slipflex, cur = S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.checked) d.flex = true; else { delete d.flex; delete d.paid; } save('slips', id, d).then(() => renderSlips()); return; }
+      if (t.id === 'slip-app' || (t.dataset && t.dataset.slipapp)) { const id = t.id === 'slip-app' ? (activeSlip() || {}).id : t.dataset.slipapp, cur = id && S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.value) d.app = t.value; else delete d.app; save('slips', id, d).then(() => renderSlips()); return; }
       if (t.dataset && t.dataset.slipmoney) { const cur = S.slips.get(t.dataset.slipid), k = t.dataset.slipmoney, v = t.value === '' ? null : Math.max(0, Math.round(Number(t.value) * 100) / 100);
         if (cur && (v === null || Number.isFinite(v)) && v !== (cur[k] ?? null)) { const d = { ...cur }; if (v === null) delete d[k]; else d[k] = v; save('slips', t.dataset.slipid, d).then(() => renderSlips()); } return; }
       if (t.dataset && t.dataset.slipname) { const cur = S.slips.get(t.dataset.slipname), name = t.value.trim().slice(0, 40); if (cur && name && name !== cur.name) save('slips', t.dataset.slipname, { ...cur, name }); return; } }
