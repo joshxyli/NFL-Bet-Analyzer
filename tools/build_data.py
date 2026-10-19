@@ -21,7 +21,7 @@ for coll in ['lines', 'pulls', 'meta', 'slips', 'log', 'results', 'rescore']:
                 t = ts(j.get('commence'))
                 if not t or (now - t).total_seconds() > 6 * 3600: continue
             if coll == 'slips':                                    # bet amounts and payouts stay private
-                for k in ('stake', 'payout'): j.pop(k, None)
+                for k in ('stake', 'payout', 'paid'): j.pop(k, None)
             docs[doc_id] = j
     cols[coll] = docs
 snap = {'at': now.strftime('%Y-%m-%dT%H:%M:%SZ'), 'collections': cols}
