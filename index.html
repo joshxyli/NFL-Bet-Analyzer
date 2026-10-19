@@ -907,6 +907,15 @@ const PX = (() => {
   const etHour = (iso) => Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).format(new Date(iso))) % 24;
   const isNight = (iso) => etHour(iso) >= 19;
   const latest = (doc) => doc.pulls[doc.pulls.length - 1];
+  // The latest pull's offers, plus any game line (moneyline, spread, total) a book is missing from it, taken from that book's
+  // most recent earlier pull and marked with when it was pulled. Props are never carried over: a missing prop is usually a pulled one.
+  function offersFor(doc) {
+    const last = latest(doc), have = new Set(last.offers.filter((o) => GAME[o.m]).map((o) => o.b + '|' + o.m)), out = last.offers.slice();
+    for (let i = doc.pulls.length - 2; i >= 0; i--) { const p = doc.pulls[i], add = new Set();
+      for (const o of p.offers) { const k = o.b + '|' + o.m; if (!GAME[o.m] || have.has(k)) continue; out.push({ ...o, stale: p.at }); add.add(k); }
+      add.forEach((k) => have.add(k)); }
+    return out;
+  }
   const legKey = (eventId, o) => [eventId, o.pl, o.m, o.s, o.b, o.pt ?? ''].join('|');
   const GAME = { h2h: 'Moneyline', spreads: 'Spread', totals: 'Total' }, ALLK = [...MKEYS, 'h2h', 'spreads', 'totals'];
   const pickText = (o) => o.m === 'h2h' ? 'Moneyline' : o.m === 'spreads' ? `Spread ${o.pt > 0 ? '+' : ''}${o.pt}` : o.m === 'totals' ? `${o.s} ${o.pt} points` : o.m === 'player_anytime_td' ? 'Anytime TD' : `${o.s} ${o.pt} ${PM.MARKETS[o.m] ? PM.MARKETS[o.m].label.toLowerCase() : o.m}`;
@@ -1072,7 +1081,7 @@ const PX = (() => {
         if (o.m === 'h2h') return PM.normCdf(tm / sd);
         const int = Number.isInteger(o.pt), win = 1 - PM.normCdf((-o.pt + (int ? 0.5 : 0) - tm) / sd), lose = PM.normCdf((-o.pt - (int ? 0.5 : 0) - tm) / sd);
         return win / (win + lose); };
-      const offers = latest(doc).offers, first = doc.pulls.length > 1 ? doc.pulls[0].offers : null;
+      const offers = offersFor(doc), first = doc.pulls.length > 1 ? doc.pulls[0].offers : null;
       const groups = new Map();
       offers.forEach((o) => { const k = [o.pl, o.m, o.b, o.pt ?? ''].join('|'); (groups.get(k) || groups.set(k, []).get(k)).push(o); });
       // game lines: no model. Fair chance = each book's two prices with the margin removed, averaged over the books at the same number.
@@ -1083,7 +1092,7 @@ const PX = (() => {
       for (const o of gl) { if (!gfair.has(o)) continue;
         const fs = cons.get([o.m, o.s, o.pt ?? ''].join('|')), fair = fs.reduce((x, y) => x + y, 0) / fs.length, imp = PM.implied(o.pr), dec = PM.toDecimal(o.pr);
         const model = sideModel(o), p = model == null ? fair : gw * model + (1 - gw) * fair;
-        const go = { pl: o.m === 'totals' ? `${away} @ ${home} total` : o.s, m: o.m, b: o.b, s: o.s, pr: o.pr }; if (o.pt != null) go.pt = o.pt;
+        const go = { pl: o.m === 'totals' ? `${away} @ ${home} total` : o.s, m: o.m, b: o.b, s: o.s, pr: o.pr }; if (o.pt != null) go.pt = o.pt; if (o.stale) go.stale = o.stale;
         let opened = null; if (first) { const f = first.find((x) => x.pl === 'GAME' && x.m === o.m && x.b === o.b && x.s === o.s); if (f && (f.pt !== o.pt || f.pr !== o.pr)) opened = f; }
         rows.push({ key: legKey(eventId, go), eventId, game: `${away} @ ${home}`, commence: doc.commence, example: !!doc.example, o: go, kind: 'game', books: fs.length, player: null, opp: null, st: null, skip: null,
           team: o.m === 'totals' ? null : abbr(o.s), pos: null, proj: null, model, scored: true, fair, p, imp, dec, edge: p - imp, ev: p * dec - 1, opened }); }
@@ -2043,6 +2052,7 @@ const PX = (() => {
     const books = SPORTSBOOKS.filter((bk) => S.gbooks.has(bk)), byEvent = new Map();
     S.rows.forEach((r) => { if (r.kind === 'game' && S.gbooks.has(r.o.b)) (byEvent.get(r.eventId) || byEvent.set(r.eventId, []).get(r.eventId)).push(r); });
     const lineText = (r) => (r.o.m === 'h2h' ? '' : r.o.m === 'spreads' ? (r.o.pt > 0 ? '+' : '') + r.o.pt + '  ' : (r.o.s === 'Over' ? 'O ' : 'U ') + r.o.pt + '  ') + PM.fmtAm(r.o.pr);
+    const staleNote = (r) => (r.o.stale ? `<span class="sub2" title="The latest pull had no ${esc(GAME[r.o.m] || '')} from this book, so this is its line from an earlier pull">from ${esc(kickoff(r.o.stale))}</span>` : '');
     const pill = (r) => `<span class="pill ${r.edge > 0.005 ? 'good' : r.edge < -0.005 ? 'bad' : 'flat'}">${(r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1)} pts</span>`;
     const pickName = (r) => r.o.m === 'totals' ? `${r.o.s} ${r.o.pt}` : r.o.m === 'spreads' ? `${abbr(r.o.s)} ${r.o.pt > 0 ? '+' : ''}${r.o.pt}` : `${abbr(r.o.s)} to win`;
     // the best edges across every game, at the ticked books
@@ -2061,7 +2071,7 @@ const PX = (() => {
         const lines = (mk === 'totals' ? ['Over', 'Under'] : [doc.away, doc.home]).map((side) => {
           const rs = books.map((bk) => rows.find((x) => x.o.m === mk && x.o.s === side && x.o.b === bk)).filter(Boolean); if (!rs.length) return '';
           const bestEdge = Math.max(...rs.map((r) => r.edge));
-          return rs.map((r, i) => `<tr><td class="pname">${i === 0 ? esc(side) : ''}</td><td>${BOOK_NAMES[r.o.b]}</td><td class="r num"${rs.length > 1 && r.edge === bestEdge ? ' style="font-weight:700"' : ''}>${esc(lineText(r))}</td><td class="r num">${r.model == null ? '<span class="muted">—</span>' : pct(r.model)}</td><td class="r num">${pct(r.fair)}</td><td class="r">${pill(r)}</td></tr>`).join('');
+          return rs.map((r, i) => `<tr><td class="pname">${i === 0 ? esc(side) : ''}</td><td>${BOOK_NAMES[r.o.b]}</td><td class="r num"${rs.length > 1 && r.edge === bestEdge ? ' style="font-weight:700"' : ''}>${esc(lineText(r))}${staleNote(r)}</td><td class="r num">${r.model == null ? '<span class="muted">—</span>' : pct(r.model)}</td><td class="r num">${pct(r.fair)}</td><td class="r">${pill(r)}</td></tr>`).join('');
         }).join('');
         return lines ? `<tr class="mk"><td colspan="6">${GAME[mk]}${mk === 'totals' ? ' · market only' : ''}</td></tr>${lines}` : '';
       }).join('');
