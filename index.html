@@ -2081,6 +2081,7 @@ const PX = (() => {
   }
   const VIEWS = ['board', 'games', 'slips', 'backtest', 'lines', 'method'];
   function show(view) {
+    if (S.site && view === 'slips') view = 'board'; // the website has no slips tab
     VIEWS.forEach((v) => $('tab-' + v).setAttribute('aria-selected', String(v === view)));
     const onBoard = view === 'board' || view === 'games';
     $('view-board').hidden = !onBoard; ['slips', 'backtest', 'lines', 'method'].forEach((v) => { $('view-' + v).hidden = v !== view; });
@@ -2199,11 +2200,11 @@ const PX = (() => {
   async function loadSnapshot() {
     let snap; try { const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return false; snap = await r.json(); } catch (e) { return false; }
     if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
-    S.ro = true; S.site = true; document.documentElement.classList.add('ro');
+    S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; if (!$('view-slips').hidden) show('board');
     for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) local[coll].clear();
     S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
-    $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy, last updated ${esc(kickoff(snap.at))}.</strong> Lines, injuries and slips are as of that time. This page picks up new updates on its own.`;
+    $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy, last updated ${esc(kickoff(snap.at))}.</strong> Lines and injuries are as of that time. This page picks up new updates on its own.`;
     S.ready = true; renderAll(); return true;
   }
 })();
