@@ -102,7 +102,7 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .mk button[aria-pressed="true"].w { background: var(--good, #1d7a3e); border-color: var(--good, #1d7a3e); color: #fff } .mk button[aria-pressed="true"].l { background: var(--bad); border-color: var(--bad); color: #fff }
 .mk button.v { font-size: 11px; padding: 0 6px } .mk button[aria-pressed="true"].v { background: var(--muted); border-color: var(--muted); color: var(--surface) }
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
-.ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro [data-slipreopen], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro label[for="out-name"], .ro #out-name { display: none !important }
+.ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro [data-slipreopen], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro #back-add, .ro [data-unback], .ro label[for="out-name"], .ro #out-name { display: none !important }
 .ro #cond-body input, .ro .slipcard .hd input, .ro .slipcard .hd select { pointer-events: none }
 .slipbar .money select { min-width: 0 }
 .money input[type="checkbox"] { width: auto !important; accent-color: var(--accent); margin: 0 }
@@ -264,6 +264,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <fieldset class="group" id="grp-book"><legend class="label">Books</legend><div class="opts"></div></fieldset>
           <div class="break"></div>
           <label class="check" for="f-pos"><input type="checkbox" id="f-pos"> Positive edge only</label>
+          <label class="check" for="f-big"><input type="checkbox" id="f-big"> Edge 5 pts or more</label>
           <label class="check" for="f-all"><input type="checkbox" id="f-all"> Show every offer, not just the best</label>
           <label class="check" for="f-nowatch"><input type="checkbox" id="f-nowatch"> Hide injury watch</label>
           <div class="field"><label class="label" for="f-weight">Trust in model <span class="num" id="f-weight-val">30%</span></label><input type="range" id="f-weight" min="0" max="100" step="10" value="30"></div>
@@ -388,6 +389,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li><strong>Injuries and roles.</strong> A player listed Out or Doubtful, or missing from his team's depth chart, gets no projection, and his recent share is spread over his teammates. When a starting quarterback is out, his team's receptions drop about 4%, receiving yards about 7% and touchdowns about 10%, the average from games started by backups since 2021 after allowing for the spread. A quarterback whose snap share has risen is projected at his new role.</li>
           <li><strong>Defensive starters out.</strong> A defensive starter is a player who took at least 60% of his team's defensive snaps in two of its last four games. Fitted on 4,408 team games from 2016 to 2025 (snap counts and team totals, against what each offense and defense averaged), each front-seven starter out (linemen and linebackers) added about 4% to the opponent's rushing yards and about 3% to its touchdowns. Missing cornerbacks and safeties made no measurable difference to passing yards or catches (under 1%, within the noise). The board uses those sizes pulled toward zero by their uncertainty: per front-seven starter out, rushing yards +3.6% and anytime touchdowns +2.3%; passing props move by well under 1%. At most three per unit count. A starter is out when the report or Claude's call says so, or when he missed his last game and is on no report this week. Defensive starters are not listed under Game conditions and injuries; the Update injuries run makes the calls on them. Checked on the 2025 season while it was held out of the fit: touchdowns did rise in games with front-seven starters out (about 7%), but rushing yards did not, and the adjustment left overall forecast error unchanged. Treat it as a small nudge, not an edge on its own.</li>
           <li><strong>Injury watch.</strong> A prop is highlighted when the player or a teammate who matters to it has an open status: questionable, doubtful, or missing or limited in practice, and not settled by your own tick. For a teammate, the board re-runs the projection as if he sits (or plays, if he is assumed out) and shows the new projection and model chance when the chance moves by 3 points or more. For the player himself it says so; sportsbooks void a prop if he does not play at all, but a short day still loses an over. Official Out players and players off the depth chart count as settled. Tick Hide injury watch to leave these props off the board.</li>
+          <li><strong>Players coming back.</strong> A player returning after missing games (from injury, a suspension, or a reserve or exempt list) is on no injury report, so mark him back this week under Injuries, or let the injury update mark him from the news. He is projected from his games before he left, at about 90% of his old share of targets and carries after missing two or three games and 85% after a longer absence or across an offseason. Teammates give back what they gained while he was out: each one's share is cut by the returner's old share times how much of his recent sample was played without him, 0.8 per point of carries among backs and 1.1 per point of targets. Both sizes come from 514 returns by regular starters in 2016 to 2025; checked on 2024 and 2025 while held out, the adjustment cut the error on backup running backs' carry share by about a fifth.</li>
           <li><strong>Backups who start.</strong> When a regular starter is out and a player who has not been a regular starter (fewer than three starts in his last six games) moves into the starting job (he is listed below the starting spots on the depth chart, and moves up to the top quarterback, running back or tight end, or a top-three receiver once the injured players are taken out), he is projected only from games he started, from this season and last, on any team. A start means a full game at the top of his position: most carries for a running back, most throws and at least 70% of the snaps for a quarterback, top snap share for a tight end, or top three in snaps for a receiver, with at least about half the snaps so relief duty after an injury does not count. His games as a backup are left out, and the injured starter's share is not added on top, because his starts already show what he does with the job. With fewer than two starts on record, the board falls back to his backup games scaled up for the injured starter's share, and says so under the projection.</li>
           <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat.</li>
           <li><strong>Market chance.</strong> The book's two prices with its margin removed. This is usually the better estimate.</li>
@@ -400,7 +402,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
         <h2>What to keep in mind</h2>
         <ul class="plain">
           <li>Game logs and depth charts are a snapshot from <span id="asof">the stats date</span>. Update injuries, under Game conditions and injuries on the board, reads the official NFL.com report for the teams with games left this week, then makes a best guess from current news on which doubtful and questionable players will sit. It is still a guess: it does not see game-day inactives announced 90 minutes before kickoff, so check late scratches yourself.</li>
-          <li>Some picks get no model number on purpose: players who are out, backup quarterbacks (unless he is starting and has at least two starts on record), players with no games this season or on a new team, and touchdown longshots at +600 or longer. The game log says too little about them.</li>
+          <li>Some picks get no model number on purpose: players who are out, backup quarterbacks (unless he is starting and has at least two starts on record), players with no games this season or on a new team (unless marked back this week), and touchdown longshots at +600 or longer. The game log says too little about them.</li>
           <li>The biggest edges are where the model disagrees most with the market, and that is also where the model is most likely to be wrong. Trust in model starts at 30% for that reason.</li>
           <li>Lines are whatever Parlay API (or The Odds API) returned at the moment you pulled. Check a price against your sportsbook before you bet it.</li>
           <li>Game-line model, tested on 1,693 games from 2020 to 2025 that it was not fitted on: it missed the final margin by 10.1 points on average against the closing spread's 9.8, and its totals did worse than a coin flip. Where it disagreed with the spread by 4 or more points it went 177-143, which is too few games to trust and partly depends on knowing in hindsight who each team's main quarterback was. Treat its edge as a second opinion.</li>
@@ -569,13 +571,24 @@ const PM = (() => {
     const vacShare = isCatchKey(marketKey) ? v.tgt : marketKey === 'player_rush_yds' ? (pos === 'RB' ? v.car : 0) : marketKey === 'player_anytime_td' ? v.rz : 0;
     const vk = marketKey === 'player_rush_yds' ? Math.min(1, o.vac / 0.7) : o.vac; // carries go almost entirely to the backs left
     const boost = vacShare > 0 ? clamp(1 + vk * vacShare / (1 - Math.min(vacShare, 0.6)), 1, 1.5) : 1;
+    // a teammate back this week takes back the share he left: per unit of his old share, times how much of this player's
+    // window was played while he was out (fitted on 2016-2025 returns: targets 1.11, carries among backs 0.80)
+    let backF = 1;
+    const bk = isCatchKey(marketKey) ? 'tgt' : marketKey === 'player_rush_yds' ? (pos === 'RB' ? 'car' : null) : marketKey === 'player_anytime_td' ? 'rz' : null;
+    if (bk && ctx.back && ctx.back.length) {
+      const C = { tgt: 1.11, car: 0.80, rz: 0.95 }[bk];
+      const ws = games.map((g, i) => Math.pow(0.88, i) * (g[0] < curSeason || !player.cur ? 0.5 : 1)), wsum = ws.reduce((a, b) => a + b, 0) || 1;
+      for (const b of ctx.back) { const ov = games.reduce((a, g, i) => a + (g[0] > b.since[0] || (g[0] === b.since[0] && g[1] > b.since[1]) ? ws[i] : 0), 0) / wsum; backF *= 1 - C * (b.R[bk] || 0) * ov; }
+      backF = clamp(backF, 0.4, 1);
+    }
+    const retF = ctx.ret && !isPass(marketKey) ? ctx.ret : 1; // his own first game back: a lighter share than before
     const d = (stats.defs[ctx.opp] && stats.defs[ctx.opp][m.def]) || 1;
     const cal = (o.cal && fit.cal && fit.cal[marketKey]) || 1; // level correction from the 2025 backtest
     // opposing defensive starters out this week: fitted on 2016-2025 team games, per missing starter, capped at three per unit
     const dc = fit.dinj && fit.dinj[marketKey], dO = ctx.dOut;
     const dm = dc && dO ? clamp(1 + dc.sec * Math.min(3, dO.sec || 0) + dc.f7 * Math.min(3, dO.f7 || 0), 0.9, 1.15) : 1;
-    const scale = mult * boost * d * cal * dm;
-    const mean = ((1 - o.blend) * base * mult + o.blend * usage) * boost * d * cal * dm;
+    const scale = mult * boost * d * cal * dm * backF * retF;
+    const mean = ((1 - o.blend) * base * mult + o.blend * usage) * boost * d * cal * dm * backF * retF;
     let sd = null;
     if (m.cv) {
       const varObs = Math.max(0, S.xx / S.w - base * base) * scale * scale;
@@ -583,7 +596,7 @@ const PM = (() => {
       sd = Math.sqrt((nEff * varObs + 4 * prior) / (nEff + 4));
     }
     return { mean, sd, nEff, defFactor: d, games: games.length, recent: games.slice(0, 6).map((g) => g[m.idx]), step,
-      why: { def: d - 1, dinj: dm - 1, script: pct.script, wind: pct.wind, home: pct.home, qb: pct.qb, out: boost - 1, role: S.role / S.w - 1, usage: base > 0 ? usage / base - 1 : 0 } };
+      why: { def: d - 1, dinj: dm - 1, back: backF - 1, ret: retF - 1, script: pct.script, wind: pct.wind, home: pct.home, qb: pct.qb, out: boost - 1, role: S.role / S.w - 1, usage: base > 0 ? usage / base - 1 : 0 } };
   }
   const STEP_MIN = 2; // starts needed before a fill-in is projected from his starts alone
   const isCatchKey = (k) => k === 'player_receptions' || k === 'player_reception_yds';
@@ -886,13 +899,13 @@ const PX = (() => {
     applyDoc(coll, id, null); renderAll();
   }
   function applyDoc(coll, id, data) {
-    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], wind: data.wind || {} } : { out: [], in: [], wind: {} }; return; }
+    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
     if (data) local[coll].set(id, data); else local[coll].delete(id);
   }
   function subscribe() {
     for (const coll of ['lines', 'pulls', 'tickets', 'meta', 'log', 'rescore', 'slips', 'results']) {
       S.db.collection(coll).onSnapshot((snap) => {
-        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], wind: {} }; } else local[coll].clear();
+        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], back: [], wind: {} }; } else local[coll].clear();
         snap.docs.forEach((d) => applyDoc(coll, d.id, d.data())); S.loaded.add(coll);
         S.ready = true; renderAll();
       }, () => { S.ready = true; renderAll(); });
@@ -966,6 +979,8 @@ const PX = (() => {
     const k = PM.normName(pl.n), r = reported(pl);
     if (S.over.in.includes(k)) return { absent: false, label: null };
     if (S.over.out.includes(k)) return { absent: true, label: 'Out', cls: 'out', note: 'marked out by you' };
+    if ((S.over.back || []).includes(k)) return { absent: false, label: 'Back', cls: 'q', note: 'you marked him back this week', back: 'you' };
+    if (r.st === 'Returning' && r.call !== 'out') return { absent: false, label: 'Back', cls: 'q', note: 'back this week' + (r.inj ? ': ' + r.inj : ''), back: 'report' };
     if (r.st === 'Out') return { absent: true, label: 'Out', cls: 'out', note: r.inj };
     if (r.call === 'out') return { absent: true, label: 'Out', cls: 'out', note: "Claude's call" + (r.why ? ': ' + r.why : ''), call: 'out' };
     if (r.call === 'in') return { absent: false, label: r.st === 'Doubtful' || r.st === 'Questionable' ? 'Q' : r.st === 'DNP' ? 'DNP' : 'LP', cls: 'q', note: 'Claude expects him to play' + (r.why ? ': ' + r.why : ''), call: 'in' };
@@ -985,6 +1000,19 @@ const PX = (() => {
   }
   const SLOTS = { QB: 1, RB: 1, WR: 3, TE: 1 };
   const usage = (pl) => pl.u ? pl.u[0] + pl.u[1] + pl.u[3] : 0;
+  // returning players: marked back (by you or the injury update) and with past games to go on
+  const backFlag = (pl) => !!(pl.g && pl.g.length) && ((S.over.back || []).includes(PM.normName(pl.n)) || reported(pl).st === 'Returning');
+  const isBack = (pl) => backFlag(pl) && !status(pl).absent;
+  function backShare(pl) { // his targets, carries and red-zone chances as the props model weighs them: last ten games, recent first, earlier seasons at half
+    const cs = Math.max(...pl.g.map((g) => g[0])); let w = 0, a = [0, 0, 0, 0, 0, 0];
+    pl.g.forEach((g, i) => { const x = Math.pow(0.88, i) * (g[0] < cs || !pl.cur ? 0.5 : 1); w += x; a[0] += x * g[11]; a[1] += x * g[15]; a[2] += x * g[8]; a[3] += x * g[16]; a[4] += x * g[17]; a[5] += x * g[18]; });
+    return { tgt: a[1] ? a[0] / a[1] : 0, car: a[3] ? a[2] / a[3] : 0, rz: a[5] ? a[4] / a[5] : 0 };
+  }
+  // fitted on 514 returns, 2016-2025: first game back at about 90% of his old share after missing 2-3 games, 85% after longer or across an offseason
+  function backFactor(pl, t) {
+    const last = pl.g[0], tl = (S.byTeam.get(t) || []).reduce((m, q) => (q.g && q.g[0] && (q.g[0][0] > m[0] || (q.g[0][0] === m[0] && q.g[0][1] > m[1])) ? q.g[0] : m), last);
+    return tl[0] === last[0] && tl[1] - last[1] <= 4 ? 0.9 : 0.85;
+  }
   // flip: players whose playing status is reversed, to ask "what if he sits / plays" for the injury watch
   function eventCtx(eventId, doc, flip) {
     const home = abbr(doc.home), away = abbr(doc.away);
@@ -995,6 +1023,8 @@ const PX = (() => {
     for (const t of [home, away]) { const v = vac[t] = { tgt: 0, car: 0, rz: 0, names: [] };
       (S.byTeam.get(t) || []).forEach((pl) => { if (pl.u && pl.p !== 'QB' && gone(pl)) { // a quarterback's runs go to the man replacing him, not to teammates
         v.tgt += pl.u[0]; v.car += pl.u[1]; v.rz += pl.u[2]; v.names.push(pl.n); } }); }
+    const back = {};
+    for (const t of [home, away]) back[t] = (S.byTeam.get(t) || []).filter((pl) => pl.p !== 'QB' && backFlag(pl) && !gone(pl)).map((pl) => ({ n: pl.n, pl, since: [pl.g[0][0], pl.g[0][1]], R: backShare(pl), f: backFactor(pl, t) }));
     // starting quarterback: the depth chart's QB1, else whoever has thrown most recently. If he is out, strength = how much of the recent sample was his.
     const qbOut = {};
     for (const t of [home, away]) { const qbs = (S.byTeam.get(t) || []).filter((pl) => pl.p === 'QB' && pl.u);
@@ -1018,7 +1048,7 @@ const PX = (() => {
     }
     const w = S.over.wind[eventId];
     return { step, home, away, g, favHome: live ? doc.ctx.fav : g ? g.spread : null, total: live && doc.ctx.total != null ? doc.ctx.total : g ? g.total : null, live,
-      indoor: g ? g.indoor : true, known: !!g, wind: w != null ? w : g ? g.wind : null, neutral: g ? g.neutral : false, vac, qbOut, dOut: { [home]: dOutOf(home), [away]: dOutOf(away) } };
+      indoor: g ? g.indoor : true, known: !!g, wind: w != null ? w : g ? g.wind : null, neutral: g ? g.neutral : false, vac, back, qbOut, dOut: { [home]: dOutOf(home), [away]: dOutOf(away) } };
   }
   // Injury watch: players whose status is genuinely open (questionable, doubtful, missing or limited in practice), unless you
   // have settled it yourself. Official Out and players off the depth chart are treated as settled.
@@ -1028,9 +1058,10 @@ const PX = (() => {
       if (pl.off || S.over.out.includes(k) || S.over.in.includes(k)) return false;
       return UNSURE.includes(reported(pl).st) && (usage(pl) >= 0.04 || (pl.p === 'QB' && (pl.u || [])[3] > 0)); });
   }
+  const backCtx = (ec, player) => { const b = (ec.back && ec.back[player.t]) || [], me = b.find((x) => x.pl === player); return { back: b.filter((x) => x.pl !== player), ret: me ? me.f : null }; };
   function projModel(player, o, ecx, opp, atHome) { // model chance for one prop under one injury picture
     const pj = PM.project(player, o.m, { opp, home: ecx.neutral ? null : atHome, fav: ecx.favHome == null ? null : (atHome ? ecx.favHome : -ecx.favHome),
-      total: ecx.total, indoor: ecx.indoor, wind: ecx.wind, vac: ecx.vac[player.t], qbOut: ecx.qbOut[player.t] || 0, stepIn: ecx.step.get(player) || null, dOut: ecx.dOut && ecx.dOut[opp] }, S.stats);
+      total: ecx.total, indoor: ecx.indoor, wind: ecx.wind, vac: ecx.vac[player.t], ...backCtx(ecx, player), qbOut: ecx.qbOut[player.t] || 0, stepIn: ecx.step.get(player) || null, dOut: ecx.dOut && ecx.dOut[opp] }, S.stats);
     if (!pj || (player.p === 'QB' && pj.step && !pj.step.used)) return null;
     const thin = PM.MARKETS[o.m].unit === 'yds' && (o.pt < 5 || pj.mean < 15);
     const sp = thin ? PM.empirical(player, o.m, o.pt) : PM.sideProbs(pj, o.m, o.pt ?? 0.5);
@@ -1111,11 +1142,11 @@ const PX = (() => {
           // cases the game log cannot speak to: say so instead of showing a confident number
           if (st.absent) skip = 'out';
           else if (!opp) skip = 'changed teams';
-          else if (!player.cur) skip = 'no games this season';
+          else if (!player.cur && !isBack(player)) skip = 'no games this season';
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
           else if (o.m === 'player_anytime_td' && o.pr >= 600) skip = 'longshot';
           if (!skip) proj = PM.project(player, o.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
-            total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
+            total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
           if (proj && player.p === 'QB' && proj.step && !proj.step.used) { proj = null; skip = 'backup quarterback, under 2 starts'; } // a quarterback's backup snaps say nothing about him starting
           if (proj) { const thin = PM.MARKETS[o.m].unit === 'yds' && (o.pt < 5 || proj.mean < 15);
             const sp = thin ? PM.empirical(player, o.m, o.pt) : PM.sideProbs(proj, o.m, o.pt ?? 0.5); model = (o.s === 'Under' || o.s === 'No') ? sp.under : sp.over; }
@@ -1143,10 +1174,10 @@ const PX = (() => {
         if (player) {
           opp = player.t === home ? away : player.t === away ? home : null; st = status(player);
           const atHome = player.t === home;
-          if (st.absent) skip = 'out'; else if (!opp) skip = 'changed teams'; else if (!player.cur) skip = 'no games this season';
+          if (st.absent) skip = 'out'; else if (!opp) skip = 'changed teams'; else if (!player.cur && !isBack(player)) skip = 'no games this season';
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
           if (!skip) proj = PM.project(player, o0.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
-            total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
+            total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
           if (proj) thin = PM.MARKETS[o0.m].unit === 'yds' && (o0.pt < 5 || proj.mean < 15);
         }
         const modelOver = !proj ? null : (thin ? PM.empirical(player, o0.m, o0.pt) : PM.sideProbs(proj, o0.m, o0.pt)).over;
@@ -1186,6 +1217,7 @@ const PX = (() => {
       rows = [...best.values()];
     }
     if (posOnly) rows = rows.filter((r) => r.scored && r.edge > 0);
+    if ($('f-big').checked) rows = rows.filter((r) => r.scored && r.edge >= 0.05);
     if ($('f-nowatch').checked) rows = rows.filter((r) => !(r.watch && r.watch.length));
     // picks without a value for the sorted column always sink to the bottom
     const VAL = { player: (r) => r.o.pl.toLowerCase(), pick: (r) => ALLK.indexOf(r.o.m) * 1e5 + (r.o.pt ?? 0) + (r.o.s === 'Under' ? 0.1 : 0),
@@ -1216,7 +1248,7 @@ const PX = (() => {
       const edgeCls = !r.scored ? 'flat' : r.edge > 0.005 ? 'good' : r.edge < -0.005 ? 'bad' : 'flat';
       const sub = r.kind === 'game' ? 'Game line' : r.player ? `${esc(r.player.t)} ${esc(r.player.dr || r.player.p)}${r.opp ? ' vs ' + esc(r.opp) : ''}` : 'No game log found';
       const tag = r.st && r.st.label ? `<span class="tag ${r.st.cls}" title="${esc(r.st.note || '')}">${esc(r.st.label)}</span>` : '';
-      const why = r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out', r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0]]
+      const why = r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out', r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
         .filter(([, v]) => Math.abs(v) >= 0.01).map(([n, v]) => `${n} ${v > 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(0)}%`).join(' · ') : '';
       const stepNote = stepText(r), wt = watchText(r);
       const wchip = r.watch && r.watch.length ? `<span class="tag watch" title="${esc(r.watch.map((x) => x.self ? x.text : `${x.text}: ${x.mean.toFixed(1)}, model ${pct(x.model)}`).join('; '))}">Injury watch</span>` : '';
@@ -1434,22 +1466,23 @@ const PX = (() => {
       return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${esc(e.slips.join(', '))}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
     $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
-      ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
-        return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the line" aria-label="Change the line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
+      ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
+        return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the pick or line" aria-label="Change the pick or line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
   }
   async function newSlip(name) { const id = newId(); /* the next number after the highest "Slip N", so a deleted slip's number is never reused */
     const auto = 'Slip ' + (Math.max(0, ...slipList().map((x) => { const m = /^Slip (\d+)$/.exec(String(x.name).trim()); return m ? Number(m[1]) : 0; })) + 1);
     const doc = { name: name || auto, createdAt: new Date().toISOString(), legs: [] }; S.newSlipDoc = { id, doc };
     S.activeSlip = id; ls.set('pp.activeSlip', id); await save('slips', id, doc); return id; }
+  const sideSel = (cur) => `<label class="field"><span class="label">Pick</span><select name="s">${['Over', 'Under'].map((v) => `<option${v === cur ? ' selected' : ''}>${v}</option>`).join('')}</select></label>`;
   // + on the board: already in the slip -> take it out; otherwise open a small form to confirm the line you actually got
   function addForm(r) {
     const act = activeSlip(), anytime = r.o.m === 'player_anytime_td';
     return `<tr class="adding"><td colspan="6"><form class="addform" data-addform="${esc(r.key)}">
       <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(r.o.s)}${anytime ? ' anytime TD' : ''} into <strong>${esc(act ? act.name : 'Slip 1 (new)')}</strong></span>
-      ${anytime ? '' : `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(r.o.pt)}" inputmode="decimal" required></label>`}
+      ${anytime ? '' : sideSel(r.o.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(r.o.pt)}" inputmode="decimal" required></label>`}
       <button class="btn sm primary" type="submit">Add</button><button class="btn sm" type="button" data-addcancel="1">Cancel</button>
-      ${anytime ? '' : '<span class="muted small">Set the line your PrizePicks or Pick6 pick uses.</span>'}</form></td></tr>`;
+      ${anytime ? '' : '<span class="muted small">Set the pick and line your PrizePicks or Pick6 entry uses.</span>'}</form></td></tr>`;
   }
   const parseOdds = (v) => { const n = parseInt(String(v).replace(/[^\d+-]/g, ''), 10); return Number.isFinite(n) && Math.abs(n) >= 100 ? n : null; };
   async function toggleLeg(key) {
@@ -1466,6 +1499,7 @@ const PX = (() => {
     const pt = form.elements.pt ? Number(form.elements.pt.value) : null;
     if (form.elements.pt && !Number.isFinite(pt)) { form.elements.pt.focus(); return; }
     if (form.elements.pt) leg.pt = pt;
+    if (form.elements.s && ['Over', 'Under'].includes(form.elements.s.value)) leg.s = form.elements.s.value;
     let act = activeSlip(); if (!act) { const nid = await newSlip(); act = { id: nid, ...(S.slips.get(nid) || S.newSlipDoc.doc) }; }
     const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id; const legs = (cur.legs || []).filter((l) => legId(l) !== legId(leg));
     legs.push(leg); S.adding = null;
@@ -1475,7 +1509,10 @@ const PX = (() => {
     const [sid, ...rest] = form.dataset.legform.split('|'), lid = rest.join('|'), cur = S.slips.get(sid); if (!cur) return;
     const pt = form.elements.pt ? Number(form.elements.pt.value) : null;
     if (form.elements.pt && !Number.isFinite(pt)) { form.elements.pt.focus(); return; }
-    const legs = (cur.legs || []).map((l) => { if (legId(l) !== lid) return l; const n = { ...l }; if (form.elements.pt) n.pt = pt; return n; });
+    const side = form.elements.s && ['Over', 'Under'].includes(form.elements.s.value) ? form.elements.s.value : null;
+    let edited = null;
+    const legs = (cur.legs || []).map((l) => { if (legId(l) !== lid) return l; const n = { ...l }; if (form.elements.pt) n.pt = pt; if (side) n.s = side; edited = n; return n; })
+      .filter((l) => !edited || l === edited || legId(l) !== legId(edited)); // switching sides replaces the same prop's other side if it was already on this slip
     S.editLeg = null; await save('slips', sid, { ...cur, legs });
   }
   async function setMark(pk, v) { const m = { ...S.marks }; if (v) m[pk] = v; else delete m[pk]; S.marks = m; renderSlips(); await save('meta', 'marks', { m }); }
@@ -1684,7 +1721,7 @@ const PX = (() => {
     const el = $('f-be-val'); if (el) el.textContent = S.be + '%';
   }
   function renderCond() {
-    const blocks = []; let nOut = 0, nQ = 0; const names = new Set();
+    const blocks = []; let nOut = 0, nQ = 0, nBack = 0; const names = new Set();
     let i = 0;
     const withProp = new Set(); for (const r of S.rows || []) if (r.kind !== 'game' && r.player) withProp.add(r.player); // only players with a prop on the board are listed
     const kick = (id) => String((S.lines.get(id) || {}).commence || '');
@@ -1697,26 +1734,26 @@ const PX = (() => {
       if (ec.known) facts.push(`<span class="muted small">Rest ${ec.g.awayRest} and ${ec.g.homeRest} days</span>`);
       const list = [];
       for (const t of [ec.away, ec.home]) (S.byTeam.get(t) || []).forEach((pl) => { names.add(pl.n); const st = status(pl), manualIn = S.over.in.includes(PM.normName(pl.n));
-        const relevant = (pl.u && pl.u[0] + pl.u[1] + pl.u[2] > 0.02) || pl.p === 'QB';
+        const relevant = (pl.u && pl.u[0] + pl.u[1] + pl.u[2] > 0.02) || pl.p === 'QB' || st.back;
         if (!(st.label || manualIn) || !(relevant || st.note === 'marked out by you')) return;
-        if (!withProp.has(pl)) return;
+        if (!withProp.has(pl) && !st.back) return;
         // definitely out (official Out, injured reserve or suspended, off the depth chart): counted, and the model treats him as out, but not listed
         const r = reported(pl), mine = manualIn || S.over.out.includes(PM.normName(pl.n));
         if (!mine && st.absent && (r.st === 'Out' || r.st === 'News' || (pl.off && !UNSURE.includes(r.st)))) { nOut++; return; }
-        if (st.absent) nQ++; else if (st.label) nQ++;
-        list.push(`<label class="opt" for="out-${i}-${list.length}"><input type="checkbox" id="out-${i}-${list.length}" data-out="${esc(PM.normName(pl.n))}" ${st.absent ? 'checked' : ''}> ${esc(pl.n)} <span class="muted small">${esc(pl.t)} ${esc(pl.dr || pl.p)} · ${esc(manualIn ? 'you marked him playing' : st.call ? `${({ Out: 'out', Doubtful: 'doubtful', Questionable: 'questionable', DNP: 'missed practice', Limited: 'limited in practice', News: 'not on the report' })[reported(pl).st] || 'listed'}${reported(pl).inj ? ' (' + reported(pl).inj + ')' : ''} · Claude's call: ${st.call === 'out' ? 'sits' : 'plays'}${reported(pl).why ? ', ' + reported(pl).why : ''}` : (ST_TEXT[reported(pl).st] && !st.absent ? ST_TEXT[reported(pl).st] : st.label) + (reported(pl).inj && st.note !== 'marked out by you' ? ', ' + reported(pl).inj : ''))}</span></label>`); });
+        if (st.back) nBack++; else if (st.absent) nQ++; else if (st.label) nQ++;
+        list.push(`<label class="opt" for="out-${i}-${list.length}"><input type="checkbox" id="out-${i}-${list.length}" data-out="${esc(PM.normName(pl.n))}" ${st.absent ? 'checked' : ''}> ${esc(pl.n)} <span class="muted small">${esc(pl.t)} ${esc(pl.dr || pl.p)} · ${st.back ? esc(st.note) + (st.back === 'you' ? ` <button class="xbtn" data-unback="${esc(PM.normName(pl.n))}" title="Not back after all" aria-label="Undo back this week">×</button>` : '') : esc(manualIn ? 'you marked him playing' : st.call ? `${({ Out: 'out', Doubtful: 'doubtful', Questionable: 'questionable', DNP: 'missed practice', Limited: 'limited in practice', News: 'not on the report' })[reported(pl).st] || 'listed'}${reported(pl).inj ? ' (' + reported(pl).inj + ')' : ''} · Claude's call: ${st.call === 'out' ? 'sits' : 'plays'}${reported(pl).why ? ', ' + reported(pl).why : ''}` : (ST_TEXT[reported(pl).st] && !st.absent ? ST_TEXT[reported(pl).st] : st.label) + (reported(pl).inj && st.note !== 'marked out by you' ? ', ' + reported(pl).inj : ''))}</span></label>`); });
       // spread, total, wind and venue feed the model directly, so only games with an uncertain player are shown here
       if (list.length) blocks.push(`<div class="gctx"><div class="facts">${facts[0]}</div><div class="label">Tick players who will not play</div><div class="opts">${list.join('')}</div></div>`);
       i++;
     }
-    $('cond-sum').textContent = 'Injuries' + (S.ctx.size ? ` · ${nQ} uncertain with props · ${nOut} ruled out (not listed)` : '');
+    $('cond-sum').textContent = 'Injuries' + (S.ctx.size ? ` · ${nQ} uncertain with props${nBack ? ` · ${nBack} back this week` : ''} · ${nOut} ruled out (not listed)` : '');
     const injBusy = injBusyNow(), ij = S.inj;
     const injState = injBusy ? 'Claude is refreshing the depth charts, reading the NFL.com injury report and the latest news on each questionable player, and pulling the wind forecast for outdoor games. This panel updates on its own in several minutes.'
       : ij && ij.status === 'done' ? `Injuries updated ${kickoff(ij.at)} from the NFL.com injury report and current news. ${ij.message || ''}`
       : ij && ij.status === 'error' ? `Last update ${kickoff(ij.at)} failed: ${ij.message || 'no reason given.'}`
       : `Injury reports are from ${new Date(S.stats.asOf + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}.`;
     const injBar = `<div class="stack" style="gap:6px"><div class="row"><button class="btn sm primary" id="inj-go" ${injBusy || S.injFiring ? 'disabled' : ''}>${S.injFiring ? 'Starting…' : injBusy ? 'Update in progress' : 'Update injuries, depth charts and weather'}</button><span class="small" style="flex:1 1 240px;min-width:0${ij && ij.status === 'error' && !injBusy ? ';color:var(--bad)' : ''}">${esc(injState)}</span></div>${S.injMsg ? `<div class="msg ${S.injMsg.bad ? 'err' : 'ok'}" role="status">${esc(S.injMsg.text)}</div>` : ''}</div>`;
-    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button></div><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
+    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out, or back this week</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button><button class="btn sm" id="back-add" style="align-self:flex-end" title="Back from injury, a suspension or a reserve list">Mark back this week</button></div><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. Mark back this week is for a player returning after missing games (injury, suspension, a reserve or exempt list), which no injury report shows: he is projected from his games before he left at about 90% of his old share (85% after a long absence), and teammates who filled in give back the share they gained while he was out. The injury update also looks for these returns in the news and marks them for you. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
   }
   /* ---------- backtest ---------- */
   // Freeze each game's picks before kickoff. Written once per change in the inputs (a new pull, an injury update, a tick), never after kickoff.
@@ -1728,7 +1765,7 @@ const PX = (() => {
       for (const [eventId, doc] of S.lines) {
         if (doc.example || !(Date.now() < Date.parse(doc.commence))) continue;
         const rows = S.rows.filter((r) => r.eventId === eventId); if (!rows.length) continue;
-        const sig = [latest(doc).at, S.be, S.stats.asOf, S.inj && S.inj.status === 'done' ? S.inj.at : '', S.over.out.join(','), S.over.in.join(','), JSON.stringify(S.over.wind)].join('~');
+        const sig = [latest(doc).at, S.be, S.stats.asOf, S.inj && S.inj.status === 'done' ? S.inj.at : '', S.over.out.join(','), S.over.in.join(','), (S.over.back || []).join(','), JSON.stringify(S.over.wind)].join('~');
         const cur = S.log.get(eventId); if (cur && cur.sig === sig) continue;
         const o = rows.map((r) => [r.kind === 'game' ? 'GAME' : r.o.pl, r.o.m, r.o.b, r.o.s, r.o.pt ?? '', r.kind === 'dfs' ? PM.toAmerican(100 / S.be) : r.o.pr, r.model == null ? '' : r.model.toFixed(4), (r.fair == null ? 0.5 : r.fair).toFixed(4), r.proj ? r.proj.mean.toFixed(1) : '', r.skip || '', r.player ? r.player.n : ''].join('|'));
         const data = { eventId, home: doc.home, away: doc.away, commence: doc.commence, savedAt: new Date().toISOString(), pullAt: latest(doc).at, sig, o };
@@ -1800,7 +1837,7 @@ const PX = (() => {
   const loadPdfLib = () => pdfLibP || (pdfLibP = new Promise((res, rej) => { if (window.PDFLib) return res(window.PDFLib);
     const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
     sc.onload = () => (window.PDFLib ? res(window.PDFLib) : rej(new Error('missing'))); sc.onerror = () => { pdfLibP = null; rej(new Error('load')); }; document.head.appendChild(sc); }));
-  const whyOf = (r) => r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out', r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0]]
+  const whyOf = (r) => r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out', r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
     .filter(([, v]) => Math.abs(v) >= 0.01).map(([n, v]) => `${n} ${v > 0 ? '+' : '-'}${Math.abs(v * 100).toFixed(0)}%`).join(', ') : '';
   function exportData() {
     const props = (S.view || []).map((r) => ({ game: r.game, player: r.o.pl, team: r.player ? r.player.t : '', pos: r.player ? (r.player.dr || r.player.p) : '', status: r.st && r.st.label ? r.st.label : '',
@@ -1925,9 +1962,15 @@ const PX = (() => {
     S.injFiring = false; renderCond();
   }
   function setOut(key, out) {
-    const o = { out: S.over.out.filter((k) => k !== key), in: S.over.in.filter((k) => k !== key), wind: { ...S.over.wind } };
+    const o = { out: S.over.out.filter((k) => k !== key), in: S.over.in.filter((k) => k !== key), back: [...(S.over.back || [])], wind: { ...S.over.wind } };
     const pl = S.byName.get(key), dpl = !pl && S.dByName.get(key), rp = pl && reported(pl), rst = rp && rp.st, isRep = dpl ? dDefaultOut(dpl) : !!pl && (rst === 'Out' || rp.call === 'out' || (rst === 'Doubtful' && rp.call !== 'in') || !!pl.off);
     if (out && !isRep) o.out.push(key); if (!out && isRep) o.in.push(key);
+    return save('meta', 'overrides', o);
+  }
+  // a player coming back this week (from injury, a suspension or a reserve list): you mark him, or the injury update reports him Returning
+  function setBack(key, on) {
+    const o = { out: S.over.out.filter((k) => k !== key), in: S.over.in.filter((k) => k !== key), back: (S.over.back || []).filter((k) => k !== key), wind: { ...S.over.wind } };
+    if (on) o.back.push(key);
     return save('meta', 'overrides', o);
   }
   const BOOK_NAMES = { fanduel: 'FanDuel', draftkings: 'DraftKings' };
@@ -2136,6 +2179,8 @@ const PX = (() => {
       await save('meta', 'usage', { ...u, month, credits: Math.round(v), oddsSyncAt: new Date().toISOString() }); $('osync').value = ''; return; }
     if (t.id === 'psync-go') { const v = Number($('psync').value); if ($('psync').value === '' || !Number.isFinite(v) || v < 0) return; const month = new Date().toISOString().slice(0, 7), u = S.usage && S.usage.month === month ? S.usage : { month, credits: 0, pulls: 0 };
       await save('meta', 'usage', { ...u, month, parlayUsed: Math.round(v), parlayTotal: Number(u.parlayTotal) > 0 ? Number(u.parlayTotal) : 1000, parlaySyncAt: new Date().toISOString() }); $('psync').value = ''; return; }
+    if (t.id === 'back-add') { const k = PM.normName($('out-name').value); if (S.byName.has(k)) return setBack(k, true); $('out-name').value = ''; $('out-name').placeholder = 'No player by that name'; return; }
+    if (t.dataset.unback) { e.preventDefault(); return setBack(t.dataset.unback, false); }
     if (t.id === 'out-add') { const k = PM.normName($('out-name').value); if (S.byName.has(k) || S.dByName.has(k)) return setOut(k, true); $('out-name').value = ''; $('out-name').placeholder = 'No player by that name'; return; }
   });
   document.addEventListener('input', (e) => {
@@ -2169,7 +2214,7 @@ const PX = (() => {
       ls.set('pp.off3', { market: [...S.off.market], book: [...S.off.book] });
       renderGroups(); renderBoard(); const again = document.getElementById(t.id); if (again) again.focus();
     }
-    if (['f-pos', 'f-all', 'f-nowatch'].includes(t.id)) { if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); renderBoard(); }
+    if (['f-pos', 'f-big', 'f-all', 'f-nowatch'].includes(t.id)) { if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); renderBoard(); }
     if (t.id === 'f-sort') { const [key, dir] = t.value.split(':'); S.sort = { key, dir }; ls.set('pp.sort', S.sort); renderBoard(); }
     if (t.id === 'slip-stake' || t.id === 'slip-price') renderSlip();
     if (t.id === 'g-all') renderLines();
@@ -2177,7 +2222,7 @@ const PX = (() => {
     if (t.name === 'hsrc' && t.checked) { S.hsrc = t.value === 'odds' ? 'odds' : 'parlay'; ls.set('pp.hsrc', S.hsrc); $('api-key').blur(); renderLines(); }
     if (t.name === 'scope' && t.checked) { S.popts = { scope: t.value === 'night' ? 'night' : 'all' }; save('meta', 'pullopts', S.popts); renderPull(); }
     if (t.dataset.out) setOut(t.dataset.out, t.checked);
-    if (t.dataset.wind) { const wind = { ...S.over.wind }; if (t.value === '') delete wind[t.dataset.wind]; else wind[t.dataset.wind] = Math.max(0, Number(t.value) || 0); save('meta', 'overrides', { out: S.over.out, in: S.over.in, wind }); }
+    if (t.dataset.wind) { const wind = { ...S.over.wind }; if (t.value === '') delete wind[t.dataset.wind]; else wind[t.dataset.wind] = Math.max(0, Number(t.value) || 0); save('meta', 'overrides', { out: S.over.out, in: S.over.in, back: S.over.back || [], wind }); }
   });
 
   /* ---------- boot ---------- */
@@ -2202,7 +2247,7 @@ const PX = (() => {
     if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
     S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; if (!$('view-slips').hidden) show('board');
     for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) local[coll].clear();
-    S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], wind: {} };
+    S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], back: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
     $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy, last updated ${esc(kickoff(snap.at))}.</strong> Lines and injuries are as of that time. This page picks up new updates on its own.`;
     S.ready = true; renderAll(); return true;
