@@ -266,6 +266,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <label class="check" for="f-pos"><input type="checkbox" id="f-pos"> Positive edge only</label>
           <label class="check" for="f-big"><input type="checkbox" id="f-big"> Edge 5 pts or more</label>
           <label class="check" for="f-all"><input type="checkbox" id="f-all"> Show every offer, not just the best</label>
+          <label class="check" for="f-noslip"><input type="checkbox" id="f-noslip"> Hide props already on a slip</label>
           <label class="check" for="f-nowatch"><input type="checkbox" id="f-nowatch"> Hide injury watch</label>
           <div class="field"><label class="label" for="f-weight">Trust in model <span class="num" id="f-weight-val">30%</span></label><input type="range" id="f-weight" min="0" max="100" step="10" value="30"></div>
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
@@ -1219,6 +1220,10 @@ const PX = (() => {
     if (posOnly) rows = rows.filter((r) => r.scored && r.edge > 0);
     if ($('f-big').checked) rows = rows.filter((r) => r.scored && r.edge >= 0.05);
     if ($('f-nowatch').checked) rows = rows.filter((r) => !(r.watch && r.watch.length));
+    if ($('f-noslip').checked) { // same game, player, prop and side as a leg on any slip, whatever the line or book
+      const onSlip = new Set(slipList().flatMap((x) => x.legs.map(legId)));
+      rows = rows.filter((r) => !onSlip.has(legId(legOf(r))));
+    }
     // picks without a value for the sorted column always sink to the bottom
     const VAL = { player: (r) => r.o.pl.toLowerCase(), pick: (r) => ALLK.indexOf(r.o.m) * 1e5 + (r.o.pt ?? 0) + (r.o.s === 'Under' ? 0.1 : 0),
       proj: (r) => (r.proj ? r.proj.mean : null), chance: (r) => r.model, edge: (r) => (r.scored ? r.edge : null) };
@@ -2214,7 +2219,7 @@ const PX = (() => {
       ls.set('pp.off3', { market: [...S.off.market], book: [...S.off.book] });
       renderGroups(); renderBoard(); const again = document.getElementById(t.id); if (again) again.focus();
     }
-    if (['f-pos', 'f-big', 'f-all', 'f-nowatch'].includes(t.id)) { if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); renderBoard(); }
+    if (['f-pos', 'f-big', 'f-all', 'f-nowatch', 'f-noslip'].includes(t.id)) { if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); if (t.id === 'f-noslip') ls.set('pp.noslip', t.checked); renderBoard(); }
     if (t.id === 'f-sort') { const [key, dir] = t.value.split(':'); S.sort = { key, dir }; ls.set('pp.sort', S.sort); renderBoard(); }
     if (t.id === 'slip-stake' || t.id === 'slip-price') renderSlip();
     if (t.id === 'g-all') renderLines();
@@ -2227,7 +2232,7 @@ const PX = (() => {
 
   /* ---------- boot ---------- */
   renderGroups();
-  $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
+  $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
   const start = (location.hash || '').slice(1); if (['games', 'tracker', 'backtest', 'lines', 'method'].includes(start)) show(start);
   fetch('stats.json').then((r) => r.json()).then((stats) => {
     S.stats = stats; $('asof').textContent = new Date(stats.asOf + 'T12:00:00').toLocaleDateString([], { month: 'long', day: 'numeric' });
