@@ -236,7 +236,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div>
       <h1>NFL Bet Analyzer</h1>
       <p class="status" id="status">Loading saved lines…</p>
-      <div class="row" id="export-row" style="margin-top:10px" hidden><button class="btn sm" id="exp-xlsx">Export to Excel</button><button class="btn sm" id="exp-pdf">Export to PDF</button><button class="btn sm" id="site-go" hidden title="Copy the latest lines, injuries and slips to joshxyli.github.io/NFL-Bet-Analyzer">Update website</button><span class="small muted" id="exp-msg" role="status"></span></div>
+      <div class="row" id="export-row" style="margin-top:10px" hidden><button class="btn sm" id="exp-xlsx">Export to Excel</button><button class="btn sm" id="exp-pdf">Export all to PDF</button><button class="btn sm" id="exp-view" title="A PDF of the tab you are looking at, as filtered">Export this tab to PDF</button><button class="btn sm" id="site-go" hidden title="Copy the latest lines, injuries and slips to joshxyli.github.io/NFL-Bet-Analyzer">Update website</button><span class="small muted" id="exp-msg" role="status"></span></div>
     </div>
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-board" data-view="board" aria-selected="true">Player props</button>
@@ -1209,6 +1209,14 @@ const PX = (() => {
   }
 
   /* ---------- board ---------- */
+  // small yardage lines are scored from the game log, not the average: say how often he cleared it
+  function logNote(r) {
+    if (!r.proj || !r.player || r.model == null || r.o.pt == null) return '';
+    const m = PM.MARKETS[r.o.m]; if (!m || m.unit !== 'yds' || !(r.o.pt < 5 || r.proj.mean < 15)) return '';
+    const vals = r.player.g.map((g) => g[m.idx]), under = r.o.s === 'Under' || r.o.s === 'No';
+    const k = vals.filter((v) => (under ? v < r.o.pt : v > r.o.pt)).length;
+    return `chance from game log: ${k} of last ${vals.length} ${under ? 'under' : 'over'} ${r.o.pt}`;
+  }
   function renderBoard() {
     const posOnly = $('f-pos').checked, all = $('f-all').checked;
     let rows = S.rows.filter((r) => r.kind !== 'game' && !S.off.game.has(r.eventId) && !S.off.market.has(r.o.m) && !S.off.book.has(r.o.b));
@@ -1260,7 +1268,7 @@ const PX = (() => {
       return `<tr${wchip ? ' class="watch"' : ''}>
         <td class="c-player"><div class="pname">${esc(o.pl)}${tag}${wchip}</div>${wt ? `<div class="watchl small">${esc(wt)}</div>` : ''}<div class="muted small">${sub} · ${esc(r.game)}</div></td>
         <td class="c-pick"><div class="pick">${esc(r.kind === 'dfs' ? pickText(o).replace(/^Over/, 'More').replace(/^Under/, 'Less') : pickText(o))}</div><div class="price">${r.kind === 'dfs' ? `<span class="book">${BOOKS[o.b]}</span>${r.refText ? ` <span class="muted small">books: ${esc(r.refText)}</span>` : ' <span class="muted small">no sportsbook line</span>'}` : `<span class="book" style="margin-left:0" title="Line from ${BOOK_NAMES[o.b] || o.b}">${BOOKS[o.b]}</span>${r.opened && r.opened.pt != null && r.opened.pt !== o.pt ? ` <span class="muted small">opened at ${r.opened.pt}</span>` : ''}`}</div></td>
-        <td class="r c-proj" data-l="Proj">${r.proj ? `<span class="num">${r.proj.mean.toFixed(m.unit === 'yds' ? 0 : 1)}</span> <span class="muted small">${m.unit}</span>${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
+        <td class="r c-proj" data-l="Proj">${r.proj ? `<span class="num">${r.proj.mean.toFixed(m.unit === 'yds' ? 0 : 1)}</span> <span class="muted small">${m.unit}</span>${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}${logNote(r) ? `<div class="why">${esc(logNote(r))}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
         <td class="r c-chance" data-l="Model"><span class="num">${r.model == null ? '—' : pct(r.model)}</span><span class="sub2">market <span class="num">${r.fair == null ? '—' : pct(r.fair)}</span></span></td>
         <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
       <td class="r c-add">${addBtn(r)}</td>
@@ -1878,9 +1886,9 @@ const PX = (() => {
     sheets.push({ name: 'About', filter: false, cols: [{ h: 'Item', w: 28 }, { h: 'Value', w: 110, fmt: 'wrap' }], rows: d.about });
     return PX.xlsx(sheets);
   }
-  async function buildPdf(d) {
+  async function buildPdf(d, keep, title) {
     const PDFLib = await loadPdfLib(), tone = (i) => (row) => (row[i].startsWith('+') && row[i] !== '+0.0' ? 'good' : row[i].startsWith('-') && row[i] !== '-0.0' ? 'bad' : null);
-    const sections = [
+    let sections = [
       { heading: `Props board (${d.props.length} picks)`, note: `Sorted by ${S.sort.key}, ${S.sort.dir === 'asc' ? 'ascending' : 'descending'}, as filtered on the board. Edge in percentage points; EV per $1 staked.`, empty: 'No props on the board with the current filters.',
         cols: [{ h: 'Player', w: 16, bold: true }, { h: 'Team', w: 9 }, { h: 'Game', w: 9 }, { h: 'Pick', w: 18 }, { h: 'Price', w: 6, align: 'r' }, { h: 'Book', w: 8 }, { h: 'Proj', w: 6, align: 'r' }, { h: 'Model', w: 7, align: 'r' }, { h: 'Market', w: 7, align: 'r' }, { h: 'Edge', w: 6, align: 'r', tone: tone(9) }, { h: 'EV', w: 6, align: 'r' }, { h: 'Notes', w: 23 }],
         rows: d.props.map((p) => [p.player + (p.status ? ' (' + p.status + ')' : ''), [p.team, p.pos].filter(Boolean).join(' '), p.game, p.pick, p.price == null ? '' : am(p.price), p.book, p.proj == null ? '' : p.proj.toFixed(1), pc(p.model), pc(p.market), sg(p.edge), sg(p.ev, 2), p.note || p.adj]) },
@@ -1895,7 +1903,8 @@ const PX = (() => {
     if (d.legs.length) sections.push({ heading: `Parlay slip (${d.legs.length} legs)`, note: `Chance to hit ${pc(d.sm.joint)}; needs ${pc(1 / d.sm.dec)} at ${am(PM.toAmerican(d.sm.dec))}; expected value ${sg(d.sm.ev, 2)} per $1.`,
       cols: [{ h: 'Leg', w: 22, bold: true }, { h: 'Pick', w: 24 }, { h: 'Game', w: 12 }, { h: 'Price', w: 8, align: 'r' }, { h: 'Book', w: 10 }, { h: 'Chance', w: 9, align: 'r' }, { h: 'Edge', w: 8, align: 'r', tone: tone(6) }],
       rows: d.legs.map((l) => [l.player, l.text, l.game, am(l.price), BOOK_NAMES[l.book] || l.book, pc(l.p), l.hasModel ? sg(l.edge * 100) : '']) });
-    return PX.pdf({ title: 'NFL Bet Analyzer', subtitle: [`Exported ${d.about[0][1]}. Lines pulled ${d.about[1][1]}. Injuries: ${d.about[3][1]}.`, `${d.about[2][1]}. Trust in model: props ${S.weight}%, game lines ${S.gweight}%.`], sections, footer: 'Model numbers are estimates. Check every price against your sportsbook. Nothing here guarantees a win.' }, PDFLib);
+    if (keep) sections = sections.filter((x, i) => keep.includes(i));
+    return PX.pdf({ title: title || 'NFL Bet Analyzer', subtitle: [`Exported ${d.about[0][1]}. Lines pulled ${d.about[1][1]}. Injuries: ${d.about[3][1]}.`, `${d.about[2][1]}. Trust in model: props ${S.weight}%, game lines ${S.gweight}%.`], sections, footer: 'Model numbers are estimates. Check every price against your sportsbook. Nothing here guarantees a win.' }, PDFLib);
   }
   // My slips export: a summary, every leg slip by slip, and each prop once with the slips it sits in
   function slipsData() {
@@ -1934,6 +1943,30 @@ const PX = (() => {
     ];
     return PX.pdf({ title: 'NFL Bet Analyzer: my slips', subtitle: [`Exported ${new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Status uses your own hit and miss marks first, then final box scores.`], sections, footer: 'Lines and odds are as you entered them. Check every bet against your sportsbook.' }, PDFLib);
   }
+  // Export this tab: the board and game lines from their data as filtered; backtest and how-it-works read off the page
+  const curView = () => { const t = document.querySelector('.tab[aria-selected="true"]'); return t ? t.dataset.view : 'board'; };
+  const clean = (el) => (el ? el.innerText.replace(/\s+/g, ' ').trim() : '');
+  function wrapText(t, n) { const out = []; let cur = ''; for (const w of String(t).split(' ')) { if ((cur + ' ' + w).trim().length > n && cur) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); } if (cur) out.push(cur); return out; }
+  function pageSections(root) {
+    const out = [];
+    root.querySelectorAll('.tiles').forEach((t) => { const cells = [...t.children].filter((c) => c.offsetParent !== null).map((c) => [clean(c.querySelector('.label')) || clean(c), clean(c.querySelector('b')), clean(c.querySelector('.small, .muted:not(.label)'))]);
+      if (cells.length) out.push({ heading: 'Summary', cols: [{ h: 'Measure', w: 30, bold: true }, { h: 'Value', w: 20, align: 'r' }, { h: 'Detail', w: 60 }], rows: cells }); });
+    root.querySelectorAll('.panel').forEach((pn) => { if (pn.offsetParent === null) return; const tb = pn.querySelector('table'); const hd = clean(pn.querySelector('h2, h3'));
+      if (tb) { const ths = [...tb.querySelectorAll('thead th')].map(clean), n = Math.max(1, ths.length);
+        const rows = [...tb.querySelectorAll('tbody tr')].map((tr) => [...tr.children].map(clean)).map((r) => (r.length < n ? [r.join(' '), ...Array(n - 1).fill('')] : r.slice(0, n)));
+        out.push({ heading: hd, cols: ths.map((h, i) => ({ h, w: i === 0 ? 34 : 66 / Math.max(1, n - 1), align: i ? 'r' : undefined, bold: i === 0 })), rows, empty: 'Nothing here yet.' }); return; }
+      const items = [...pn.querySelectorAll('li, p')].map(clean).filter(Boolean);
+      if (hd && items.length) out.push({ heading: hd, cols: [{ h: '', w: 100 }], rows: items.flatMap((t) => [...wrapText(t, 170).map((x) => [x]), ['']]) }); });
+    return out;
+  }
+  async function buildViewPdf(view) {
+    if (view === 'slips') return buildSlipsPdf(slipsData());
+    const d = exportData();
+    if (view === 'board') return buildPdf(d, [0], 'NFL Bet Analyzer: player props');
+    if (view === 'games') return buildPdf(d, [1, 2], 'NFL Bet Analyzer: game lines');
+    const PDFLib = await loadPdfLib(), root = $('view-' + view), names = { backtest: 'backtest', method: 'how it works', lines: 'get lines' };
+    return PX.pdf({ title: 'NFL Bet Analyzer: ' + (names[view] || view), subtitle: [`Exported ${d.about[0][1]}. Trust in model: props ${S.weight}%, game lines ${S.gweight}%.`], sections: pageSections(root), footer: 'Model numbers are estimates. Nothing here guarantees a win.' }, PDFLib);
+  }
   async function runExport(kind, which) {
     const msgEl = which === 'slips' ? 'slip-exp-msg' : 'exp-msg';
     const msg = (t, bad) => { const m = $(msgEl); m.textContent = t; m.style.color = bad ? 'var(--bad)' : ''; };
@@ -1942,10 +1975,13 @@ const PX = (() => {
     if (!S.stats) return msg('Still loading. Try again in a moment.', true);
     msg('Preparing the file…');
     let bytes;
-    try { if (which === 'slips') { const d = slipsData(); bytes = kind === 'xlsx' ? buildSlipsXlsx(d) : await buildSlipsPdf(d); } else { const d = exportData(); bytes = kind === 'xlsx' ? buildXlsx(d) : await buildPdf(d); } }
+    const vw = which === 'view' ? curView() : null;
+    if (vw === 'lines') return msg('Nothing to export on this tab.', true);
+    if (vw === 'slips' && !S.slips.size) return msg('No slips to export yet.', true);
+    try { if (vw) bytes = await buildViewPdf(vw); else if (which === 'slips') { const d = slipsData(); bytes = kind === 'xlsx' ? buildSlipsXlsx(d) : await buildSlipsPdf(d); } else { const d = exportData(); bytes = kind === 'xlsx' ? buildXlsx(d) : await buildPdf(d); } }
     catch (e) { return msg(kind === 'pdf' && e && e.message === 'load' ? 'The PDF builder did not load. Check your connection and try again.' : 'Could not build the file.', true); }
     const day = new Date(), stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-    try { await dl.save({ filename: `nfl-bet-analyzer-${which === 'slips' ? 'slips-' : ''}${stamp}.${kind}`, data: new Blob([bytes]) }); msg('Saved.'); }
+    try { await dl.save({ filename: `nfl-bet-analyzer-${vw ? ({ board: 'props', games: 'game-lines' }[vw] || vw) + '-' : which === 'slips' ? 'slips-' : ''}${stamp}.${kind}`, data: new Blob([bytes]) }); msg('Saved.'); }
     catch (e) { const c = e && e.code; msg(c === 'declined' ? '' : c === 'rate_limited' ? 'A save prompt is already open. Answer it, then try again.' : c === 'rejected_extension' || c === 'extension_not_enabled' ? 'This file type cannot be saved in this view.' : c === 'too_large' ? 'The file is too large to save here.' : 'Could not save the file.', c !== 'declined'); }
   }
   const INJ_TRIGGER = 'trig_0188jTCJ3VBDmnP6khsUznkv', INJ_WINDOW = 40 * 60e3;
@@ -2173,6 +2209,7 @@ const PX = (() => {
     if (t.id === 'grade-go') return fireGrade();
     if (t.id === 'site-go') return updateSite();
     if (t.id === 'exp-xlsx' || t.id === 'exp-pdf') return runExport(t.id === 'exp-xlsx' ? 'xlsx' : 'pdf');
+    if (t.id === 'exp-view') return runExport('pdf', 'view');
     if (t.id === 'slip-xlsx' || t.id === 'slip-pdf') return runExport(t.id === 'slip-xlsx' ? 'xlsx' : 'pdf', 'slips');
     if (t.id === 'odds-go') { S.askSeen = S.pull && S.pull.at; ls.set('pp.askSeen', S.askSeen); return firePull(ODDS_TRIGGER); }
     if (t.id === 'odds-no') { S.askSeen = S.pull && S.pull.at; ls.set('pp.askSeen', S.askSeen); return renderPull(); }
