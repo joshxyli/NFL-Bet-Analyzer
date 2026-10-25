@@ -229,6 +229,14 @@ table.bt tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start }
 ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+.totop { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 40; width: 44px; height: 44px; display: grid; place-items: center; font: 700 20px var(--mono); background: var(--ink); color: var(--bg); border: 0; border-radius: 2px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.25) }
+.totop[hidden] { display: none }
+.help { position: relative; display: inline-flex; vertical-align: middle; width: 20px; height: 20px; align-items: center; justify-content: center; margin-left: 6px; border: 1px solid var(--muted); border-radius: 2px; background: var(--sunk); color: var(--muted); font: 700 12px/1 var(--mono); letter-spacing: 0; text-transform: none; cursor: help; flex: none }
+.help:hover, .help:focus { color: var(--ink); border-color: var(--ink); outline: none }
+.help .tip { display: none; position: absolute; z-index: 45; left: 0; top: 100%; width: min(380px, calc(100vw - 32px)); padding: 10px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--ink); box-shadow: 0 6px 24px rgba(0,0,0,.25); font: 400 13px/1.45 var(--body); letter-spacing: 0; text-transform: none; text-align: left; white-space: normal; cursor: auto }
+.help .tip > * { margin: 0; display: block }
+.help:hover .tip, .help:focus .tip, .help:focus-within .tip { display: block }
+@media (max-width: 700px) { .help .tip { position: fixed; left: 16px; right: 16px; width: auto; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); max-height: 60vh; overflow: auto } }
 </style>
 
 <div class="wrap">
@@ -281,7 +289,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       </div>
 
       <div class="panel" id="panel-games" hidden>
-        <div class="panel-pad stack"><h2>Game lines</h2><p class="muted small">Moneyline, spread and total for each game loaded, at the books you tick. The biggest edges across all games are listed first. Model is a team-ratings projection; Market is the books' prices with the margin removed. Tested on 2020 to 2025, the market was the more accurate of the two, so the model starts with little weight and totals use the market only.</p>
+        <div class="panel-pad stack"><h2>Game lines <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Moneyline, spread and total for each game loaded, at the books you tick. The biggest edges across all games are listed first. Model is a team-ratings projection; Market is the books' prices with the margin removed. Tested on 2020 to 2025, the market was the more accurate of the two, so the model starts with little weight and totals use the market only.</span></span></span></h2>
           <div class="row" style="align-items:flex-end;gap:20px"><fieldset class="group" style="border:0;padding:0;margin:0"><legend class="label">Books</legend><div class="opts"><label class="opt" for="gb-fanduel"><input type="checkbox" id="gb-fanduel" data-gbook="fanduel"> FanDuel</label><label class="opt" for="gb-draftkings"><input type="checkbox" id="gb-draftkings" data-gbook="draftkings"> DraftKings</label></div></fieldset>
           <div class="field"><label class="label" for="g-weight">Trust in model <span class="num" id="g-weight-val">10%</span></label><input type="range" id="g-weight" min="0" max="50" step="5" value="10"></div></div></div>
         <div id="games-body"></div>
@@ -296,10 +304,10 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
         <span class="small muted" id="slip-exp-msg" role="status"></span>
         <div class="row" style="gap:10px"><label class="label" for="slip-week">Week</label><select id="slip-week"></select><label class="label" for="slip-appf">App</label><select id="slip-appf"></select><label class="check" for="slip-hidedone"><input type="checkbox" id="slip-hidedone"> Hide completed props and slips</label><span class="muted small" id="slip-hidden-note"></span></div>
         <div class="notice" id="slip-pending" hidden><p></p><button class="btn sm" id="slip-pending-show">Show them</button></div>
-        <p class="muted small">Add props from the Player props board with the + button; the slip picker above the board says which slip they go into. The same prop can sit in as many slips as you like. While games are on, mark each prop hit or missed once and every slip holding it updates. After the final whistle, Fetch results on the Backtest tab grades anything you have not marked from the official box score.</p>
+        <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Add props from the Player props board with the + button; the slip picker above the board says which slip they go into. The same prop can sit in as many slips as you like. While games are on, mark each prop hit or missed once and every slip holding it updates. After the final whistle, Fetch results on the Backtest tab grades anything you have not marked from the official box score.</p></span></span>
       </div>
       <div class="tiles" id="slip-tiles"></div>
-      <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on</h3><p class="muted small">One row per prop across all your slips, by game.</p></div><div id="myprops"></div></div>
+      <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game.</span></span></span></h3></div><div id="myprops"></div></div>
       <div id="slip-cards" class="stack"></div>
     </div>
   </section>
@@ -308,15 +316,15 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div class="stack">
       <div class="panel panel-pad stack">
         <h2>Backtest</h2>
-        <p class="muted small">Every game's picks are saved as they stood before kickoff, with the model's chance and the market's. After the game, fetch the final box scores and each saved pick is graded. Nothing is recalculated afterwards, so the model cannot see the result it is being tested on. When the model changes, past weeks can also be re-scored: the same saved lines and injury picture, run through the new model using only stats from before each game.</p>
+        <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Every game's picks are saved as they stood before kickoff, with the model's chance and the market's. After the game, fetch the final box scores and each saved pick is graded. Nothing is recalculated afterwards, so the model cannot see the result it is being tested on. When the model changes, past weeks can also be re-scored: the same saved lines and injury picture, run through the new model using only stats from before each game.</p></span></span>
         <div class="row"><button class="btn primary" id="grade-go">Fetch results and update stats</button><span class="small" id="grade-state" style="flex:1 1 260px;min-width:0"></span></div>
         <div id="grade-msg" role="status"></div>
       </div>
       <div class="tiles" id="bt-tiles"></div>
       <div class="notice" id="bt-warn" hidden><p></p></div>
       <div class="two">
-        <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid?</h3><p class="muted small">One pick on the better side of each player prop, $1 at the sportsbook price saved before kickoff, using your current Trust in model setting. Edge is the blended chance minus the price's implied chance, so Return above 0 means the picks beat the books' prices.</p></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
-        <div class="panel"><div class="panel-pad"><h3>Was the chance right?</h3><p class="muted small">How often overs and yes bets hit, against what the model and the market said. Error is lower when a forecast is better.</p></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Lines</th><th class="r">Hit</th><th class="r">Model said</th><th class="r">Market said</th><th class="r">Model error</th><th class="r">Market error</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
+        <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid? <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One pick on the better side of each player prop, $1 at the sportsbook price saved before kickoff, using your current Trust in model setting. Edge is the blended chance minus the price's implied chance, so Return above 0 means the picks beat the books' prices.</span></span></span></h3></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
+        <div class="panel"><div class="panel-pad"><h3>Was the chance right? <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">How often overs and yes bets hit, against what the model and the market said. Error is lower when a forecast is better.</span></span></span></h3></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Lines</th><th class="r">Hit</th><th class="r">Model said</th><th class="r">Market said</th><th class="r">Model error</th><th class="r">Market error</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
       </div>
       <div class="panel"><div class="panel-pad"><h3>Games</h3></div><div class="scroll"><table class="bt"><thead><tr><th>Game</th><th>Kickoff</th><th>Picks saved</th><th>Final</th><th class="r">Graded</th></tr></thead><tbody id="bt-games"></tbody></table></div></div>
     </div>
@@ -327,7 +335,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="stack">
       <div class="panel panel-pad stack">
         <h2>Pull this week's lines</h2>
-        <p class="muted small">A link you open in your own browser and a paste back here. It takes seconds and loads every game at once.</p>
+        <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">A link you open in your own browser and a paste back here. It takes seconds and loads every game at once.</p></span></span>
         <div class="row" role="radiogroup" aria-label="Where to pull from">
           <label class="check" for="src-parlay" style="padding:0"><input type="radio" name="hsrc" id="src-parlay" value="parlay"> Parlay API</label>
           <label class="check" for="src-odds" style="padding:0"><input type="radio" name="hsrc" id="src-odds" value="odds"> The Odds API <span class="muted small">(backup, 9 credits per game)</span></label>
@@ -336,23 +344,23 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <div class="step"><div class="stack">
             <div class="field"><label class="label" for="api-key" id="api-key-label">Your Parlay API key</label>
               <div class="row"><input type="password" id="api-key" autocomplete="off" placeholder="Paste key" style="flex:1 1 200px"><button class="btn sm" id="save-key">Save key</button></div></div>
-            <p class="muted small" id="api-key-note"></p>
+            <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small" id="api-key-note"></p></span></span>
           </div></div>
           <div class="step" data-src="parlay"><div class="stack">
-            <p><a class="btn sm" id="all-link" target="_blank" rel="noopener">Open this week's lines</a> <span class="muted small">Every game, props and game lines, in one page. Select all, copy, paste below.</span></p>
-            <p class="muted small">Games that have kicked off and next week's games are left out when you paste. For one game only, use its link in the list on the right once it has been pulled from Parlay API.</p>
+            <p><a class="btn sm" id="all-link" target="_blank" rel="noopener">Open this week's lines</a> <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Every game, props and game lines, in one page. Select all, copy, paste below.</span></span></span></p>
+            <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Games that have kicked off and next week's games are left out when you paste. For one game only, use its link in the list on the right once it has been pulled from Parlay API.</p></span></span>
           </div></div>
           <div class="step" data-src="odds"><div class="stack">
-            <p><a class="btn sm" id="events-link" target="_blank" rel="noopener">Open the game list</a> <span class="muted small">Free. Select all, copy, paste below.</span></p>
+            <p><a class="btn sm" id="events-link" target="_blank" rel="noopener">Open the game list</a> <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Free. Select all, copy, paste below.</span></span></span></p>
           </div></div>
           <div class="step" data-src="odds"><div class="stack">
-            <p><a class="btn sm" id="odds-all-link" target="_blank" rel="noopener">Pull every game at once</a> <span class="muted small">Opens a page on your website that fetches props and game lines for each game left this week (about 9 credits a game; you can untick games first), then gives you one block to copy. Paste it below.</span></p>
-            <p class="muted small">Or open props for one game at a time from the list on the right and paste each one below.</p>
+            <p><a class="btn sm" id="odds-all-link" target="_blank" rel="noopener">Pull every game at once</a> <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Opens a page on your website that fetches props and game lines for each game left this week (about 9 credits a game; you can untick games first), then gives you one block to copy. Paste it below.</span></span></span></p>
+            <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Or open props for one game at a time from the list on the right and paste each one below.</p></span></span>
           </div></div>
           <div class="step"><div class="stack">
             <label class="label" for="paste">Paste what the link shows</label>
             <textarea id="paste" spellcheck="false" placeholder='[{"id":"…","commence_time":"…"}]  or  {"id":"…","bookmakers":[…]}'></textarea>
-            <div class="row"><button class="btn primary" id="paste-add">Add to board</button><span class="muted small">Works for the game list and for props.</span></div>
+            <div class="row"><button class="btn primary" id="paste-add">Add to board</button><span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Works for the game list and for props.</span></span></span></div>
             <div id="paste-msg" role="status"></div>
           </div></div>
         </div>
@@ -368,12 +376,12 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <div class="meter" aria-hidden="true"><i id="pmeter-fill" style="width:0%"></i></div>
           <p class="small" id="pmeter-text"></p>
           <div class="row"><div class="field"><label class="label" for="psync">Credits used on your Parlay API dashboard</label><input type="number" id="psync" min="0" step="1" inputmode="numeric" placeholder="e.g. 138" style="width:120px"></div><button class="btn sm" id="psync-go" style="align-self:flex-end">Set</button></div>
-          <p class="muted small" id="psync-note"></p>
+          <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small" id="psync-note"></p></span></span>
           <div class="meter" aria-hidden="true"><i id="meter-fill" style="width:0%"></i></div>
           <p class="small" id="meter-text"></p>
           <div class="row"><div class="field"><label class="label" for="osync">Credits used on your Odds API account</label><input type="number" id="osync" min="0" step="1" inputmode="numeric" placeholder="e.g. 112" style="width:120px"></div><button class="btn sm" id="osync-go" style="align-self:flex-end">Set</button></div>
-          <p class="muted small" id="osync-note"></p>
-          <p class="muted small">The Odds API figure is counted here too: one credit per market per game, nine in all.</p>
+          <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small" id="osync-note"></p></span></span>
+          <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">The Odds API figure is counted here too: one credit per market per game, nine in all.</p></span></span>
         </div>
       </div>
     </div>
@@ -418,6 +426,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
   </section>
 </div>
 
+<button class="totop" id="totop" aria-label="Back to top" title="Back to top" hidden>&#8593;</button>
 <script>
 /* Props model: odds maths, projections, parlay simulation. Pure functions, no DOM. */
 const PM = (() => {
@@ -1766,7 +1775,7 @@ const PX = (() => {
       : ij && ij.status === 'error' ? `Last update ${kickoff(ij.at)} failed: ${ij.message || 'no reason given.'}`
       : `Injury reports are from ${new Date(S.stats.asOf + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}.`;
     const injBar = `<div class="stack" style="gap:6px"><div class="row"><button class="btn sm primary" id="inj-go" ${injBusy || S.injFiring ? 'disabled' : ''}>${S.injFiring ? 'Starting…' : injBusy ? 'Update in progress' : 'Update injuries, depth charts and weather'}</button><span class="small" style="flex:1 1 240px;min-width:0${ij && ij.status === 'error' && !injBusy ? ';color:var(--bad)' : ''}">${esc(injState)}</span></div>${S.injMsg ? `<div class="msg ${S.injMsg.bad ? 'err' : 'ok'}" role="status">${esc(S.injMsg.text)}</div>` : ''}</div>`;
-    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out, or back this week</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button><button class="btn sm" id="back-add" style="align-self:flex-end" title="Back from injury, a suspension or a reserve list">Mark back this week</button></div><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. Mark back this week is for a player returning after missing games (injury, suspension, a reserve or exempt list), which no injury report shows: he is projected from his games before he left at about 90% of his old share (85% after a long absence), and teammates who filled in give back the share they gained while he was out. The injury update also looks for these returns in the news and marks them for you. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
+    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out, or back this week</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button><button class="btn sm" id="back-add" style="align-self:flex-end" title="Back from injury, a suspension or a reserve list">Mark back this week</button></div><span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. Mark back this week is for a player returning after missing games (injury, suspension, a reserve or exempt list), which no injury report shows: he is projected from his games before he left at about 90% of his old share (85% after a long absence), and teammates who filled in give back the share they gained while he was out. The injury update also looks for these returns in the news and marks them for you. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p></span></span>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
   }
   /* ---------- backtest ---------- */
   // Freeze each game's picks before kickoff. Written once per change in the inputs (a new pull, an injury update, a tick), never after kickoff.
@@ -2141,7 +2150,7 @@ const PX = (() => {
     const pickName = (r) => r.o.m === 'totals' ? `${r.o.s} ${r.o.pt}` : r.o.m === 'spreads' ? `${abbr(r.o.s)} ${r.o.pt > 0 ? '+' : ''}${r.o.pt}` : `${abbr(r.o.s)} to win`;
     // the best edges across every game, at the ticked books
     const now = Date.now(), top = S.rows.filter((r) => r.kind === 'game' && S.gbooks.has(r.o.b) && r.edge > 0.0005 && Date.parse(r.commence) > now).sort((x, y) => y.edge - x.edge).slice(0, 12);
-    const topBlock = !books.length ? '' : `<div class="gl-game"><h3>Biggest edges</h3><p class="muted small">Game lines not yet kicked off, ranked by edge. Small edges on the market-only rows come from one book pricing a side better than the other.</p>${top.length
+    const topBlock = !books.length ? '' : `<div class="gl-game"><h3>Biggest edges <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Game lines not yet kicked off, ranked by edge. Small edges on the market-only rows come from one book pricing a side better than the other.</span></span></span></h3>${top.length
       ? `<div class="scroll"><table class="gl-table"><colgroup><col style="width:13%"><col style="width:19%"><col style="width:14%"><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup><thead><tr><th>Game</th><th>Pick</th><th>Book</th><th class="r">Price</th><th class="r">Model</th><th class="r">Market</th><th class="r">Edge</th></tr></thead><tbody>${top.map((r) => `<tr><td class="pname">${esc(r.game)}</td><td>${esc(GAME[r.o.m])}: ${esc(pickName(r))}</td><td>${BOOK_NAMES[r.o.b]}</td><td class="r num">${PM.fmtAm(r.o.pr)}</td><td class="r num">${r.model == null ? '<span class="muted">—</span>' : pct(r.model)}</td><td class="r num">${pct(r.fair)}</td><td class="r">${pill(r)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="muted small">No game line has a positive edge at the ticked books right now.</p>'}</div>`;
     const kick = (id) => String((S.lines.get(id) || {}).commence || '');
@@ -2181,7 +2190,7 @@ const PX = (() => {
       let card = find();
       if (!card) { S.hideDone = false; ls.set('pp.hidedone', false); S.slipWeek = null; S.slipApp = ''; try { renderSlips(); } catch {} card = find(); }
       if (!card) { toast('Could not find that slip card. Try reloading the page.', true); return; }
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' }); card.style.outline = '2px solid var(--accent)'; setTimeout(() => { card.style.outline = ''; }, 1800);
+      card.scrollIntoView({ behavior: 'auto', block: 'start' }); /* instant: a smooth scroll gets cut short when the page re-renders or the cards above change height */ card.style.outline = '2px solid var(--accent)'; setTimeout(() => { card.style.outline = ''; }, 1800);
       return; }
     if (t.dataset.view) return show(t.dataset.view);
     if (t.dataset.slipadd) return toggleLeg(t.dataset.slipadd);
@@ -2274,6 +2283,9 @@ const PX = (() => {
     if (t.dataset.wind) { const wind = { ...S.over.wind }; if (t.value === '') delete wind[t.dataset.wind]; else wind[t.dataset.wind] = Math.max(0, Number(t.value) || 0); save('meta', 'overrides', { out: S.over.out, in: S.over.in, back: S.over.back || [], wind }); }
   });
 
+  /* back to top: shows on every tab once you have scrolled down */
+  { const tt = $('totop'), upd = () => { tt.hidden = (window.scrollY || document.documentElement.scrollTop || 0) < 400; };
+    window.addEventListener('scroll', upd, { passive: true }); tt.addEventListener('click', () => { window.scrollTo(0, 0); }); upd(); }
   /* ---------- boot ---------- */
   renderGroups();
   $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
