@@ -1473,11 +1473,11 @@ const PX = (() => {
       af.innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}" ${S.slipApp === v ? 'selected' : ''}>${esc(t)}</option>`).join(''); $('taken-appf').innerHTML = af.innerHTML;
       if (S.slipApp) list = list.filter((x) => (S.slipApp === '-' ? !x.app : x.app === S.slipApp)); }
     const states = list.map((x) => ({ x, st: slipState(x) }));
-    const won = states.filter((y) => y.st.code === 'w').length, lost = states.filter((y) => y.st.code === 'l').length, alive = states.filter((y) => !['w', 'l', 'v'].includes(y.st.code) && y.st.n).length;
+    const won = states.filter((y) => y.st.code === 'w').length, lost = states.filter((y) => y.st.code === 'l').length, needPay = states.filter((y) => y.st.code === 'pend' && y.x.flex && y.st.open === 0).length, alive = states.filter((y) => !['w', 'l', 'v'].includes(y.st.code) && y.st.n).length - needPay;
     const props = new Map(); list.forEach((x) => x.legs.forEach((l) => { const k = propKey(l), e = props.get(k) || props.set(k, { l, slips: [], sids: [] }).get(k); if (!e.sids.includes(x.id)) { e.slips.push(x.name); e.sids.push(x.id); } }));
     const pst = [...props.values()].map((e) => legState(e.l));
     $('slip-tiles').innerHTML = [
-      ['Slips win rate', won + lost ? Math.round(100 * won / (won + lost)) + '%' : '—', `${won} won · ${lost} lost · ${alive} open · ${list.length} slips`], /* won and lost only, not voided or open slips */
+      ['Slips win rate', won + lost ? Math.round(100 * won / (won + lost)) + '%' : '—', `${won} won · ${lost} lost · ${alive} open${needPay ? ` · ${needPay} ${needPay === 1 ? 'needs' : 'need'} the flex payout` : ''} · ${list.length} slips`], /* won and lost only, not voided or open slips */
       (() => { const h = pst.filter((x) => x.code === 'w').length, m = pst.filter((x) => x.code === 'l').length, o = pst.filter((x) => !['w', 'l', 'p', 'v'].includes(x.code)).length; // win rate counts hits and misses only, not pushes, voids or open props
         return ['Props win rate', h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${props.size} props`]; })(),
     ].concat(moneyTile(states)).map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
@@ -1486,7 +1486,8 @@ const PX = (() => {
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
     const shownProps = [...props.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
-    const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l))));
+    // a slip is hidden only when its games are over AND it is settled: a flex slip still waiting for what it paid stays in view
+    const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l)) && doneSlip(y.st)));
     const hp = props.size - shownProps.length, hs = states.length - shownSlips.length;
     // props whose game is over but have no result yet (not marked, no box score): hidden by Hide completed, so say so
     const pending = [...props.values()].filter((e) => gameEnded(e.l) && !DONE.includes(legState(e.l).code)); S.slipPending = pending.length;
