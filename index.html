@@ -250,6 +250,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <button class="tab" role="tab" id="tab-board" data-view="board" aria-selected="true">Player props</button>
       <button class="tab" role="tab" id="tab-games" data-view="games" aria-selected="false">Game lines</button>
       <button class="tab" role="tab" id="tab-slips" data-view="slips" aria-selected="false">My slips <span class="num" id="slips-count"></span></button>
+      <button class="tab" role="tab" id="tab-taken" data-view="taken" aria-selected="false">Props Taken</button>
       <button class="tab" role="tab" id="tab-backtest" data-view="backtest" aria-selected="false">Backtest</button>
       <button class="tab" role="tab" id="tab-lines" data-view="lines" aria-selected="false">Get lines</button>
       <button class="tab" role="tab" id="tab-method" data-view="method" aria-selected="false">How it works</button>
@@ -307,8 +308,18 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
         <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Add props from the Player props board with the + button; the slip picker above the board says which slip they go into. The same prop can sit in as many slips as you like. While games are on, mark each prop hit or missed once and every slip holding it updates. After the final whistle, Fetch results on the Backtest tab grades anything you have not marked from the official box score.</p></span></span>
       </div>
       <div class="tiles" id="slip-tiles"></div>
-      <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game.</span></span></span></h3></div><div id="myprops"></div></div>
       <div id="slip-cards" class="stack"></div>
+    </div>
+  </section>
+
+  <section id="view-taken" hidden>
+    <div class="stack">
+      <div class="panel panel-pad stack">
+        <h2>Props Taken</h2>
+        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed props</label><span class="muted small" id="taken-hidden-note"></span></div>
+      </div>
+      <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game.</span></span></span></h3></div><div id="myprops"></div></div>
+      <p class="muted small" id="taken-empty" hidden>No props on your slips for these filters.</p>
     </div>
   </section>
 
@@ -1452,14 +1463,14 @@ const PX = (() => {
     $('slip-sum').textContent = act ? `${act.legs.length} ${act.legs.length === 1 ? 'prop' : 'props'} in ${act.name}` : '';
     { const sa = $('slip-app'); if (sa && document.activeElement !== sa) { sa.innerHTML = appOptions(act && act.app, 'App…'); sa.disabled = !act; } }
     { const sm = $('slip-money'), foc = document.activeElement; if (sm && !(foc && sm.contains(foc))) sm.innerHTML = act ? moneyHtml(act, slipState(act)) : ''; }
-    if ($('view-slips').hidden && !$('slip-cards').dataset.init) return; $('slip-cards').dataset.init = '1';
+    if ($('view-slips').hidden && $('view-taken').hidden && !$('slip-cards').dataset.init) return; $('slip-cards').dataset.init = '1';
     { const weeks = [...new Set(listAll.map(slipWeek))].sort((a, b) => b - a), ws = $('slip-week');
       if (S.slipWeek != null && !weeks.includes(S.slipWeek)) S.slipWeek = null;
-      ws.innerHTML = '<option value="">All weeks</option>' + weeks.map((w) => `<option value="${w}" ${S.slipWeek === w ? 'selected' : ''}>${esc(weekLabel(w))}</option>`).join('');
+      ws.innerHTML = '<option value="">All weeks</option>' + weeks.map((w) => `<option value="${w}" ${S.slipWeek === w ? 'selected' : ''}>${esc(weekLabel(w))}</option>`).join(''); $('taken-week').innerHTML = ws.innerHTML;
       if (S.slipWeek != null) list = listAll.filter((x) => slipWeek(x) === S.slipWeek); }
     { const af = $('slip-appf'), opts = [['', 'All apps'], ...APPS.map((a) => [a, a]), ['-', 'No app set']];
       if (!opts.some(([v]) => v === S.slipApp)) S.slipApp = '';
-      af.innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}" ${S.slipApp === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
+      af.innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}" ${S.slipApp === v ? 'selected' : ''}>${esc(t)}</option>`).join(''); $('taken-appf').innerHTML = af.innerHTML;
       if (S.slipApp) list = list.filter((x) => (S.slipApp === '-' ? !x.app : x.app === S.slipApp)); }
     const states = list.map((x) => ({ x, st: slipState(x) }));
     const won = states.filter((y) => y.st.code === 'w').length, lost = states.filter((y) => y.st.code === 'l').length, alive = states.filter((y) => !['w', 'l', 'v'].includes(y.st.code) && y.st.n).length;
@@ -1471,7 +1482,7 @@ const PX = (() => {
         return ['Props win rate', h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${props.size} props`]; })(),
     ].concat(moneyTile(states)).map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     // every prop, grouped by game, soonest first
-    const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide;
+    const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide; $('taken-hidedone').checked = hide;
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
     const shownProps = [...props.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
@@ -1483,7 +1494,8 @@ const PX = (() => {
       if (!pn.hidden) pn.querySelector('p').innerHTML = `<strong>${pending.length} ${pending.length === 1 ? 'prop from a finished game has' : 'props from finished games have'} no result yet</strong> and ${pending.length === 1 ? 'is' : 'are'} hidden: ${esc(pending.slice(0, 6).map((e) => legText(e.l)).join('; '))}${pending.length > 6 ? `; and ${pending.length - 6} more` : ''}. Mark ${pending.length === 1 ? 'it' : 'them'} hit, missed or void, or press Fetch results on the Backtest tab.`; }
     $('slip-hidden-note').textContent = hide && (hp || hs) ? `${hp} completed ${hp === 1 ? 'prop' : 'props'} and ${hs} finished ${hs === 1 ? 'slip' : 'slips'} hidden` : '';
     const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || String(a.l.game).localeCompare(String(b.l.game)) || legOrder(a.l, b.l)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
-    $('myprops-panel').hidden = !shownProps.length;
+    $('myprops-panel').hidden = !shownProps.length; $('taken-empty').hidden = !!shownProps.length;
+    $('taken-hidden-note').textContent = hide && hp ? `${hp} completed ${hp === 1 ? 'prop' : 'props'} hidden` : '';
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
       return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${e.slips.map((n, i) => S.site ? esc(n) : `<a href="#slipcard-${esc(e.sids[i])}" data-gotoslip="${esc(e.sids[i])}">${esc(n)}</a>`).join(', ')}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
@@ -1936,10 +1948,10 @@ const PX = (() => {
         rows: d.props.map((p) => [p.game, p.kickoff, p.player, p.pick, p.line, p.needs, p.status, p.detail, p.count, p.names]) },
     ]);
   }
-  async function buildSlipsPdf(d) {
+  async function buildSlipsPdf(d, propsOnly) {
     const PDFLib = await loadPdfLib(), tone = (i) => (row) => (row[i] === 'Hit' || row[i] === 'Won' ? 'good' : row[i] === 'Missed' || String(row[i]).startsWith('Lost') ? 'bad' : null);
     const won = d.slips.filter((x) => x.status === 'Won').length, lost = d.slips.filter((x) => x.status.startsWith('Lost')).length;
-    const sections = [
+    let sections = [
       { heading: `Slips (${d.slips.length})`, note: `${won} won, ${lost} lost, ${d.slips.length - won - lost} still open or empty.`, empty: 'No slips yet.',
         cols: [{ h: 'Slip', w: 22, bold: true }, { h: 'Status', w: 26, tone: tone(1) }, { h: 'Props', w: 8, align: 'r' }, { h: 'Hit', w: 7, align: 'r' }, { h: 'Missed', w: 8, align: 'r' }, { h: 'To settle', w: 9, align: 'r' }, { h: 'Created', w: 20 }],
         rows: d.slips.map((x) => [x.name, x.status, String(x.n), String(x.hit), String(x.lost), String(x.open), x.created]) },
@@ -1950,7 +1962,8 @@ const PX = (() => {
         cols: [{ h: 'Player', w: 18, bold: true }, { h: 'Pick', w: 22 }, { h: 'Game', w: 10 }, { h: 'Needs', w: 16 }, { h: 'Status', w: 8, tone: tone(4) }, { h: 'Detail', w: 14 }, { h: 'In slips', w: 24 }],
         rows: d.props.map((p) => [p.player, p.pick, p.game, p.needs, p.status, p.detail, `${p.count}: ${p.names}`]) },
     ];
-    return PX.pdf({ title: 'NFL Bet Analyzer: my slips', subtitle: [`Exported ${new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Status uses your own hit and miss marks first, then final box scores.`], sections, footer: 'Lines and odds are as you entered them. Check every bet against your sportsbook.' }, PDFLib);
+    if (propsOnly) sections = sections.slice(-1);
+    return PX.pdf({ title: propsOnly ? 'NFL Bet Analyzer: props taken' : 'NFL Bet Analyzer: my slips', subtitle: [`Exported ${new Date().toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Status uses your own hit and miss marks first, then final box scores.`], sections, footer: 'Lines and odds are as you entered them. Check every bet against your sportsbook.' }, PDFLib);
   }
   // Export this tab: the board and game lines from their data as filtered; backtest and how-it-works read off the page
   const curView = () => { const t = document.querySelector('.tab[aria-selected="true"]'); return t ? t.dataset.view : 'board'; };
@@ -1970,6 +1983,7 @@ const PX = (() => {
   }
   async function buildViewPdf(view) {
     if (view === 'slips') return buildSlipsPdf(slipsData());
+    if (view === 'taken') return buildSlipsPdf(slipsData(), true);
     const d = exportData();
     if (view === 'board') return buildPdf(d, [0], 'NFL Bet Analyzer: player props');
     if (view === 'games') return buildPdf(d, [1, 2], 'NFL Bet Analyzer: game lines');
@@ -1986,11 +2000,11 @@ const PX = (() => {
     let bytes;
     const vw = which === 'view' ? curView() : null;
     if (vw === 'lines') return msg('Nothing to export on this tab.', true);
-    if (vw === 'slips' && !S.slips.size) return msg('No slips to export yet.', true);
+    if ((vw === 'slips' || vw === 'taken') && !S.slips.size) return msg('No slips to export yet.', true);
     try { if (vw) bytes = await buildViewPdf(vw); else if (which === 'slips') { const d = slipsData(); bytes = kind === 'xlsx' ? buildSlipsXlsx(d) : await buildSlipsPdf(d); } else { const d = exportData(); bytes = kind === 'xlsx' ? buildXlsx(d) : await buildPdf(d); } }
     catch (e) { return msg(kind === 'pdf' && e && e.message === 'load' ? 'The PDF builder did not load. Check your connection and try again.' : 'Could not build the file.', true); }
     const day = new Date(), stamp = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-    try { await dl.save({ filename: `nfl-bet-analyzer-${vw ? ({ board: 'props', games: 'game-lines' }[vw] || vw) + '-' : which === 'slips' ? 'slips-' : ''}${stamp}.${kind}`, data: new Blob([bytes]) }); msg('Saved.'); }
+    try { await dl.save({ filename: `nfl-bet-analyzer-${vw ? ({ board: 'props', games: 'game-lines', taken: 'props-taken' }[vw] || vw) + '-' : which === 'slips' ? 'slips-' : ''}${stamp}.${kind}`, data: new Blob([bytes]) }); msg('Saved.'); }
     catch (e) { const c = e && e.code; msg(c === 'declined' ? '' : c === 'rate_limited' ? 'A save prompt is already open. Answer it, then try again.' : c === 'rejected_extension' || c === 'extension_not_enabled' ? 'This file type cannot be saved in this view.' : c === 'too_large' ? 'The file is too large to save here.' : 'Could not save the file.', c !== 'declined'); }
   }
   const INJ_TRIGGER = 'trig_0188jTCJ3VBDmnP6khsUznkv', INJ_WINDOW = 40 * 60e3;
@@ -2172,20 +2186,20 @@ const PX = (() => {
     });
     $('games-body').innerHTML = blocks.length ? topBlock + blocks.join('') : `<div class="empty"><h3>${S.ready ? 'No lines loaded yet' : 'Loading saved lines'}</h3><p>Pull this week's games to see moneylines, spreads and totals here.</p>${S.ready ? '<p style="margin-top:12px"><button class="btn primary" data-go="lines">Get lines</button></p>' : ''}</div>`;
   }
-  const VIEWS = ['board', 'games', 'slips', 'backtest', 'lines', 'method'];
+  const VIEWS = ['board', 'games', 'slips', 'taken', 'backtest', 'lines', 'method'];
   function show(view) {
-    if (S.site && view === 'slips') view = 'board'; // the website has no slips tab
+    if (S.site && (view === 'slips' || view === 'taken')) view = 'board'; // the website has no slips tabs
     VIEWS.forEach((v) => $('tab-' + v).setAttribute('aria-selected', String(v === view)));
     const onBoard = view === 'board' || view === 'games';
-    $('view-board').hidden = !onBoard; ['slips', 'backtest', 'lines', 'method'].forEach((v) => { $('view-' + v).hidden = v !== view; });
+    $('view-board').hidden = !onBoard; ['slips', 'taken', 'backtest', 'lines', 'method'].forEach((v) => { $('view-' + v).hidden = v !== view; });
     $('panel-props').hidden = view === 'games'; $('panel-games').hidden = view !== 'games';
-    if (view === 'slips') renderSlips();
+    if (view === 'slips' || view === 'taken') renderSlips();
     try { history.replaceState(null, '', '#' + view); } catch {}
   }
 
   document.addEventListener('click', async (e) => {
     const t = e.target.closest('button, a'); if (!t) return;
-    if (t.dataset && t.dataset.gotoslip) { e.preventDefault(); const id = t.dataset.gotoslip;
+    if (t.dataset && t.dataset.gotoslip) { e.preventDefault(); const id = t.dataset.gotoslip; if (!$('view-taken').hidden) show('slips');
       const find = () => document.getElementById('slipcard-' + id);
       let card = find();
       if (!card) { S.hideDone = false; ls.set('pp.hidedone', false); S.slipWeek = null; S.slipApp = ''; try { renderSlips(); } catch {} card = find(); }
@@ -2255,9 +2269,9 @@ const PX = (() => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.adding || S.editLeg)) { S.adding = null; S.editLeg = null; renderBoard(); renderSlips(); } });
   document.addEventListener('change', (e) => {
     { const t = e.target;
-      if (t.id === 'slip-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
-      if (t.id === 'slip-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
-      if (t.id === 'slip-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); if (t.checked && S.slipPending) toast(`${S.slipPending} ${S.slipPending === 1 ? 'prop from a finished game still needs' : 'props from finished games still need'} a result. ${S.slipPending === 1 ? 'It is' : 'They are'} listed at the top of My slips.`, true); return; }
+      if (t.id === 'slip-appf' || t.id === 'taken-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
+      if (t.id === 'slip-week' || t.id === 'taken-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
+      if (t.id === 'slip-hidedone' || t.id === 'taken-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); if (t.checked && S.slipPending) toast(`${S.slipPending} ${S.slipPending === 1 ? 'prop from a finished game still needs' : 'props from finished games still need'} a result. ${S.slipPending === 1 ? 'It is' : 'They are'} listed at the top of My slips.`, true); return; }
       if (t.id === 'slip-sel' && t.value) { S.activeSlip = t.value; ls.set('pp.activeSlip', t.value); renderSlips(); renderBoard(); return; }
       if (t.dataset && t.dataset.slipflex) { const id = t.dataset.slipflex, cur = S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.checked) d.flex = true; else { delete d.flex; delete d.paid; } save('slips', id, d).then(() => renderSlips()); return; }
       if (t.id === 'slip-app' || (t.dataset && t.dataset.slipapp)) { const id = t.id === 'slip-app' ? (activeSlip() || {}).id : t.dataset.slipapp, cur = id && S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.value) d.app = t.value; else delete d.app; save('slips', id, d).then(() => renderSlips()); return; }
@@ -2306,7 +2320,7 @@ const PX = (() => {
   async function loadSnapshot() {
     let snap; try { const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return false; snap = await r.json(); } catch (e) { return false; }
     if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
-    S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; if (!$('view-slips').hidden) show('board');
+    S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; $('tab-taken').hidden = true; if (!$('view-slips').hidden || !$('view-taken').hidden) show('board');
     for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) local[coll].clear();
     S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], back: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
