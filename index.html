@@ -231,6 +231,9 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
 .totop { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 40; width: 44px; height: 44px; display: grid; place-items: center; font: 700 20px var(--mono); background: var(--ink); color: var(--bg); border: 0; border-radius: 2px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.25) }
 .totop[hidden] { display: none }
+.tojump { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); z-index: 40; height: 44px; padding: 0 14px; font: 600 15px var(--display); letter-spacing: .06em; text-transform: uppercase; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 2px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.25) }
+.totop:not([hidden]) ~ .tojump { right: 68px }
+.tojump[hidden] { display: none }
 .help { position: relative; display: inline-flex; vertical-align: middle; width: 20px; height: 20px; align-items: center; justify-content: center; margin-left: 6px; border: 1px solid var(--muted); border-radius: 2px; background: var(--sunk); color: var(--muted); font: 700 12px/1 var(--mono); letter-spacing: 0; text-transform: none; cursor: help; flex: none }
 .help:hover, .help:focus { color: var(--ink); border-color: var(--ink); outline: none }
 .help .tip { display: none; position: absolute; z-index: 45; left: 0; top: 100%; width: min(380px, calc(100vw - 32px)); padding: 10px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--ink); box-shadow: 0 6px 24px rgba(0,0,0,.25); font: 400 13px/1.45 var(--body); letter-spacing: 0; text-transform: none; text-align: left; white-space: normal; cursor: auto }
@@ -303,7 +306,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="panel panel-pad stack">
         <div class="row" style="justify-content:space-between;align-items:baseline"><h2>My slips</h2><span class="row" style="gap:6px"><button class="btn sm" id="slip-xlsx" hidden>Export to Excel</button><button class="btn sm" id="slip-pdf" hidden>Export to PDF</button><button class="btn sm" id="slip-new2">New slip</button></span></div>
         <span class="small muted" id="slip-exp-msg" role="status"></span>
-        <div class="row" style="gap:10px"><label class="label" for="slip-week">Week</label><select id="slip-week"></select><label class="label" for="slip-appf">App</label><select id="slip-appf"></select><label class="check" for="slip-hidedone"><input type="checkbox" id="slip-hidedone"> Hide completed props and slips</label><span class="muted small" id="slip-hidden-note"></span></div>
+        <div class="row" style="gap:10px"><label class="label" for="slip-week">Week</label><select id="slip-week"></select><label class="label" for="slip-appf">App</label><select id="slip-appf"></select><label class="check" for="slip-hidedone"><input type="checkbox" id="slip-hidedone"> Hide completed games</label><label class="check" for="slip-live" title="Slips still alive with at least one game kicked off"><input type="checkbox" id="slip-live"> Live slips only</label><span class="muted small" id="slip-hidden-note"></span></div>
         <div class="notice" id="slip-pending" hidden><p></p><button class="btn sm" id="slip-pending-show">Show them</button></div>
         <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Add props from the Player props board with the + button; the slip picker above the board says which slip they go into. The same prop can sit in as many slips as you like. While games are on, mark each prop hit or missed once and every slip holding it updates. After the final whistle, Fetch results on the Backtest tab grades anything you have not marked from the official box score.</p></span></span>
       </div>
@@ -316,7 +319,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div class="stack">
       <div class="panel panel-pad stack">
         <h2>Props Taken</h2>
-        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed props</label><span class="muted small" id="taken-hidden-note"></span></div>
+        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed games</label><label class="check" for="taken-pending" title="Props with no result yet: upcoming, in play, or waiting for the box score"><input type="checkbox" id="taken-pending"> Pending results only</label><span class="muted small" id="taken-hidden-note"></span></div>
       </div>
       <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game.</span></span></span></h3></div><div id="myprops"></div></div>
       <p class="muted small" id="taken-empty" hidden>No props on your slips for these filters.</p>
@@ -438,6 +441,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
 </div>
 
 <button class="totop" id="totop" aria-label="Back to top" title="Back to top" hidden>&#8593;</button>
+<button class="tojump" id="tojump" data-view="taken" title="Go to the Props Taken tab" hidden>Props Taken</button>
 <script>
 /* Props model: odds maths, projections, parlay simulation. Pure functions, no DOM. */
 const PM = (() => {
@@ -1488,19 +1492,27 @@ const PX = (() => {
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
     // a slip is hidden only when its games are over AND it is settled: a flex slip still waiting for what it paid stays in view
     const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l)) && doneSlip(y.st)));
-    const hp = props.size - shownProps.length, hs = states.length - shownSlips.length;
+    // live: not won, lost or void, still has a prop to settle, and at least one of its games has kicked off
+    const isLive = (y) => y.st.n > 0 && !['w', 'l', 'v'].includes(y.st.code) && y.st.open > 0 && y.x.legs.some((l) => Date.now() >= Date.parse(l.commence));
+    S.slipLive = !!ls.get('pp.slipLive', false); $('slip-live').checked = S.slipLive;
+    if (S.slipLive) { const keep = shownSlips.filter(isLive); shownSlips.length = 0; shownSlips.push(...keep); }
+    const hp = props.size - shownProps.length, hs = S.slipLive ? 0 : states.length - shownSlips.length;
     // props whose game is over but have no result yet (not marked, no box score): hidden by Hide completed, so say so
     const pending = [...props.values()].filter((e) => gameEnded(e.l) && !DONE.includes(legState(e.l).code)); S.slipPending = pending.length;
     { const pn = $('slip-pending'); pn.hidden = !(hide && pending.length);
       if (!pn.hidden) pn.querySelector('p').innerHTML = `<strong>${pending.length} ${pending.length === 1 ? 'prop from a finished game has' : 'props from finished games have'} no result yet</strong> and ${pending.length === 1 ? 'is' : 'are'} hidden: ${esc(pending.slice(0, 6).map((e) => legText(e.l)).join('; '))}${pending.length > 6 ? `; and ${pending.length - 6} more` : ''}. Mark ${pending.length === 1 ? 'it' : 'them'} hit, missed or void, or press Fetch results on the Backtest tab.`; }
     $('slip-hidden-note').textContent = hide && (hp || hs) ? `${hp} completed ${hp === 1 ? 'prop' : 'props'} and ${hs} finished ${hs === 1 ? 'slip' : 'slips'} hidden` : '';
+    // Props Taken: only props with no result yet (not hit, missed, pushed or void)
+    S.takenPending = !!ls.get('pp.takenPending', false); $('taken-pending').checked = S.takenPending;
+    if (S.takenPending) { const keep = shownProps.filter((e) => !DONE.includes(legState(e.l).code)); shownProps.length = 0; shownProps.push(...keep); }
     const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || String(a.l.game).localeCompare(String(b.l.game)) || legOrder(a.l, b.l)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
     $('myprops-panel').hidden = !shownProps.length; $('taken-empty').hidden = !!shownProps.length;
-    $('taken-hidden-note').textContent = hide && hp ? `${hp} completed ${hp === 1 ? 'prop' : 'props'} hidden` : '';
+    { const ng = new Set([...props.values()].filter((e) => gameEnded(e.l)).map((e) => e.l.eventId)).size;
+      $('taken-hidden-note').textContent = hide && hp ? `${ng} completed ${ng === 1 ? 'game' : 'games'} hidden (${hp} ${hp === 1 ? 'prop' : 'props'})` : ''; }
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
       return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${e.slips.map((n, i) => S.site ? esc(n) : `<a href="#slipcard-${esc(e.sids[i])}" data-gotoslip="${esc(e.sids[i])}">${esc(n)}</a>`).join(', ')}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
-    $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>' : shownSlips.map(({ x, st }) => `<div class="panel slipcard" id="slipcard-${esc(x.id)}"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
+    $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? (S.slipLive ? '<div class="panel panel-pad"><p class="muted">No live slips right now: none is still alive with a game under way. Untick Live slips only to see the rest.</p></div>' : '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>') : shownSlips.map(({ x, st }) => `<div class="panel slipcard" id="slipcard-${esc(x.id)}"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
       ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
         return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the pick or line" aria-label="Change the pick or line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
@@ -2195,6 +2207,8 @@ const PX = (() => {
     $('view-board').hidden = !onBoard; ['slips', 'taken', 'backtest', 'lines', 'method'].forEach((v) => { $('view-' + v).hidden = v !== view; });
     $('panel-props').hidden = view === 'games'; $('panel-games').hidden = view !== 'games';
     if (view === 'slips' || view === 'taken') renderSlips();
+    $('tojump').hidden = view !== 'slips' || !!S.site;
+    if (view === 'taken' && window.scrollY > 0) window.scrollTo({ top: 0 });
     try { history.replaceState(null, '', '#' + view); } catch {}
   }
 
@@ -2270,6 +2284,8 @@ const PX = (() => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.adding || S.editLeg)) { S.adding = null; S.editLeg = null; renderBoard(); renderSlips(); } });
   document.addEventListener('change', (e) => {
     { const t = e.target;
+      if (t.id === 'taken-pending') { ls.set('pp.takenPending', t.checked); renderSlips(); return; }
+      if (t.id === 'slip-live') { ls.set('pp.slipLive', t.checked); renderSlips(); return; }
       if (t.id === 'slip-appf' || t.id === 'taken-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
       if (t.id === 'slip-week' || t.id === 'taken-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
       if (t.id === 'slip-hidedone' || t.id === 'taken-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); if (t.checked && S.slipPending) toast(`${S.slipPending} ${S.slipPending === 1 ? 'prop from a finished game still needs' : 'props from finished games still need'} a result. ${S.slipPending === 1 ? 'It is' : 'They are'} listed at the top of My slips.`, true); return; }
