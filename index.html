@@ -1444,13 +1444,13 @@ const PX = (() => {
   }
   function legCalcHtml(l) {
     const c = legCalc(l);
-    if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection or edge.</div>' : '';
-    const r = c.r, M = PM.MARKETS[l.m] || {}, cls = c.edge >= 0.02 ? 'good' : c.edge <= -0.02 ? 'bad' : 'flat';
+    if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection.</div>' : '';
+    const r = c.r, M = PM.MARKETS[l.m] || {};
     const proj = r.proj ? `${r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1)} ${esc(M.unit || '')}` : esc(r.skip || 'none');
     const book = `${BOOKS[r.o.b]} ${r.o.pt != null ? r.o.pt + ' ' : ''}${PM.fmtAm(r.o.pr)}`;
     const note = c.same ? `vs ${book}` : `at your line ${l.pt}; ${book} now, priced at your line from that`;
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
-    return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell('Edge vs ' + (c.be * 100).toFixed(1) + '% break-even', (c.edge >= 0 ? '+' : '') + (c.edge * 100).toFixed(1) + ' pts', { b: cls === 'flat' ? '' : cls })}${cell('EV per $1', (c.ev >= 0 ? '+' : '') + c.ev.toFixed(2))}${cell(c.same ? 'Line' : 'Book line now', c.same ? esc(book) : moveHtml(l, r, book), { cls: 'src' })}</div>`;
+    return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell(c.same ? 'Line' : 'Book line now', c.same ? esc(book) : moveHtml(l, r, book), { cls: 'src' })}</div>`;
   }
   // NFL week of a slip (Tuesday 4 AM Eastern to the next Tuesday), from its earliest game, or when it was made if it has none
   const WEEK_ANCHOR = { idx: null, wk: 6, at: '2026-10-18T18:00:00Z' }; // Week 6 of the 2026 season includes Oct 18
