@@ -1426,7 +1426,9 @@ const PX = (() => {
       const imp = same ? r.imp : fromOver(shiftProb(l.m, r.o.pt, toOver(r.imp), pt, r.proj));
       if (fair == null || imp == null) return null;
       const p = model == null ? fair : w * model + (1 - w) * fair;
-      return { r, same, model, fair, imp, p, edge: p - imp, ev: p / imp - 1 };
+      // slip legs are pick'em picks (PrizePicks, Pick6): the bar is the app's break-even, not the sportsbook price, and p is the chance at the line you actually took
+      const be = S.be / 100;
+      return { r, same, model, fair, imp, be, p, edge: p - be, ev: p / be - 1 };
     };
     const all = cands.map(calc).filter(Boolean); if (!all.length) return null;
     // prefer a book posting your exact line; otherwise the book with the best value at your line
@@ -1448,7 +1450,7 @@ const PX = (() => {
     const book = `${BOOKS[r.o.b]} ${r.o.pt != null ? r.o.pt + ' ' : ''}${PM.fmtAm(r.o.pr)}`;
     const note = c.same ? `vs ${book}` : `at your line ${l.pt}; ${book} now, priced at your line from that`;
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
-    return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell('Edge', (c.edge >= 0 ? '+' : '') + (c.edge * 100).toFixed(1) + ' pts', { b: cls === 'flat' ? '' : cls })}${cell('EV per $1', (c.ev >= 0 ? '+' : '') + c.ev.toFixed(2))}${cell(c.same ? 'Line' : 'Book line now', c.same ? esc(book) : moveHtml(l, r, book), { cls: 'src' })}</div>`;
+    return `<div class="lc">${cell('Proj', proj)}${cell('Model', c.model == null ? '—' : pct(c.model))}${cell('Market', pct(c.fair))}${cell('Edge vs ' + (c.be * 100).toFixed(1) + '% break-even', (c.edge >= 0 ? '+' : '') + (c.edge * 100).toFixed(1) + ' pts', { b: cls === 'flat' ? '' : cls })}${cell('EV per $1', (c.ev >= 0 ? '+' : '') + c.ev.toFixed(2))}${cell(c.same ? 'Line' : 'Book line now', c.same ? esc(book) : moveHtml(l, r, book), { cls: 'src' })}</div>`;
   }
   // NFL week of a slip (Tuesday 4 AM Eastern to the next Tuesday), from its earliest game, or when it was made if it has none
   const WEEK_ANCHOR = { idx: null, wk: 6, at: '2026-10-18T18:00:00Z' }; // Week 6 of the 2026 season includes Oct 18
