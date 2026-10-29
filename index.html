@@ -102,6 +102,10 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .mk button[aria-pressed="true"].w { background: var(--good, #1d7a3e); border-color: var(--good, #1d7a3e); color: #fff } .mk button[aria-pressed="true"].l { background: var(--bad); border-color: var(--bad); color: #fff }
 .mk button.v { font-size: 11px; padding: 0 6px } .mk button[aria-pressed="true"].v { background: var(--muted); border-color: var(--muted); color: var(--surface) }
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
+td.c-add { white-space: nowrap } .add.fbtn { margin-right: 6px; font-size: 15px; border-color: var(--line) } .add.fbtn[aria-pressed="true"] { border-color: var(--accent) }
+.st.folt { background: var(--accent-soft); color: var(--accent) } .legs tr.fol td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
+.linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer }
+.ro .fbtn, .ro [data-unfollow] { display: none !important }
 .ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro [data-slipreopen], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro #back-add, .ro [data-unback], .ro label[for="out-name"], .ro #out-name { display: none !important }
 .ro #cond-body input, .ro .slipcard .hd input, .ro .slipcard .hd select { pointer-events: none }
 .slipbar .money select { min-width: 0 }
@@ -319,10 +323,10 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div class="stack">
       <div class="panel panel-pad stack">
         <h2>Props Taken</h2>
-        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed games</label><label class="check" for="taken-pending" title="Props with no result yet: upcoming, in play, or waiting for the box score"><input type="checkbox" id="taken-pending"> Pending results only</label><span class="muted small" id="taken-hidden-note"></span></div>
+        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed games</label><label class="check" for="taken-pending" title="Props with no result yet: upcoming, in play, or waiting for the box score"><input type="checkbox" id="taken-pending"> Pending results only</label><label class="label" for="taken-kind">Show</label><select id="taken-kind"><option value="all">Taken and followed</option><option value="taken">Taken only</option><option value="follow">Followed only</option></select><span class="muted small" id="taken-hidden-note"></span></div>
       </div>
-      <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game.</span></span></span></h3></div><div id="myprops"></div></div>
-      <p class="muted small" id="taken-empty" hidden>No props on your slips for these filters.</p>
+      <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game. Props you follow with the star (☆) on the Player props board show here too, marked Following. They are tracked and graded like the rest but do not count toward any win rate or P/L. Followed props have no app, so they are shown only when App is set to All apps.</span></span></span></h3></div><div id="myprops"></div></div>
+      <p class="muted small" id="taken-empty" hidden>No props on your slips or followed for these filters.</p>
     </div>
   </section>
 
@@ -907,7 +911,7 @@ const PX = (() => {
 
   const S = {
     stats: null, byName: new Map(), dByTeam: new Map(), dByName: new Map(), injByTeam: new Map(), db: null, ready: false,
-    lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipWeek: ls.get('pp.slipweek', null), slipApp: ls.get('pp.slipapp', ''), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
+    lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, follows: [], takenKind: ls.get('pp.takenKind', 'all'), activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipWeek: ls.get('pp.slipweek', null), slipApp: ls.get('pp.slipapp', ''), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
     slip: [], legs: Math.min(10, Math.max(2, Math.round(Number(ls.get('pp.legs', 2)) || 2))), pay: Math.max(1.5, Number(ls.get('pp.pay', 3)) || 3), be: 57.7, gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 30), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
     stake: ls.get('pp.stake', 10), off: { game: new Set(), market: new Set((ls.get('pp.off3', {}).market) || []), book: new Set((ls.get('pp.off3', {}).book) || []) }, price: '', confirmDel: null, rows: [], rowByKey: new Map(), sort: ls.get('pp.sort', { key: 'edge', dir: 'desc' }),
   };
@@ -924,13 +928,13 @@ const PX = (() => {
     applyDoc(coll, id, null); renderAll();
   }
   function applyDoc(coll, id, data) {
-    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
+    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
     if (data) local[coll].set(id, data); else local[coll].delete(id);
   }
   function subscribe() {
     for (const coll of ['lines', 'pulls', 'tickets', 'meta', 'log', 'rescore', 'slips', 'results']) {
       S.db.collection(coll).onSnapshot((snap) => {
-        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], back: [], wind: {} }; } else local[coll].clear();
+        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} }; } else local[coll].clear();
         snap.docs.forEach((d) => applyDoc(coll, d.id, d.data())); S.loaded.add(coll);
         S.ready = true; renderAll();
       }, () => { S.ready = true; renderAll(); });
@@ -1295,7 +1299,7 @@ const PX = (() => {
         <td class="r c-proj" data-l="Proj">${r.proj ? `<span class="num">${r.proj.mean.toFixed(m.unit === 'yds' ? 0 : 1)}</span> <span class="muted small">${m.unit}</span>${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}${logNote(r) ? `<div class="why">${esc(logNote(r))}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
         <td class="r c-chance" data-l="Model"><span class="num">${r.model == null ? '—' : pct(r.model)}</span><span class="sub2">market <span class="num">${r.fair == null ? '—' : pct(r.fair)}</span></span></td>
         <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
-      <td class="r c-add">${addBtn(r)}</td>
+      <td class="r c-add">${followBtn(r)}${addBtn(r)}</td>
       </tr>${S.adding === r.key ? addForm(r) : ''}`;
     }).join('');
   }
@@ -1344,6 +1348,20 @@ const PX = (() => {
     const title = (inAct ? `In ${act.name}${held(act).pt != null && held(act).pt !== r.o.pt ? ' at ' + held(act).pt : ''}: tap to remove` : `Add to ${act ? act.name : 'a new slip'}`) + (others.length ? `. Also in ${others.map(heldAt).join(', ')}` : '');
     return `<button class="add" data-slipadd="${esc(r.key)}" aria-pressed="${inAct || S.adding === r.key}" title="${esc(title)}" aria-label="${esc(title)}">${inAct ? '✓' : '+'}${others.length ? `<small>+${others.length}</small>` : ''}</button>`;
   }
+  // followed props: tracked on Props Taken without being on a slip, so they never count toward win rates or P/L
+  const followOf = (r) => { const id = legId(legOf(r)); return S.follows.find((l) => legId(l) === id) || null; };
+  function followBtn(r) {
+    if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
+    const f = followOf(r), title = f ? `Following${f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : ''}: tap to stop` : 'Follow on Props Taken without betting it (does not count toward win rates or P/L)';
+    return `<button class="add fbtn" data-follow="${esc(r.key)}" aria-pressed="${!!f}" title="${esc(title)}" aria-label="${esc(title)}">${f ? '★' : '☆'}</button>`;
+  }
+  async function saveFollows(f, note) { S.follows = f; renderBoard(); renderSlips(); if (await save('meta', 'follows', { f }) && note) toast(note); }
+  function toggleFollow(key) {
+    const r = S.rowByKey.get(key); if (!r) return;
+    const leg = legOf(r), id = legId(leg), has = S.follows.some((l) => legId(l) === id);
+    return saveFollows(has ? S.follows.filter((l) => legId(l) !== id) : [...S.follows, leg], has ? 'Stopped following.' : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
+  }
+  const unfollow = (pk) => saveFollows(S.follows.filter((l) => propKey(l) !== pk), 'Stopped following.');
   function legValue(l, res) { const row = (res.p || []).map((x) => String(x).split('|')).find((p) => PM.normName(p[0]) === PM.normName(l.name || l.pl) || PM.normName(p[0]) === PM.normName(l.pl)); return row ? Number(row[RIDX[l.m]]) : null; }
   const ST_LABEL = { w: 'Hit', l: 'Missed', p: 'Push', v: 'Void' };
   function legState(l) {
@@ -1470,7 +1488,7 @@ const PX = (() => {
     { const sa = $('slip-app'); if (sa && document.activeElement !== sa) { sa.innerHTML = appOptions(act && act.app, 'App…'); sa.disabled = !act; } }
     { const sm = $('slip-money'), foc = document.activeElement; if (sm && !(foc && sm.contains(foc))) sm.innerHTML = act ? moneyHtml(act, slipState(act)) : ''; }
     if ($('view-slips').hidden && $('view-taken').hidden && !$('slip-cards').dataset.init) return; $('slip-cards').dataset.init = '1';
-    { const weeks = [...new Set(listAll.map(slipWeek))].sort((a, b) => b - a), ws = $('slip-week');
+    { const weeks = [...new Set([...listAll.map(slipWeek), ...S.follows.filter((l) => l.commence).map((l) => weekIdx(l.commence))])].sort((a, b) => b - a), ws = $('slip-week');
       if (S.slipWeek != null && !weeks.includes(S.slipWeek)) S.slipWeek = null;
       ws.innerHTML = '<option value="">All weeks</option>' + weeks.map((w) => `<option value="${w}" ${S.slipWeek === w ? 'selected' : ''}>${esc(weekLabel(w))}</option>`).join(''); $('taken-week').innerHTML = ws.innerHTML;
       if (S.slipWeek != null) list = listAll.filter((x) => slipWeek(x) === S.slipWeek); }
@@ -1490,7 +1508,10 @@ const PX = (() => {
     // every prop, grouped by game, soonest first
     const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide; $('taken-hidedone').checked = hide;
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
-    const shownProps = [...props.values()].filter((e) => !hide || !gameEnded(e.l));
+    // Props Taken also lists followed props (not on any slip); the tiles above are already counted from slip props only
+    const taken = new Map([...props].map(([k, e]) => [k, { ...e, follow: false }]));
+    if (!S.slipApp) S.follows.filter((l) => S.slipWeek == null || weekIdx(l.commence) === S.slipWeek).forEach((l) => { const k = propKey(l), e = taken.get(k); if (e) e.follow = true; else taken.set(k, { l, slips: [], sids: [], follow: true, only: true }); });
+    const shownProps = [...taken.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
     // a slip is hidden only when its games are over AND it is settled: a flex slip still waiting for what it paid stays in view
     const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l)) && doneSlip(y.st)));
@@ -1498,7 +1519,7 @@ const PX = (() => {
     const isLive = (y) => y.st.n > 0 && !['w', 'l', 'v'].includes(y.st.code) && y.st.open > 0 && y.x.legs.some((l) => Date.now() >= Date.parse(l.commence));
     S.slipLive = !!ls.get('pp.slipLive', false); $('slip-live').checked = S.slipLive;
     if (S.slipLive) { const keep = shownSlips.filter(isLive); shownSlips.length = 0; shownSlips.push(...keep); }
-    const hp = props.size - shownProps.length, hs = S.slipLive ? 0 : states.length - shownSlips.length;
+    const hpT = taken.size - shownProps.length, hp = hide ? [...props.values()].filter((e) => gameEnded(e.l)).length : 0, hs = S.slipLive ? 0 : states.length - shownSlips.length;
     // props whose game is over but have no result yet (not marked, no box score): hidden by Hide completed, so say so
     const pending = [...props.values()].filter((e) => gameEnded(e.l) && !DONE.includes(legState(e.l).code)); S.slipPending = pending.length;
     { const pn = $('slip-pending'); pn.hidden = !(hide && pending.length);
@@ -1507,12 +1528,17 @@ const PX = (() => {
     // Props Taken: only props with no result yet (not hit, missed, pushed or void)
     S.takenPending = !!ls.get('pp.takenPending', false); $('taken-pending').checked = S.takenPending;
     if (S.takenPending) { const keep = shownProps.filter((e) => !DONE.includes(legState(e.l).code)); shownProps.length = 0; shownProps.push(...keep); }
+    $('taken-kind').value = S.takenKind;
+    if (S.takenKind !== 'all') { const keep = shownProps.filter((e) => (S.takenKind === 'follow' ? e.follow : !e.only)); shownProps.length = 0; shownProps.push(...keep); }
     const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || String(a.l.game).localeCompare(String(b.l.game)) || legOrder(a.l, b.l)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
     $('myprops-panel').hidden = !shownProps.length; $('taken-empty').hidden = !!shownProps.length;
-    { const ng = new Set([...props.values()].filter((e) => gameEnded(e.l)).map((e) => e.l.eventId)).size;
-      $('taken-hidden-note').textContent = hide && hp ? `${ng} completed ${ng === 1 ? 'game' : 'games'} hidden (${hp} ${hp === 1 ? 'prop' : 'props'})` : ''; }
+    { const ng = new Set([...taken.values()].filter((e) => gameEnded(e.l)).map((e) => e.l.eventId)).size;
+      $('taken-hidden-note').textContent = hide && hpT ? `${ng} completed ${ng === 1 ? 'game' : 'games'} hidden (${hpT} ${hpT === 1 ? 'prop' : 'props'})` : ''; }
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
-      return `<tr><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span></div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${e.slips.map((n, i) => S.site ? esc(n) : `<a href="#slipcard-${esc(e.sids[i])}" data-gotoslip="${esc(e.sids[i])}">${esc(n)}</a>`).join(', ')}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
+      const fol = e.follow ? `<button class="linkbtn" data-unfollow="${esc(pk)}" title="Stop following this prop">Stop following</button>` : '';
+      const where = e.only ? `<div class="muted small">Not on a slip: not counted in win rates or P/L · ${fol}</div>`
+        : `<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${e.slips.map((n, i) => S.site ? esc(n) : `<a href="#slipcard-${esc(e.sids[i])}" data-gotoslip="${esc(e.sids[i])}">${esc(n)}</a>`).join(', ')}${fol ? ' · also following · ' + fol : ''}</div>`;
+      return `<tr${e.only ? ' class="fol"' : ''}><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span>${e.only ? ' <span class="st folt">Following</span>' : ''}</div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}${where}</td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
     $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? (S.slipLive ? '<div class="panel panel-pad"><p class="muted">No live slips right now: none is still alive with a game under way. Untick Live slips only to see the rest.</p></div>' : '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>') : shownSlips.map(({ x, st }) => `<div class="panel slipcard" id="slipcard-${esc(x.id)}"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
       ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
@@ -2225,6 +2251,8 @@ const PX = (() => {
       return; }
     if (t.dataset.view) return show(t.dataset.view);
     if (t.dataset.slipadd) return toggleLeg(t.dataset.slipadd);
+    if (t.dataset.follow) return toggleFollow(t.dataset.follow);
+    if (t.dataset.unfollow) return unfollow(t.dataset.unfollow);
     if (t.dataset.addcancel) { S.adding = null; return renderBoard(); }
     if (t.dataset.legedit) { S.editLeg = S.editLeg === t.dataset.legedit ? null : t.dataset.legedit; renderSlips(); const f = document.querySelector('form[data-legform] input'); if (f) f.focus(); return; }
     if (t.dataset.editcancel) { S.editLeg = null; return renderSlips(); }
@@ -2287,6 +2315,7 @@ const PX = (() => {
   document.addEventListener('change', (e) => {
     { const t = e.target;
       if (t.id === 'taken-pending') { ls.set('pp.takenPending', t.checked); renderSlips(); return; }
+      if (t.id === 'taken-kind') { S.takenKind = ['all', 'taken', 'follow'].includes(t.value) ? t.value : 'all'; ls.set('pp.takenKind', S.takenKind); renderSlips(); return; }
       if (t.id === 'slip-live') { ls.set('pp.slipLive', t.checked); renderSlips(); return; }
       if (t.id === 'slip-appf' || t.id === 'taken-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
       if (t.id === 'slip-week' || t.id === 'taken-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
@@ -2341,7 +2370,7 @@ const PX = (() => {
     if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
     S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; $('tab-taken').hidden = true; if (!$('view-slips').hidden || !$('view-taken').hidden) show('board');
     for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) local[coll].clear();
-    S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.over = { out: [], in: [], back: [], wind: {} };
+    S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
     $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy, last updated ${esc(kickoff(snap.at))}.</strong> Lines and injuries are as of that time. This page picks up new updates on its own.`;
     S.ready = true; renderAll(); return true;
