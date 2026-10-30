@@ -102,7 +102,7 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .mk button[aria-pressed="true"].w { background: var(--good, #1d7a3e); border-color: var(--good, #1d7a3e); color: #fff } .mk button[aria-pressed="true"].l { background: var(--bad); border-color: var(--bad); color: #fff }
 .mk button.v { font-size: 11px; padding: 0 6px } .mk button[aria-pressed="true"].v { background: var(--muted); border-color: var(--muted); color: var(--surface) }
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
-td.c-add { white-space: nowrap } .add.fbtn { margin-right: 6px; font-size: 15px; border-color: var(--line) } .add.fbtn[aria-pressed="true"] { border-color: var(--accent) }
+td.c-add { white-space: nowrap } td.c-add .add { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; vertical-align: top; padding: 0; line-height: 1; box-sizing: border-box } td.c-add .add small { margin-top: 0 } .add.fbtn { margin-right: 6px; font-size: 15px; border-color: var(--line) } .add.fbtn[aria-pressed="true"] { border-color: var(--accent) }
 .st.folt { background: var(--accent-soft); color: var(--accent) } .legs tr.fol td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer }
 .ro .fbtn, .ro [data-unfollow] { display: none !important }
@@ -415,16 +415,15 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li><strong>Game script.</strong> The spread and total set the team's expected points. Favorites run more and throw less; higher expected points lift yards and touchdowns. The sizes come from 2,717 team games from 2021 to 2025.</li>
           <li><strong>Conditions.</strong> Outdoor wind above 10 mph lowers passing and rushing efficiency and touchdowns. Home teams score slightly more touchdowns. The opponent's defense this season nudges the result.</li>
           <li><strong>Injuries and roles.</strong> A player listed Out or Doubtful, or missing from his team's depth chart, gets no projection, and his recent share is spread over his teammates. When a starting quarterback is out, his team's receptions drop about 4%, receiving yards about 7% and touchdowns about 10%, the average from games started by backups since 2021 after allowing for the spread. A quarterback whose snap share has risen is projected at his new role.</li>
-          <li><strong>Defensive starters out.</strong> A defensive starter is a player who took at least 60% of his team's defensive snaps in two of its last four games. Fitted on 4,408 team games from 2016 to 2025 (snap counts and team totals, against what each offense and defense averaged), each front-seven starter out (linemen and linebackers) added about 4% to the opponent's rushing yards and about 3% to its touchdowns. Missing cornerbacks and safeties made no measurable difference to passing yards or catches (under 1%, within the noise). The board uses those sizes pulled toward zero by their uncertainty: per front-seven starter out, rushing yards +3.6% and anytime touchdowns +2.3%; passing props move by well under 1%. At most three per unit count. A starter is out when the report or Claude's call says so, or when he missed his last game and is on no report this week. Defensive starters are not listed under Game conditions and injuries; the Update injuries run makes the calls on them. Checked on the 2025 season while it was held out of the fit: touchdowns did rise in games with front-seven starters out (about 7%), but rushing yards did not, and the adjustment left overall forecast error unchanged. Treat it as a small nudge, not an edge on its own.</li>
+          <li><strong>Defensive starters out.</strong> A defensive starter is a player who took at least 60% of his team's defensive snaps in two of its last four games. Fitted on 4,408 team games from 2016 to 2025 (snap counts and team totals, against what each offense and defense averaged), each front-seven starter out (linemen and linebackers) added about 4% to the opponent's rushing yards and about 3% to its touchdowns. Missing cornerbacks and safeties made no measurable difference to passing yards or catches (under 1%, within the noise). The board uses those sizes pulled toward zero by their uncertainty: per front-seven starter out, rushing yards +3.6%; passing props move by well under 1%. At most three per unit count. A starter is out when the report or Claude's call says so, or when he missed his last game and is on no report this week. Defensive starters are not listed under Game conditions and injuries; the Update injuries run makes the calls on them. Checked on the 2025 season while it was held out of the fit: touchdowns did rise in games with front-seven starters out (about 7%), but rushing yards did not, and the adjustment left overall forecast error unchanged. Treat it as a small nudge, not an edge on its own.</li>
           <li><strong>Injury watch.</strong> A prop is highlighted when the player or a teammate who matters to it has an open status: questionable, doubtful, or missing or limited in practice, and not settled by your own tick. For a teammate, the board re-runs the projection as if he sits (or plays, if he is assumed out) and shows the new projection and model chance when the chance moves by 3 points or more. For the player himself it says so; sportsbooks void a prop if he does not play at all, but a short day still loses an over. Official Out players and players off the depth chart count as settled. Tick Hide injury watch to leave these props off the board.</li>
-          <li><strong>Players coming back.</strong> A player returning after missing games (from injury, a suspension, or a reserve or exempt list) is on no injury report, so mark him back this week under Injuries, or let the injury update mark him from the news. He is projected from his games before he left, at about 90% of his old share of targets and carries after missing two or three games and 85% after a longer absence or across an offseason. Teammates give back what they gained while he was out: each one's share is cut by the returner's old share times how much of his recent sample was played without him, 0.8 per point of carries among backs and 1.1 per point of targets. The same cut applies to a teammate who is ruled out this week, so only the share he would have had with the returner back is spread to the others. A game counts as played without him when it is missing from his log and was his current team's game that week, so games a teammate played for another team never count, and a player who came back last week still counts as long as he is marked back. Players marked back (by you or the injury update) are treated this way. A player is also counted as back without a mark when the books post yardage or catch props for him this week after he missed two or more straight games, either right up to this week or ending within the team's last two games; he is tagged Back on the board. For these unmarked returners only carries among backs are given back, since in a re-score of 2026 weeks 5 to 7 taking back targets and red-zone chances as well made graded props slightly worse, while carries alone made them very slightly better (error 0.2384 against 0.2386). Anytime TD lines do not count, as books post them for nearly every skill player, and a single missing game does not count, as a game with no touches leaves no row in the game log. Finding returners from the game logs alone, without prop lines, was also tried and left off. Marking a player back also brings in a player with no games this season, and applies the first-game-back discount unless he already played the team's latest game. Both sizes come from 514 returns by regular starters in 2016 to 2025; checked on 2024 and 2025 while held out, the adjustment cut the error on backup running backs' carry share by about a fifth.</li>
+          <li><strong>Players coming back.</strong> A player returning after missing games (from injury, a suspension, or a reserve or exempt list) is on no injury report, so mark him back this week under Injuries, or let the injury update mark him from the news. He is projected from his games before he left, at about 90% of his old share of targets and carries after missing two or three games and 85% after a longer absence or across an offseason. Teammates give back what they gained while he was out: each one's share is cut by the returner's old share times how much of his recent sample was played without him, 0.8 per point of carries among backs and 1.1 per point of targets. The same cut applies to a teammate who is ruled out this week, so only the share he would have had with the returner back is spread to the others. A game counts as played without him when it is missing from his log and was his current team's game that week, so games a teammate played for another team never count, and a player who came back last week still counts as long as he is marked back. Players marked back (by you or the injury update) are treated this way. A player is also counted as back without a mark when the books post yardage or catch props for him this week after he missed two or more straight games, either right up to this week or ending within the team's last two games; he is tagged Back on the board. For these unmarked returners only carries among backs are given back, since in a re-score of 2026 weeks 5 to 7 taking back targets and red-zone chances as well made graded props slightly worse, while carries alone made them very slightly better (error 0.2384 against 0.2386). A single missing game does not count, as a game with no touches leaves no row in the game log. Finding returners from the game logs alone, without prop lines, was also tried and left off. Marking a player back also brings in a player with no games this season, and applies the first-game-back discount unless he already played the team's latest game. Both sizes come from 514 returns by regular starters in 2016 to 2025; checked on 2024 and 2025 while held out, the adjustment cut the error on backup running backs' carry share by about a fifth.</li>
           <li><strong>Backups who start.</strong> When a regular starter is out and a player who has not been a regular starter (fewer than three starts in his last six games) moves into the starting job (he is listed below the starting spots on the depth chart, and moves up to the top quarterback, running back or tight end, or a top-three receiver once the injured players are taken out), he is projected only from games he started, from this season and last, on any team. A start means a full game at the top of his position: most carries for a running back, most throws and at least 70% of the snaps for a quarterback, top snap share for a tight end, or top three in snaps for a receiver, with at least about half the snaps so relief duty after an injury does not count. His games as a backup are left out, and the injured starter's share is not added on top, because his starts already show what he does with the job. With fewer than two starts on record, the board falls back to his backup games scaled up for the injured starter's share, and says so under the projection.</li>
           <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat.</li>
           <li><strong>Market chance.</strong> The book's two prices with its margin removed. This is usually the better estimate.</li>
 <li><strong>Game lines.</strong> Each team has an offense and a defense rating in points, updated after every game since 2002 and pulled a third of the way back to average each season. The projection adds a 2-point home edge and takes about 4.5 points off a team whose starting quarterback is out. The model's chance is blended with the market's by the Trust in model setting on the Game lines tab. Totals use the market only.</li>
           <li><strong>Edge.</strong> Model and market are blended by the Trust in model setting. Edge is that blended chance minus the chance implied by the sportsbook's own price for that prop, with the book's margin left in (a -120 price needs 54.5%). The figure under it is the expected return per $1 at that price. Game lines work the same way.</li>
         </ul>
-        <p class="muted small">Anytime touchdown has only a Yes price, so the book's margin is estimated: about 5% on favorites, rising to about 50% on longshots.</p>
       </div>
       <div class="panel panel-pad stack">
         <h2>What to keep in mind</h2>
@@ -437,7 +436,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li>The Backtest tab grades picks saved before kickoff against final box scores. A pick is saved only if you open this page after pulling a game's lines and before it kicks off. Props for players who did not play are left out, as a sportsbook would void them.</li>
           <li>Wind is not forecast for you. Enter it for outdoor games; indoor games ignore it.</li>
           <li>Rest days and cold were tested and showed no reliable effect, so they are shown but carry no weight.</li>
-          <li>Tested on the 2025 season, weeks 5 to 18: this version's projections missed by less than the first version's on five of six prop types and matched it on passing yards. The gains are a few percent, largest on anytime touchdown.</li>
+          <li>Tested on the 2025 season, weeks 5 to 18: this version's projections missed by less than the first version's on most prop types and matched it on passing yards. The gains are a few percent.</li>
         </ul>
         <p>Nothing here guarantees a win.</p>
       </div>
@@ -457,7 +456,6 @@ const PM = (() => {
     player_rush_yds:      { label: 'Rush yds',  unit: 'yds', idx: 9,  def: 'ryd',   dist: 'gamma',   cv: 0.55 },
     player_receptions:    { label: 'Receptions',unit: 'rec', idx: 10, def: 'rec',   dist: 'poisson' },
     player_reception_yds: { label: 'Rec yds',   unit: 'yds', idx: 12, def: 'recyd', dist: 'gamma',   cv: 0.62 },
-    player_anytime_td:    { label: 'Anytime TD',unit: 'TD',  idx: 13, def: 'td',    dist: 'anytime' },
   };
 
   /* ---------- odds ---------- */
@@ -536,7 +534,7 @@ const PM = (() => {
   }
 
   // Which fitted effects (volume and efficiency) move each prop.
-  const EFF = { player_pass_yds: ['att', 'ypa'], player_pass_tds: ['att', 'td'], player_rush_yds: ['car', 'ypc'], player_receptions: ['cmp'], player_reception_yds: ['att', 'ypa'], player_anytime_td: ['td'] };
+  const EFF = { player_pass_yds: ['att', 'ypa'], player_pass_tds: ['att', 'td'], player_rush_yds: ['car', 'ypc'], player_receptions: ['cmp'], player_reception_yds: ['att', 'ypa'] };
   const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
   // ctx: { opp, home, fav, total, wind, indoor, vac: {tgt, car, rz} }. Any field may be missing.
   function project(player, marketKey, ctx, stats, opts) {
@@ -592,19 +590,18 @@ const PM = (() => {
     else if (marketKey === 'player_reception_yds') usage = uRecYd * eff('att') * eff('ypa');
     else if (marketKey === 'player_rush_yds') usage = uRush * eff('car') * eff('ypc');
     else if (marketKey === 'player_pass_yds') usage = uAtt * eff('att') * ypa * eff('ypa');
-    else if (marketKey === 'player_pass_tds') usage = uAtt * eff('att') * ptd * eff('td');
-    else usage = (fit.td_rz * rzsh * T.rz + fit.td_yd * (uRush + uRecYd)) * eff('td');
+    else usage = uAtt * eff('att') * ptd * eff('td');
     // teammates ruled out: their share is spread over the players left
     let v = ctx.vac || {};
     // his starts already happened without the man he is replacing, so that man's share is not added again
     if (step && step.used && ctx.stepIn.u) { const su = ctx.stepIn.u; v = { tgt: Math.max(0, (v.tgt || 0) - su[0]), car: Math.max(0, (v.car || 0) - su[1]), rz: Math.max(0, (v.rz || 0) - su[2]) }; }
-    const vacShare = isCatchKey(marketKey) ? v.tgt : marketKey === 'player_rush_yds' ? (pos === 'RB' ? v.car : 0) : marketKey === 'player_anytime_td' ? v.rz : 0;
+    const vacShare = isCatchKey(marketKey) ? v.tgt : marketKey === 'player_rush_yds' ? (pos === 'RB' ? v.car : 0) : 0;
     const vk = marketKey === 'player_rush_yds' ? Math.min(1, o.vac / 0.7) : o.vac; // carries go almost entirely to the backs left
     const boost = vacShare > 0 ? clamp(1 + vk * vacShare / (1 - Math.min(vacShare, 0.6)), 1, 1.5) : 1;
     // a teammate back this week takes back the share he left: per unit of his old share, times how much of this player's
     // window was played while he was out (fitted on 2016-2025 returns: targets 1.11, carries among backs 0.80)
     let backF = 1;
-    const bk = isCatchKey(marketKey) ? 'tgt' : marketKey === 'player_rush_yds' ? (pos === 'RB' ? 'car' : null) : marketKey === 'player_anytime_td' ? 'rz' : null;
+    const bk = isCatchKey(marketKey) ? 'tgt' : marketKey === 'player_rush_yds' ? (pos === 'RB' ? 'car' : null) : null;
     if (bk && ctx.back && ctx.back.length) {
       const C = { tgt: 1.11, car: 0.80, rz: 0.95 }[bk];
       const ws = games.map((g, i) => Math.pow(0.88, i) * (g[0] < curSeason || !player.cur ? 0.5 : 1)), wsum = ws.reduce((a, b) => a + b, 0) || 1;
@@ -635,7 +632,6 @@ const PM = (() => {
   function sideProbs(proj, marketKey, point) {
     const m = MARKETS[marketKey];
     const mu = Math.max(proj.mean, 0.01);
-    if (m.dist === 'anytime') { const y = 1 - Math.exp(-mu); return { over: y, under: 1 - y }; }
     let over, under;
     if (m.dist === 'poisson') {
       const isInt = Number.isInteger(point);
@@ -667,8 +663,8 @@ const PM = (() => {
     const g = isGame(a.market) ? a : b, p = g === a ? b : a;
     let r;
     if (g.market === 'totals') r = 0.25 * sgn(g);                       // more points, more of everything
-    else if (p.team && p.team === g.team) r = p.market === 'player_rush_yds' ? 0.3 : p.market === 'player_anytime_td' ? 0.2 : isPass(p.market) ? -0.05 : 0.1;  // winning teams run
-    else r = p.market === 'player_rush_yds' ? -0.25 : p.market === 'player_anytime_td' ? -0.15 : isPass(p.market) ? 0.1 : -0.05;                              // trailing teams throw
+    else if (p.team && p.team === g.team) r = p.market === 'player_rush_yds' ? 0.3 : isPass(p.market) ? -0.05 : 0.1;  // winning teams run
+    else r = p.market === 'player_rush_yds' ? -0.25 : isPass(p.market) ? 0.1 : -0.05;                              // trailing teams throw
     return r * sgn(p);
   }
   function legRho(a, b) {
@@ -680,12 +676,11 @@ const PM = (() => {
     if (a.player === b.player) {
       if (isCatch(a.market) && isCatch(b.market)) r = 0.75;
       else if (isPass(a.market) && isPass(b.market)) r = 0.5;
-      else if (has('player_anytime_td')) r = 0.35;
       else r = 0.2;
     } else if (a.team && a.team === b.team) {
       const passLeg = isPass(a.market) ? a : isPass(b.market) ? b : null;
       const other = passLeg === a ? b : a;
-      if (passLeg && (isCatch(other.market) || (other.market === 'player_anytime_td' && other.pos !== 'RB'))) r = 0.4;
+      if (passLeg && isCatch(other.market)) r = 0.4;
       else if (passLeg && other.market === 'player_rush_yds') r = -0.15;
       else if (isCatch(a.market) && isCatch(b.market)) r = -0.05;
       else if (a.market === 'player_rush_yds' && b.market === 'player_rush_yds') r = -0.2;
@@ -745,7 +740,7 @@ const PM = (() => {
   const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[.'’]/g, '').replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
 
   /* ---------- backtest: grade saved picks against final box scores ---------- */
-  const RES_IDX = { player_pass_yds: 3, player_pass_tds: 4, player_rush_yds: 5, player_receptions: 6, player_reception_yds: 7, player_anytime_td: 8 };
+  const RES_IDX = { player_pass_yds: 3, player_pass_tds: 4, player_rush_yds: 5, player_receptions: 6, player_reception_yds: 7 };
   const wlp = (x, line) => (x > line ? 'w' : x < line ? 'l' : 'p');
   // one saved offer -> 'w' won, 'l' lost, 'p' push, 'v' void (player has no box score: did not play)
   function settle(o, res, players) {
@@ -757,17 +752,16 @@ const PM = (() => {
     }
     const row = players.get(normName(o.name || o.pl)) || players.get(normName(o.pl)); if (!row) return 'v';
     const x = row[RES_IDX[o.m]];
-    if (o.m === 'player_anytime_td') return (x >= 1) === (o.s !== 'No') ? 'w' : 'l';
     const r = wlp(x, o.pt); return o.s === 'Under' ? (r === 'w' ? 'l' : r === 'l' ? 'w' : 'p') : r;
   }
   // logs: saved pre-kickoff docs; results: Map key -> result doc; opt: { keyOf(doc), abbr(name), w (props trust 0..1), gw (game-line trust) }
   function backtest(logs, results, opt) {
     const games = [], picks = [];
     for (const doc of logs) {
-      const key = opt.keyOf(doc), res = results.get(key), g = { eventId: doc.eventId, game: `${opt.abbr(doc.away)} @ ${opt.abbr(doc.home)}`, commence: doc.commence, savedAt: doc.savedAt, saved: (doc.o || []).length, graded: 0, res: res || null };
+      const key = opt.keyOf(doc), res = results.get(key), g = { eventId: doc.eventId, game: `${opt.abbr(doc.away)} @ ${opt.abbr(doc.home)}`, commence: doc.commence, savedAt: doc.savedAt, saved: (doc.o || []).filter((r) => String(r).split('|')[1] !== 'player_anytime_td').length, graded: 0, res: res || null };
       games.push(g); if (!res) continue;
       const players = new Map((res.p || []).map((s) => { const p = String(s).split('|'); return [normName(p[0]), p.map((v, i) => (i > 2 ? Number(v) : v))]; }));
-      for (const s of doc.o || []) { const f = String(s).split('|'); if (f.length < 8) continue;
+      for (const s of doc.o || []) { const f = String(s).split('|'); if (f.length < 8) continue; if (f[0] !== 'GAME' && !MARKETS[f[1]]) continue;
         const o = { pl: f[0], m: f[1], b: f[2], s: f[3], pt: f[4] === '' ? null : Number(f[4]), pr: Number(f[5]), model: f[6] === '' ? null : Number(f[6]), fair: Number(f[7]), skip: f[9] || '', name: f[10] || '', eventId: doc.eventId, game: g.game };
         if (o.pl === 'GAME') o.team = o.m === 'totals' ? null : opt.abbr(o.s);
         o.out = settle(o, res, players); o.kind = o.pl === 'GAME' ? 'game' : 'prop'; picks.push(o); if (o.out !== 'v') g.graded++; }
@@ -928,8 +922,18 @@ const PX = (() => {
     if (S.db) { try { await S.db.doc(coll + '/' + id).delete(); } catch (e) { flash('Could not delete. Try again.', true); } return; }
     applyDoc(coll, id, null); renderAll();
   }
+  // Anytime TD props are not supported: drop any saved copies (lines, logged picks, slip legs, followed lines)
+  const NOTD = 'player_anytime_td';
+  function dropNoTD(coll, data) {
+    if (!data || typeof data !== 'object') return data;
+    if (Array.isArray(data.pulls)) data = { ...data, pulls: data.pulls.map((p) => p && Array.isArray(p.offers) ? { ...p, offers: p.offers.filter((o) => o.m !== NOTD) } : p) };
+    if (Array.isArray(data.o)) data = { ...data, o: data.o.filter((r) => (Array.isArray(r) ? r[1] : String(r).split('|')[1]) !== NOTD) };
+    if (Array.isArray(data.legs)) data = { ...data, legs: data.legs.filter((l) => !l || l.m !== NOTD) };
+    return data;
+  }
   function applyDoc(coll, id, data) {
-    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
+    data = dropNoTD(coll, data);
+    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f.filter((l) => l && l.m !== NOTD) : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
     if (data) local[coll].set(id, data); else local[coll].delete(id);
   }
   function subscribe() {
@@ -961,7 +965,7 @@ const PX = (() => {
   }
   const legKey = (eventId, o) => [eventId, o.pl, o.m, o.s, o.b, o.pt ?? ''].join('|');
   const GAME = { h2h: 'Moneyline', spreads: 'Spread', totals: 'Total' }, ALLK = [...MKEYS, 'h2h', 'spreads', 'totals'];
-  const pickText = (o) => o.m === 'h2h' ? 'Moneyline' : o.m === 'spreads' ? `Spread ${o.pt > 0 ? '+' : ''}${o.pt}` : o.m === 'totals' ? `${o.s} ${o.pt} points` : o.m === 'player_anytime_td' ? 'Anytime TD' : `${o.s} ${o.pt} ${PM.MARKETS[o.m] ? PM.MARKETS[o.m].label.toLowerCase() : o.m}`;
+  const pickText = (o) => o.m === 'h2h' ? 'Moneyline' : o.m === 'spreads' ? `Spread ${o.pt > 0 ? '+' : ''}${o.pt}` : o.m === 'totals' ? `${o.s} ${o.pt} points` : `${o.s} ${o.pt} ${PM.MARKETS[o.m] ? PM.MARKETS[o.m].label.toLowerCase() : o.m}`;
   function flash(text, bad) { const m = $('paste-msg'); m.className = 'msg ' + (bad ? 'err' : 'ok'); m.textContent = text; }
   // a short message at the bottom of the screen, whichever tab is open
   function toast(text, bad) { let el = document.querySelector('.toast'); if (!el) { el = document.createElement('div'); el.setAttribute('role', 'status'); document.body.appendChild(el); }
@@ -1049,9 +1053,9 @@ const PX = (() => {
   const AUTO_BACK = false; // treat unmarked regulars who missed games as returners (tested, not used: see eventCtx)
   const PROP_BACK_CAR = window.__PBK !== undefined ? window.__PBK : true; // prop-line returners take back carries only
   const PROP_BACK = window.__PB !== undefined ? window.__PB : 'recent'; // players with prop lines who missed games count as back (see eventCtx)
-  // the players this game's books post yardage or catch props for, matched to the stats file (anytime TD is posted for nearly every skill player, so it says little)
+  // the players this game's books post yardage or catch props for, matched to the stats file
   const propPlayers = (doc) => { if (doc.__props) return doc.__props; const home = abbr(doc.home), away = abbr(doc.away), s = new Set();
-    for (const o of (doc.pulls && doc.pulls.length ? offersFor(doc) : [])) if (o.pl !== 'GAME' && PM.MARKETS[o.m] && o.m !== 'player_anytime_td') { const p = findPlayer(o.pl, home, away); if (p) s.add(p); }
+    for (const o of (doc.pulls && doc.pulls.length ? offersFor(doc) : [])) if (o.pl !== 'GAME' && PM.MARKETS[o.m]) { const p = findPlayer(o.pl, home, away); if (p) s.add(p); }
     Object.defineProperty(doc, '__props', { value: s, enumerable: false, configurable: true }); return s; };
   let twFor = null, twCache = new Map();
   function teamWeeks(t) {
@@ -1229,7 +1233,6 @@ const PX = (() => {
           else if (!opp) skip = 'changed teams';
           else if (!player.cur && !isBack(player) && !(ec.back[player.t] || []).some((b) => b.pl === player)) skip = 'no games this season';
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
-          else if (o.m === 'player_anytime_td' && o.pr >= 600) skip = 'longshot';
           if (!skip) proj = PM.project(player, o.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
             total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
           if (proj && player.p === 'QB' && proj.step && !proj.step.used) { proj = null; skip = 'backup quarterback, under 2 starts'; } // a quarterback's backup snaps say nothing about him starting
@@ -1246,12 +1249,12 @@ const PX = (() => {
       }
       // PrizePicks and Pick6: a line with no price. Market chance = the sportsbooks' no-margin chance at their own line, moved to this line.
       const be = S.be / 100, refs = new Map();
-      for (const o of offers) { if (DFS[o.b] || !SPORTSBOOKS.includes(o.b) || !PM.MARKETS[o.m] || o.m === 'player_anytime_td' || o.s !== 'Over' || o.pt == null) continue;
+      for (const o of offers) { if (DFS[o.b] || !SPORTSBOOKS.includes(o.b) || !PM.MARKETS[o.m] || o.s !== 'Over' || o.pt == null) continue;
         const u = offers.find((x) => x.b === o.b && x.m === o.m && x.pl === o.pl && x.pt === o.pt && x.s === 'Under'); if (!u) continue;
         const k = PM.normName(o.pl) + '|' + o.m; (refs.get(k) || refs.set(k, []).get(k)).push({ b: o.b, pt: o.pt, q: PM.noVig(o.pr, u.pr)[0] }); }
       const seenDfs = new Set();
       for (const o0 of offers) {
-        if (!DFS[o0.b] || !PM.MARKETS[o0.m] || o0.m === 'player_anytime_td' || o0.pt == null) continue;
+        if (!DFS[o0.b] || !PM.MARKETS[o0.m] || o0.pt == null) continue;
         if (/D\/ST|Defense$/.test(o0.pl)) continue;
         const dk = [PM.normName(o0.pl), o0.m, o0.b, o0.pt].join('|'); if (seenDfs.has(dk)) continue; seenDfs.add(dk);
         const player = findPlayer(o0.pl, home, away);
@@ -1303,7 +1306,7 @@ const PX = (() => {
   }
   // who the "teammates out" boost comes from: ruled-out teammates whose share of the stat this prop uses is still 1% or more
   function outWho(r) {
-    const ec = r.player && S.ctx.get(r.eventId), comp = { player_receptions: 'tgt', player_reception_yds: 'tgt', player_rush_yds: 'car', player_anytime_td: 'rz' }[r.o.m];
+    const ec = r.player && S.ctx.get(r.eventId), comp = { player_receptions: 'tgt', player_reception_yds: 'tgt', player_rush_yds: 'car' }[r.o.m];
     if (!ec || !comp || !ec.vac[r.player.t]) return '';
     const who = (ec.vac[r.player.t].who || []).filter((x) => x[comp] >= 0.01).sort((a, b) => b[comp] - a[comp]).map((x) => shortName(x.n));
     return who.length ? ` (${who.join(', ')})` : '';
@@ -1347,7 +1350,7 @@ const PX = (() => {
     }
     body.innerHTML = rows.map((r) => {
       const o = r.o, m = PM.MARKETS[o.m] || { unit: '' };
-      const hitNow = (v) => o.m === 'player_anytime_td' ? v >= 1 : (o.s === 'Under' ? v < o.pt : v > o.pt);
+      const hitNow = (v) => (o.s === 'Under' ? v < o.pt : v > o.pt);
       const recent = r.proj ? `<div class="recent" title="Last games, most recent first. Outlined games would have won this pick.">${r.proj.recent.map((v) => `<span class="${hitNow(v) ? 'hit' : ''}">${v}</span>`).join('')}</div>` : '';
       const edgeCls = !r.scored ? 'flat' : r.edge > 0.005 ? 'good' : r.edge < -0.005 ? 'bad' : 'flat';
       const sub = r.kind === 'game' ? 'Game line' : r.player ? `${esc(r.player.t)} ${esc(r.player.dr || r.player.p)}${r.opp ? ' vs ' + esc(r.opp) : ''}` : 'No game log found';
@@ -1363,7 +1366,7 @@ const PX = (() => {
         <td class="r c-chance" data-l="Model"><span class="num">${r.model == null ? '—' : pct(r.model)}</span><span class="sub2">market <span class="num">${r.fair == null ? '—' : pct(r.fair)}</span></span></td>
         <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
       <td class="r c-add">${followBtn(r)}${addBtn(r)}</td>
-      </tr>${S.adding === r.key ? addForm(r) : ''}`;
+      </tr>${S.adding === r.key ? addForm(r) : ''}${S.fAdding === r.key ? followForm(r) : ''}`;
     }).join('');
   }
 
@@ -1381,7 +1384,7 @@ const PX = (() => {
   }
 
   /* ---------- slips: props you are betting, tracked through the games ---------- */
-  const RIDX = { player_pass_yds: 3, player_pass_tds: 4, player_rush_yds: 5, player_receptions: 6, player_reception_yds: 7, player_anytime_td: 8 };
+  const RIDX = { player_pass_yds: 3, player_pass_tds: 4, player_rush_yds: 5, player_receptions: 6, player_reception_yds: 7 };
   // one prop regardless of book or slip: same game, player, prop, side and line
   const propKey = (l) => [l.eventId, PM.normName(l.name || l.pl), l.m, l.s, l.pt ?? ''].join('|');
   // a slip holds one leg per player, prop and side: the line is whatever you entered, and the app (PrizePicks, Pick6) is not tracked
@@ -1415,14 +1418,38 @@ const PX = (() => {
   const followOf = (r) => { const id = legId(legOf(r)); return S.follows.find((l) => legId(l) === id) || null; };
   function followBtn(r) {
     if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
-    const f = followOf(r), title = f ? `Following${f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : ''}: tap to stop` : 'Follow on Props Taken without betting it (does not count toward win rates or P/L)';
-    return `<button class="add fbtn" data-follow="${esc(r.key)}" aria-pressed="${!!f}" title="${esc(title)}" aria-label="${esc(title)}">${f ? '★' : '☆'}</button>`;
+    const f = followOf(r), title = f ? `Following${f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : ''}: tap to edit the line or stop` : 'Follow on Props Taken without betting it (does not count toward win rates or P/L). Lets you set the line you are tracking.';
+    return `<button class="add fbtn" data-follow="${esc(r.key)}" aria-pressed="${!!f || S.fAdding === r.key}" title="${esc(title)}" aria-label="${esc(title)}">${f ? '★' : '☆'}</button>`;
   }
   async function saveFollows(f, note) { S.follows = f; renderBoard(); renderSlips(); if (await save('meta', 'follows', { f }) && note) toast(note); }
+  // ☆/★ on the board opens a small form (like +): set the pick and line you are tracking, save, or stop following
+  function followForm(r) {
+    const f = followOf(r), side = f ? f.s : r.o.s, pt = f && f.pt != null ? f.pt : r.o.pt;
+    return `<tr class="adding"><td colspan="6"><form class="addform" data-followform="${esc(r.key)}">
+      <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(side)} · ${f ? 'edit followed line' : 'follow on Props Taken'}</span>
+      ${sideSel(side) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(pt)}" inputmode="decimal" required></label>`}
+      <button class="btn sm primary" type="submit">${f ? 'Save' : 'Follow'}</button>${f ? '<button class="btn sm" type="button" data-fstop="1">Stop following</button>' : ''}<button class="btn sm" type="button" data-fcancel="1">Cancel</button>
+      <span class="muted small">Does not count toward win rates or P/L.</span></form></td></tr>`;
+  }
   function toggleFollow(key) {
     const r = S.rowByKey.get(key); if (!r) return;
-    const leg = legOf(r), id = legId(leg), has = S.follows.some((l) => legId(l) === id);
-    return saveFollows(has ? S.follows.filter((l) => legId(l) !== id) : [...S.follows, leg], has ? 'Stopped following.' : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
+    S.adding = null; S.fAdding = S.fAdding === key ? null : key; renderBoard();
+    if (S.fAdding) { const i = document.querySelector('form[data-followform] input'); if (i) i.focus(); }
+  }
+  async function submitFollow(form) {
+    const r = S.rowByKey.get(form.dataset.followform); if (!r) { S.fAdding = null; return renderBoard(); }
+    const old = followOf(r), leg = old ? { ...old } : legOf(r);
+    const pt = form.elements.pt ? Number(form.elements.pt.value) : null;
+    if (form.elements.pt && !Number.isFinite(pt)) { form.elements.pt.focus(); return; }
+    if (form.elements.pt) leg.pt = pt;
+    if (form.elements.s && ['Over', 'Under'].includes(form.elements.s.value)) leg.s = form.elements.s.value;
+    const oldId = old ? legId(old) : null, newId2 = legId(leg); S.fAdding = null;
+    return saveFollows([...S.follows.filter((l) => legId(l) !== oldId && legId(l) !== newId2), leg], old ? 'Updated followed line.' : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
+  }
+  function stopFollowForm(key) {
+    const r = S.rowByKey.get(key); S.fAdding = null; if (!r) return renderBoard();
+    const f = followOf(r); if (!f) return renderBoard();
+    return saveFollows(S.follows.filter((l) => legId(l) !== legId(f)), 'Stopped following.');
   }
   const unfollow = (pk) => saveFollows(S.follows.filter((l) => propKey(l) !== pk), 'Stopped following.');
   function legValue(l, res) { const row = (res.p || []).map((x) => String(x).split('|')).find((p) => PM.normName(p[0]) === PM.normName(l.name || l.pl) || PM.normName(p[0]) === PM.normName(l.pl)); return row ? Number(row[RIDX[l.m]]) : null; }
@@ -1433,12 +1460,11 @@ const PX = (() => {
     const res = S.results.get(`${abbr(l.away)}-${abbr(l.home)}-${etDay(l.commence)}`);
     if (res) { const players = new Map((res.p || []).map((x) => { const p = String(x).split('|'); return [PM.normName(p[0]), p.map((v, i) => (i > 2 ? Number(v) : v))]; }));
       const out = PM.settle({ pl: l.pl, name: l.name, m: l.m, s: l.s, pt: l.pt }, res, players), v = legValue(l, res);
-      return { code: out, label: ST_LABEL[out], how: out === 'v' ? 'not in the box score' : `final: ${v} ${l.m === 'player_anytime_td' ? (v === 1 ? 'TD' : 'TDs') : (PM.MARKETS[l.m] || {}).unit || ''}` }; }
+      return { code: out, label: ST_LABEL[out], how: out === 'v' ? 'not in the box score' : `final: ${v} ${(PM.MARKETS[l.m] || {}).unit || ''}` }; }
     if (Date.now() < Date.parse(l.commence)) return { code: 'up', label: 'Upcoming', how: kickoff(l.commence) };
     return { code: 'live', label: 'In play', how: Date.now() - Date.parse(l.commence) > 4.5 * 3600e3 ? 'waiting for the box score' : '' };
   }
   function needText(l) { // what the stat has to reach
-    if (l.m === 'player_anytime_td') return l.s === 'No' ? 'no touchdown' : 'needs a touchdown';
     const u = (PM.MARKETS[l.m] || {}).unit || '', x = Number(l.pt), whole = Number.isInteger(x);
     return l.s === 'Under' ? `${whole ? (x - 1) : Math.floor(x)} or fewer ${u}${whole ? ` (${x} pushes)` : ''}` : `${whole ? x + 1 : Math.ceil(x)}+ ${u}${whole ? ` (${x} pushes)` : ''}`;
   }
@@ -1604,7 +1630,7 @@ const PX = (() => {
       return `<tr${e.only ? ' class="fol"' : ''}><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span>${e.only ? ' <span class="st folt">Following</span>' : ''}</div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}${where}</td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
     $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? (S.slipLive ? '<div class="panel panel-pad"><p class="muted">No live slips right now: none is still alive with a game under way. Untick Live slips only to see the rest.</p></div>' : '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>') : shownSlips.map(({ x, st }) => `<div class="panel slipcard" id="slipcard-${esc(x.id)}"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
-      ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${l.m === 'player_anytime_td' ? '' : sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
+      ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
         return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${esc(l.game)} · ${esc(needText(l))}${ls2.how ? ' · ' + esc(ls2.how) : ''}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="Change the pick or line" aria-label="Change the pick or line">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
   }
@@ -1615,12 +1641,12 @@ const PX = (() => {
   const sideSel = (cur) => `<label class="field"><span class="label">Pick</span><select name="s">${['Over', 'Under'].map((v) => `<option${v === cur ? ' selected' : ''}>${v}</option>`).join('')}</select></label>`;
   // + on the board: already in the slip -> take it out; otherwise open a small form to confirm the line you actually got
   function addForm(r) {
-    const act = activeSlip(), anytime = r.o.m === 'player_anytime_td';
+    const act = activeSlip();
     return `<tr class="adding"><td colspan="6"><form class="addform" data-addform="${esc(r.key)}">
-      <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(r.o.s)}${anytime ? ' anytime TD' : ''} into <strong>${esc(act ? act.name : 'Slip 1 (new)')}</strong></span>
-      ${anytime ? '' : sideSel(r.o.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(r.o.pt)}" inputmode="decimal" required></label>`}
+      <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(r.o.s)} into <strong>${esc(act ? act.name : 'Slip 1 (new)')}</strong></span>
+      ${sideSel(r.o.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(r.o.pt)}" inputmode="decimal" required></label>`}
       <button class="btn sm primary" type="submit">Add</button><button class="btn sm" type="button" data-addcancel="1">Cancel</button>
-      ${anytime ? '' : '<span class="muted small">Set the pick and line your PrizePicks or Pick6 entry uses.</span>'}</form></td></tr>`;
+      <span class="muted small">Set the pick and line your PrizePicks or Pick6 entry uses.</span></form></td></tr>`;
   }
   const parseOdds = (v) => { const n = parseInt(String(v).replace(/[^\d+-]/g, ''), 10); return Number.isFinite(n) && Math.abs(n) >= 100 ? n : null; };
   async function toggleLeg(key) {
@@ -1628,7 +1654,7 @@ const PX = (() => {
     const act = activeSlip(), id = legId(legOf(r));
     if (act) { const cur = S.slips.get(act.id) || act, legs = (cur.legs || []).slice(), i = legs.findIndex((l) => legId(l) === id);
       if (i >= 0) { legs.splice(i, 1); S.adding = null; return save('slips', act.id, { ...cur, legs }); } }
-    S.adding = S.adding === key ? null : key; renderBoard();
+    S.fAdding = null; S.adding = S.adding === key ? null : key; renderBoard();
     if (S.adding) { const f = document.querySelector('form[data-addform] input'); if (f) f.focus(); }
   }
   async function submitAdd(form) {
@@ -1734,7 +1760,7 @@ const PX = (() => {
   }
 
   /* ---------- lines ---------- */
-  const PAPI = 'https://parlay-api.com/v1/sports/americanfootball_nfl', PMK = 'player_pass_yds,player_pass_tds,player_rush_yds,player_receptions,player_rec_yds,player_anytime_td,h2h,spreads,totals';
+  const PAPI = 'https://parlay-api.com/v1/sports/americanfootball_nfl', PMK = 'player_pass_yds,player_pass_tds,player_rush_yds,player_receptions,player_rec_yds,h2h,spreads,totals';
   function parlayUrl(id) { return `${PAPI}/odds?apiKey=${encodeURIComponent(S.pkey)}&bookmakers=fanduel,draftkings&markets=${PMK}${id ? '&eventIds=' + encodeURIComponent(id) : ''}&oddsFormat=american`; }
   // Parlay API reports kickoffs a minute late (1:01 PM); show the real time.
   const fixMin = (iso) => { const d = new Date(iso); if (isNaN(d)) return iso; if (d.getUTCMinutes() % 5 === 1) d.setUTCMinutes(d.getUTCMinutes() - 1); return d.toISOString().replace('.000Z', 'Z'); };
@@ -1813,12 +1839,11 @@ const PX = (() => {
         const w1 = String(oc.name || '').split(' ')[0], side = SIDE[w1.toLowerCase()] || oc.name; // Parlay API names an outcome "Over Josh Allen"
         if (DFS[b.key]) { // pick'em apps post a line, not a price; only standard lines pay the standard multiple
           const kind = String(oc.odds_type || oc.projection_type || mk.odds_type || 'standard').toLowerCase();
-          if (kind !== 'standard' || oc.point == null || pm === 'player_anytime_td' || (side !== 'Over' && side !== 'Under')) return;
+          if (kind !== 'standard' || oc.point == null || (side !== 'Over' && side !== 'Under')) return;
           offers.push({ pl: String(oc.description).trim(), m: pm, b: b.key, s: side, pt: Number(oc.point), pr: 100 }); return; }
         let pr = Number(oc.price); if (oc.price == null || !Number.isFinite(pr)) return;
         if (Math.abs(pr) < 100) pr = PM.toAmerican(pr); // decimal odds pasted
-        if (pm === 'player_anytime_td' && side !== 'Yes') return;
-        const o = { pl: String(oc.description).trim(), m: pm, b: b.key, s: side, pr }; if (oc.point != null && pm !== 'player_anytime_td') o.pt = Number(oc.point); if (o.pl) offers.push(o); }); }));
+        const o = { pl: String(oc.description).trim(), m: pm, b: b.key, s: side, pr }; if (oc.point != null) o.pt = Number(oc.point); if (o.pl) offers.push(o); }); }));
       if (!parlay) credits += markets.size; else markets.forEach((k) => pmk.add(k));
       { const dd = dedupeOffers(offers); offers.length = 0; offers.push(...dd); }
       if (!offers.length) continue;
@@ -2317,6 +2342,8 @@ const PX = (() => {
     if (t.dataset.follow) return toggleFollow(t.dataset.follow);
     if (t.dataset.unfollow) return unfollow(t.dataset.unfollow);
     if (t.dataset.addcancel) { S.adding = null; return renderBoard(); }
+    if (t.dataset.fcancel) { S.fAdding = null; return renderBoard(); }
+    if (t.dataset.fstop) { const fm = t.closest('form[data-followform]'); return stopFollowForm(fm ? fm.dataset.followform : S.fAdding); }
     if (t.dataset.legedit) { S.editLeg = S.editLeg === t.dataset.legedit ? null : t.dataset.legedit; renderSlips(); const f = document.querySelector('form[data-legform] input'); if (f) f.focus(); return; }
     if (t.dataset.editcancel) { S.editLeg = null; return renderSlips(); }
     if (t.id === 'slip-new' || t.id === 'slip-new2') return newSlip();
@@ -2372,9 +2399,9 @@ const PX = (() => {
     if (t.id === 'f-weight') { S.weight = Number(t.value); ls.set('pp.weight', S.weight); $('f-weight-val').textContent = S.weight + '%'; buildRows(); renderBoard(); renderSlip(); }
   });
   document.addEventListener('submit', (e) => {
-    const f = e.target; if (f.dataset.addform) { e.preventDefault(); submitAdd(f); } else if (f.dataset.legform) { e.preventDefault(); saveLegEdit(f); }
+    const f = e.target; if (f.dataset.followform) { e.preventDefault(); submitFollow(f); } else if (f.dataset.addform) { e.preventDefault(); submitAdd(f); } else if (f.dataset.legform) { e.preventDefault(); saveLegEdit(f); }
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.adding || S.editLeg)) { S.adding = null; S.editLeg = null; renderBoard(); renderSlips(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.adding || S.fAdding || S.editLeg)) { S.adding = null; S.fAdding = null; S.editLeg = null; renderBoard(); renderSlips(); } });
   document.addEventListener('change', (e) => {
     { const t = e.target;
       if (t.id === 'taken-pending') { ls.set('pp.takenPending', t.checked); renderSlips(); return; }
