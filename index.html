@@ -417,7 +417,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li><strong>Injuries and roles.</strong> A player listed Out or Doubtful, or missing from his team's depth chart, gets no projection, and his recent share is spread over his teammates. When a starting quarterback is out, his team's receptions drop about 4%, receiving yards about 7% and touchdowns about 10%, the average from games started by backups since 2021 after allowing for the spread. A quarterback whose snap share has risen is projected at his new role.</li>
           <li><strong>Defensive starters out.</strong> A defensive starter is a player who took at least 60% of his team's defensive snaps in two of its last four games. Fitted on 4,408 team games from 2016 to 2025 (snap counts and team totals, against what each offense and defense averaged), each front-seven starter out (linemen and linebackers) added about 4% to the opponent's rushing yards and about 3% to its touchdowns. Missing cornerbacks and safeties made no measurable difference to passing yards or catches (under 1%, within the noise). The board uses those sizes pulled toward zero by their uncertainty: per front-seven starter out, rushing yards +3.6% and anytime touchdowns +2.3%; passing props move by well under 1%. At most three per unit count. A starter is out when the report or Claude's call says so, or when he missed his last game and is on no report this week. Defensive starters are not listed under Game conditions and injuries; the Update injuries run makes the calls on them. Checked on the 2025 season while it was held out of the fit: touchdowns did rise in games with front-seven starters out (about 7%), but rushing yards did not, and the adjustment left overall forecast error unchanged. Treat it as a small nudge, not an edge on its own.</li>
           <li><strong>Injury watch.</strong> A prop is highlighted when the player or a teammate who matters to it has an open status: questionable, doubtful, or missing or limited in practice, and not settled by your own tick. For a teammate, the board re-runs the projection as if he sits (or plays, if he is assumed out) and shows the new projection and model chance when the chance moves by 3 points or more. For the player himself it says so; sportsbooks void a prop if he does not play at all, but a short day still loses an over. Official Out players and players off the depth chart count as settled. Tick Hide injury watch to leave these props off the board.</li>
-          <li><strong>Players coming back.</strong> A player returning after missing games (from injury, a suspension, or a reserve or exempt list) is on no injury report, so mark him back this week under Injuries, or let the injury update mark him from the news. He is projected from his games before he left, at about 90% of his old share of targets and carries after missing two or three games and 85% after a longer absence or across an offseason. Teammates give back what they gained while he was out: each one's share is cut by the returner's old share times how much of his recent sample was played without him, 0.8 per point of carries among backs and 1.1 per point of targets. Both sizes come from 514 returns by regular starters in 2016 to 2025; checked on 2024 and 2025 while held out, the adjustment cut the error on backup running backs' carry share by about a fifth.</li>
+          <li><strong>Players coming back.</strong> A player returning after missing games (from injury, a suspension, or a reserve or exempt list) is on no injury report, so mark him back this week under Injuries, or let the injury update mark him from the news. He is projected from his games before he left, at about 90% of his old share of targets and carries after missing two or three games and 85% after a longer absence or across an offseason. Teammates give back what they gained while he was out: each one's share is cut by the returner's old share times how much of his recent sample was played without him, 0.8 per point of carries among backs and 1.1 per point of targets. The same cut applies to a teammate who is ruled out this week, so only the share he would have had with the returner back is spread to the others. A game counts as played without him when it is missing from his log and was his current team's game that week, so games a teammate played for another team never count, and a player who came back last week still counts as long as he is marked back. Players marked back (by you or the injury update) are treated this way. A player is also counted as back without a mark when the books post yardage or catch props for him this week after he missed two or more straight games, either right up to this week or ending within the team's last two games; he is tagged Back on the board. For these unmarked returners only carries among backs are given back, since in a re-score of 2026 weeks 5 to 7 taking back targets and red-zone chances as well made graded props slightly worse, while carries alone made them very slightly better (error 0.2384 against 0.2386). Anytime TD lines do not count, as books post them for nearly every skill player, and a single missing game does not count, as a game with no touches leaves no row in the game log. Finding returners from the game logs alone, without prop lines, was also tried and left off. Marking a player back also brings in a player with no games this season, and applies the first-game-back discount unless he already played the team's latest game. Both sizes come from 514 returns by regular starters in 2016 to 2025; checked on 2024 and 2025 while held out, the adjustment cut the error on backup running backs' carry share by about a fifth.</li>
           <li><strong>Backups who start.</strong> When a regular starter is out and a player who has not been a regular starter (fewer than three starts in his last six games) moves into the starting job (he is listed below the starting spots on the depth chart, and moves up to the top quarterback, running back or tight end, or a top-three receiver once the injured players are taken out), he is projected only from games he started, from this season and last, on any team. A start means a full game at the top of his position: most carries for a running back, most throws and at least 70% of the snaps for a quarterback, top snap share for a tight end, or top three in snaps for a receiver, with at least about half the snaps so relief duty after an injury does not count. His games as a backup are left out, and the injured starter's share is not added on top, because his starts already show what he does with the job. With fewer than two starts on record, the board falls back to his backup games scaled up for the injured starter's share, and says so under the projection.</li>
           <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat.</li>
           <li><strong>Market chance.</strong> The book's two prices with its margin removed. This is usually the better estimate.</li>
@@ -608,7 +608,7 @@ const PM = (() => {
     if (bk && ctx.back && ctx.back.length) {
       const C = { tgt: 1.11, car: 0.80, rz: 0.95 }[bk];
       const ws = games.map((g, i) => Math.pow(0.88, i) * (g[0] < curSeason || !player.cur ? 0.5 : 1)), wsum = ws.reduce((a, b) => a + b, 0) || 1;
-      for (const b of ctx.back) { const ov = games.reduce((a, g, i) => a + (g[0] > b.since[0] || (g[0] === b.since[0] && g[1] > b.since[1]) ? ws[i] : 0), 0) / wsum; backF *= 1 - C * (b.R[bk] || 0) * ov; }
+      for (const b of ctx.back) { const ov = games.reduce((a, g, i) => a + ((b.miss ? b.miss(g) : g[0] > b.since[0] || (g[0] === b.since[0] && g[1] > b.since[1])) ? ws[i] : 0), 0) / wsum; backF *= 1 - C * (b.R[bk] || 0) * ov; }
       backF = clamp(backF, 0.4, 1);
     }
     const retF = ctx.ret && !isPass(marketKey) ? ctx.ret : 1; // his own first game back: a lighter share than before
@@ -1041,20 +1041,75 @@ const PX = (() => {
   // fitted on 514 returns, 2016-2025: first game back at about 90% of his old share after missing 2-3 games, 85% after longer or across an offseason
   function backFactor(pl, t) {
     const last = pl.g[0], tl = (S.byTeam.get(t) || []).reduce((m, q) => (q.g && q.g[0] && (q.g[0][0] > m[0] || (q.g[0][0] === m[0] && q.g[0][1] > m[1])) ? q.g[0] : m), last);
+    if (tl[0] === last[0] && tl[1] === last[1]) return 1; // he already played the team's latest game: his first game back is behind him
     return tl[0] === last[0] && tl[1] - last[1] <= 4 ? 0.9 : 0.85;
+  }
+  // the team's game each week: the opponent and team pass and run totals most of the current roster's logs agree on (two players at least)
+  const wkSig = (x) => x[2] + '|' + x[15] + '|' + x[16];
+  const AUTO_BACK = false; // treat unmarked regulars who missed games as returners (tested, not used: see eventCtx)
+  const PROP_BACK_CAR = window.__PBK !== undefined ? window.__PBK : true; // prop-line returners take back carries only
+  const PROP_BACK = window.__PB !== undefined ? window.__PB : 'recent'; // players with prop lines who missed games count as back (see eventCtx)
+  // the players this game's books post yardage or catch props for, matched to the stats file (anytime TD is posted for nearly every skill player, so it says little)
+  const propPlayers = (doc) => { if (doc.__props) return doc.__props; const home = abbr(doc.home), away = abbr(doc.away), s = new Set();
+    for (const o of (doc.pulls && doc.pulls.length ? offersFor(doc) : [])) if (o.pl !== 'GAME' && PM.MARKETS[o.m] && o.m !== 'player_anytime_td') { const p = findPlayer(o.pl, home, away); if (p) s.add(p); }
+    Object.defineProperty(doc, '__props', { value: s, enumerable: false, configurable: true }); return s; };
+  let twFor = null, twCache = new Map();
+  function teamWeeks(t) {
+    if (twFor !== S.stats) { twFor = S.stats; twCache = new Map(); }
+    if (twCache.has(t)) return twCache.get(t);
+    const cnt = new Map();
+    (S.byTeam.get(t) || []).forEach((pl) => (pl.g || []).forEach((x) => { const k = x[0] * 100 + x[1], m = cnt.get(k) || cnt.set(k, new Map()).get(k), s = wkSig(x); m.set(s, (m.get(s) || 0) + 1); }));
+    const out = new Map(); for (const [k, m] of cnt) { const [s, n] = [...m].sort((a, b) => b[1] - a[1])[0]; if (n >= 2) out.set(k, s); }
+    twCache.set(t, out); return out;
   }
   // flip: players whose playing status is reversed, to ask "what if he sits / plays" for the injury watch
   function eventCtx(eventId, doc, flip) {
     const home = abbr(doc.home), away = abbr(doc.away);
     const gone = (pl) => (flip && flip.has(pl) ? !status(pl).absent : status(pl).absent);
+    const props = propPlayers(doc);
     const g = (S.stats.games || []).find((x) => x.home === home && x.away === away) || null;
     const live = doc.ctx && doc.ctx.fav != null;
-    const vac = {};
-    for (const t of [home, away]) { const v = vac[t] = { tgt: 0, car: 0, rz: 0, names: [] };
-      (S.byTeam.get(t) || []).forEach((pl) => { if (pl.u && pl.p !== 'QB' && gone(pl)) { // a quarterback's runs go to the man replacing him, not to teammates
-        v.tgt += pl.u[0]; v.car += pl.u[1]; v.rz += pl.u[2]; v.names.push(pl.n); } }); }
     const back = {};
-    for (const t of [home, away]) back[t] = (S.byTeam.get(t) || []).filter((pl) => pl.p !== 'QB' && backFlag(pl) && !gone(pl)).map((pl) => ({ n: pl.n, pl, since: [pl.g[0][0], pl.g[0][1]], R: backShare(pl), f: backFactor(pl, t) }));
+    // Returners: every active teammate who sat out games inside the window, found from the game logs, not only players marked back.
+    // A game counts as played without him when it is newer than his oldest logged game, missing from his log, and it was this team's game
+    // that week (same opponent and team pass and run totals as most of the current roster), so a teammate's games for another team never count.
+    for (const t of [home, away]) { const tw = teamWeeks(t);
+      // flagged (marked back, or Returning on the report): every game he missed, his current absence included.
+      // Not flagged: only absences he has already come back from, and only for a regular (10%+ of targets or 25%+ of carries),
+      // so a healthy scratch last week or a fringe player's gaps change nothing.
+      const missOf = (pl, upTo) => { const have = new Set(pl.g.map((x) => x[0] * 100 + x[1])), o = pl.g[pl.g.length - 1], oldest = o[0] * 100 + o[1];
+        const wk = (k) => k > oldest && k < upTo && !have.has(k);
+        const f = (x) => { const k = x[0] * 100 + x[1]; return wk(k) && tw.get(k) === wkSig(x); }; f.any = () => [...tw.keys()].some(wk); return f; };
+      // A player the books post prop lines for is expected to play, so one who missed games counts as back without being marked
+      // (PROP_BACK: 'current' = missed the team's latest game; 'recent' = also an absence he returned from within the last two team games; 'any' = any absence in the window)
+      const keys = [...tw.keys()].sort((a, b) => a - b), teamLast = keys[keys.length - 1];
+      const propBack = (pl) => { if (!PROP_BACK || !props.has(pl)) return false;
+        const have = new Set(pl.g.map((x) => x[0] * 100 + x[1])), oldest = pl.g[pl.g.length - 1][0] * 100 + pl.g[pl.g.length - 1][1], latest = pl.g[0][0] * 100 + pl.g[0][1];
+        // a game with no throw, carry or target leaves no row in the log, so only two or more straight team games missing count as an absence
+        const missed = keys.filter((k) => k > oldest && !have.has(k)), runs = []; let run = [];
+        keys.forEach((k) => { if (k > oldest && !have.has(k)) run.push(k); else { if (run.length) runs.push(run); run = []; } }); if (run.length) runs.push(run);
+        const real = runs.filter((r) => r.length >= 2); if (!real.length) return false;
+        if (real[real.length - 1][real[real.length - 1].length - 1] === teamLast) return true; // out through the team's latest game: back this week
+        if (PROP_BACK === 'current') return false;
+        if (PROP_BACK === 'any') return true;
+        const end = real[real.length - 1]; return keys.filter((k) => k > end[end.length - 1]).length <= 2; };
+      back[t] = (S.byTeam.get(t) || []).filter((pl) => pl.p !== 'QB' && pl.g && pl.g.length && !gone(pl)).map((pl) => {
+        const byProps = !backFlag(pl) && propBack(pl), flagged = backFlag(pl) || byProps, latest = pl.g[0][0] * 100 + pl.g[0][1], miss = missOf(pl, flagged ? Infinity : latest), R = backShare(pl);
+        // automatic detection of unmarked returners is off: re-scored on 2026 weeks 5-7 it made graded props slightly worse (error 0.2395 vs 0.2386)
+        if (!flagged && !(AUTO_BACK && pl.cur && (R.tgt >= 0.1 || R.car >= 0.25) && miss.any())) return null;
+        return { n: pl.n, pl, since: [pl.g[0][0], pl.g[0][1]], miss, R: byProps && PROP_BACK_CAR ? { tgt: 0, car: R.car, rz: 0 } : R, f: flagged ? backFactor(pl, t) : 1, auto: !flagged, byProps }; }).filter(Boolean); }
+    // a teammate ruled out frees only the share he would have had with the returner back: what he picked up while the returner was out is the returner's again, not up for grabs
+    const BACK_C = { tgt: 1.11, car: 0.80, rz: 0.95 };
+    const cutFor = (pl, t) => { const f = { tgt: 1, car: 1, rz: 1 }, bs = (back[t] || []).filter((b) => b.pl !== pl); if (!bs.length || !pl.g || !pl.g.length) return f;
+      const cs = Math.max(...pl.g.map((x) => x[0])), ws = pl.g.map((x, i) => Math.pow(0.88, i) * (x[0] < cs || !pl.cur ? 0.5 : 1)), wsum = ws.reduce((a, b) => a + b, 0) || 1;
+      for (const b of bs) { const ov = pl.g.reduce((a, x, i) => a + (b.miss(x) ? ws[i] : 0), 0) / wsum;
+        for (const k of ['tgt', 'car', 'rz']) { if (k === 'car' && pl.p !== 'RB') continue; f[k] *= 1 - BACK_C[k] * (b.R[k] || 0) * ov; } }
+      for (const k of ['tgt', 'car', 'rz']) f[k] = Math.min(1, Math.max(0, f[k])); return f; };
+    const vac = {};
+    for (const t of [home, away]) { const v = vac[t] = { tgt: 0, car: 0, rz: 0, names: [], who: [] };
+      (S.byTeam.get(t) || []).forEach((pl) => { if (pl.u && pl.p !== 'QB' && gone(pl)) { // a quarterback's runs go to the man replacing him, not to teammates
+        const c = cutFor(pl, t), s = { n: pl.n, tgt: pl.u[0] * c.tgt, car: pl.u[1] * c.car, rz: pl.u[2] * c.rz };
+        v.tgt += s.tgt; v.car += s.car; v.rz += s.rz; v.names.push(pl.n); v.who.push(s); } }); }
     // starting quarterback: the depth chart's QB1, else whoever has thrown most recently. If he is out, strength = how much of the recent sample was his.
     const qbOut = {};
     for (const t of [home, away]) { const qbs = (S.byTeam.get(t) || []).filter((pl) => pl.p === 'QB' && pl.u);
@@ -1167,12 +1222,12 @@ const PX = (() => {
         const player = findPlayer(o.pl, home, away);
         let proj = null, model = null, opp = null, st = null, skip = null, watch = [];
         if (player) {
-          opp = player.t === home ? away : player.t === away ? home : null; st = status(player);
+          opp = player.t === home ? away : player.t === away ? home : null; st = status(player); if (!st.label && (ec.back[player.t] || []).some((b) => b.pl === player && b.byProps)) st = { absent: false, label: 'Back', cls: 'q', note: 'back: missed games, and the books have prop lines on him this week', back: 'props' };
           const atHome = player.t === home;
           // cases the game log cannot speak to: say so instead of showing a confident number
           if (st.absent) skip = 'out';
           else if (!opp) skip = 'changed teams';
-          else if (!player.cur && !isBack(player)) skip = 'no games this season';
+          else if (!player.cur && !isBack(player) && !(ec.back[player.t] || []).some((b) => b.pl === player)) skip = 'no games this season';
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
           else if (o.m === 'player_anytime_td' && o.pr >= 600) skip = 'longshot';
           if (!skip) proj = PM.project(player, o.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
@@ -1202,9 +1257,9 @@ const PX = (() => {
         const player = findPlayer(o0.pl, home, away);
         let proj = null, opp = null, st = null, skip = null, thin = false;
         if (player) {
-          opp = player.t === home ? away : player.t === away ? home : null; st = status(player);
+          opp = player.t === home ? away : player.t === away ? home : null; st = status(player); if (!st.label && (ec.back[player.t] || []).some((b) => b.pl === player && b.byProps)) st = { absent: false, label: 'Back', cls: 'q', note: 'back: missed games, and the books have prop lines on him this week', back: 'props' };
           const atHome = player.t === home;
-          if (st.absent) skip = 'out'; else if (!opp) skip = 'changed teams'; else if (!player.cur && !isBack(player)) skip = 'no games this season';
+          if (st.absent) skip = 'out'; else if (!opp) skip = 'changed teams'; else if (!player.cur && !isBack(player) && !(ec.back[player.t] || []).some((b) => b.pl === player)) skip = 'no games this season';
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
           if (!skip) proj = PM.project(player, o0.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
             total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
@@ -1245,6 +1300,13 @@ const PX = (() => {
     const vals = r.player.g.map((g) => g[m.idx]), under = r.o.s === 'Under' || r.o.s === 'No';
     const k = vals.filter((v) => (under ? v < r.o.pt : v > r.o.pt)).length;
     return `chance from game log: ${k} of last ${vals.length} ${under ? 'under' : 'over'} ${r.o.pt}`;
+  }
+  // who the "teammates out" boost comes from: ruled-out teammates whose share of the stat this prop uses is still 1% or more
+  function outWho(r) {
+    const ec = r.player && S.ctx.get(r.eventId), comp = { player_receptions: 'tgt', player_reception_yds: 'tgt', player_rush_yds: 'car', player_anytime_td: 'rz' }[r.o.m];
+    if (!ec || !comp || !ec.vac[r.player.t]) return '';
+    const who = (ec.vac[r.player.t].who || []).filter((x) => x[comp] >= 0.01).sort((a, b) => b[comp] - a[comp]).map((x) => shortName(x.n));
+    return who.length ? ` (${who.join(', ')})` : '';
   }
   function renderBoard() {
     const posOnly = $('f-pos').checked, all = $('f-all').checked;
@@ -1290,7 +1352,7 @@ const PX = (() => {
       const edgeCls = !r.scored ? 'flat' : r.edge > 0.005 ? 'good' : r.edge < -0.005 ? 'bad' : 'flat';
       const sub = r.kind === 'game' ? 'Game line' : r.player ? `${esc(r.player.t)} ${esc(r.player.dr || r.player.p)}${r.opp ? ' vs ' + esc(r.opp) : ''}` : 'No game log found';
       const tag = r.st && r.st.label ? `<span class="tag ${r.st.cls}" title="${esc(r.st.note || '')}">${esc(r.st.label)}</span>` : '';
-      const why = r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out', r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
+      const why = r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out' + outWho(r), r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
         .filter(([, v]) => Math.abs(v) >= 0.01).map(([n, v]) => `${n} ${v > 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(0)}%`).join(' · ') : '';
       const stepNote = stepText(r), wt = watchText(r);
       const wchip = r.watch && r.watch.length ? `<span class="tag watch" title="${esc(r.watch.map((x) => x.self ? x.text : `${x.text}: ${x.mean.toFixed(1)}, model ${pct(x.model)}`).join('; '))}">Injury watch</span>` : '';
@@ -1913,7 +1975,7 @@ const PX = (() => {
   const loadPdfLib = () => pdfLibP || (pdfLibP = new Promise((res, rej) => { if (window.PDFLib) return res(window.PDFLib);
     const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
     sc.onload = () => (window.PDFLib ? res(window.PDFLib) : rej(new Error('missing'))); sc.onerror = () => { pdfLibP = null; rej(new Error('load')); }; document.head.appendChild(sc); }));
-  const whyOf = (r) => r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out', r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
+  const whyOf = (r) => r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out' + outWho(r), r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
     .filter(([, v]) => Math.abs(v) >= 0.01).map(([n, v]) => `${n} ${v > 0 ? '+' : '-'}${Math.abs(v * 100).toFixed(0)}%`).join(', ') : '';
   function exportData() {
     const props = (S.view || []).map((r) => ({ game: r.game, player: r.o.pl, team: r.player ? r.player.t : '', pos: r.player ? (r.player.dr || r.player.p) : '', status: r.st && r.st.label ? r.st.label : '',
