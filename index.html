@@ -102,8 +102,8 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .mk button[aria-pressed="true"].w { background: var(--good, #1d7a3e); border-color: var(--good, #1d7a3e); color: #fff } .mk button[aria-pressed="true"].l { background: var(--bad); border-color: var(--bad); color: #fff }
 .mk button.v { font-size: 11px; padding: 0 6px } .mk button[aria-pressed="true"].v { background: var(--muted); border-color: var(--muted); color: var(--surface) }
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
-td.c-add { white-space: nowrap } td.c-add .add { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; vertical-align: top; padding: 0; line-height: 1; box-sizing: border-box } td.c-add .add small { margin-top: 0 } .add.fbtn { margin-right: 6px; font-size: 15px; border-color: var(--line) } .add.fbtn[aria-pressed="true"] { border-color: var(--accent) }
-.st.folt { background: var(--accent-soft); color: var(--accent) } .legs tr.fol td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
+td.c-add { white-space: nowrap } td.c-add .add { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; vertical-align: top; padding: 0; line-height: 1; box-sizing: border-box } td.c-add .add small { margin-top: 0 } .add.fbtn { margin-right: 6px; font-size: 15px; border-color: var(--line) } .add.fbtn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent) } .add.fbtn[aria-pressed="false"] { border-color: var(--line); color: var(--muted); font-weight: 400 } .add.fbtn.shark[aria-pressed="false"] .sk { filter: grayscale(1); opacity: .6 } .add.fbtn.shark[aria-pressed="true"] { border-color: var(--good); background: var(--good-soft) }
+.st.folt { background: var(--accent-soft); color: var(--accent) } .st.shark { background: var(--good-soft); color: var(--good) } .legs tr.fol td:first-child { box-shadow: inset 3px 0 0 var(--accent) }
 .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer }
 .ro .fbtn, .ro [data-unfollow] { display: none !important }
 .ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro [data-slipreopen], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro #back-add, .ro [data-unback], .ro label[for="out-name"], .ro #out-name { display: none !important }
@@ -231,6 +231,8 @@ table.bt tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-
 .msg { font-size: 14px; padding: 8px 10px }
 .msg.ok { background: var(--good-soft); color: var(--good) }
 .msg.err { background: var(--bad-soft); color: var(--bad) }
+.msg.busy { background: var(--sunk); color: var(--ink); border-left: 3px solid var(--accent) }
+#paste-add[disabled] { cursor: progress }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start }
 ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
@@ -324,8 +326,10 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div class="stack">
       <div class="panel panel-pad stack">
         <h2>Props Taken</h2>
-        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed games</label><label class="check" for="taken-pending" title="Props with no result yet: upcoming, in play, or waiting for the box score"><input type="checkbox" id="taken-pending"> Pending results only</label><label class="label" for="taken-kind">Show</label><select id="taken-kind"><option value="all">Taken and followed</option><option value="taken">Taken only</option><option value="follow">Followed only</option></select><span class="muted small" id="taken-hidden-note"></span></div>
+        <div class="row" style="gap:10px"><label class="label" for="taken-week">Week</label><select id="taken-week"></select><label class="label" for="taken-appf">App</label><select id="taken-appf"></select><label class="check" for="taken-hidedone"><input type="checkbox" id="taken-hidedone"> Hide completed games</label><label class="check" for="taken-pending" title="Props with no result yet: upcoming, in play, or waiting for the box score"><input type="checkbox" id="taken-pending"> Pending results only</label></div>
+        <div class="row" style="gap:10px"><span class="label">Show</span><label class="check" for="tk-taken"><input type="checkbox" id="tk-taken" data-tk="taken"> Taken</label><label class="check" for="tk-star"><input type="checkbox" id="tk-star" data-tk="star" aria-label="Starred"> ★</label><label class="check" for="tk-shark"><input type="checkbox" id="tk-shark" data-tk="shark" aria-label="Sharks"> 🦈</label></div>
       </div>
+      <div class="tiles" id="taken-tiles"></div>
       <div class="panel" id="myprops-panel"><div class="panel-pad"><h3>Every prop you are on <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One row per prop across all your slips, by game. Props you follow with the star (☆) on the Player props board show here too, marked Following. They are tracked and graded like the rest but do not count toward any win rate or P/L. Followed props have no app, so they are shown only when App is set to All apps.</span></span></span></h3></div><div id="myprops"></div></div>
       <p class="muted small" id="taken-empty" hidden>No props on your slips or followed for these filters.</p>
     </div>
@@ -857,9 +861,17 @@ const PX = (() => {
     const newPage = () => { page = doc.addPage([W, H]); y = H - M; };
     const fit = (t, f, size, w) => { t = ascii(t); if (f.widthOfTextAtSize(t, size) <= w) return t; while (t.length > 1 && f.widthOfTextAtSize(t + '...', size) > w) t = t.slice(0, -1); return t + '...'; };
     const text = (t, x, yy, o = {}) => page.drawText(ascii(t), { x, y: yy, size: o.size || 8, font: o.bold ? bold : font, color: o.color || ink });
+    // break text into lines that fit the width, splitting a word only when it is wider than the whole column
+    const wrapLines = (t, f, size, w) => { t = ascii(t); if (f.widthOfTextAtSize(t, size) <= w) return [t]; const out = []; let cur = '';
+      for (const word of t.split(' ')) { const next = cur ? cur + ' ' + word : word;
+        if (f.widthOfTextAtSize(next, size) <= w) { cur = next; continue; }
+        if (cur) out.push(cur);
+        let wd = word; while (wd.length > 1 && f.widthOfTextAtSize(wd, size) > w) { let k = wd.length; while (k > 1 && f.widthOfTextAtSize(wd.slice(0, k), size) > w) k--; out.push(wd.slice(0, k)); wd = wd.slice(k); }
+        cur = wd; }
+      if (cur) out.push(cur); return out; };
     newPage();
     text(spec.title, M, y - 16, { size: 20, bold: true }); y -= 30;
-    for (const s of spec.subtitle || []) { text(fit(s, font, 9, W - 2 * M), M, y - 9, { size: 9, color: muted }); y -= 13; }
+    for (const s of spec.subtitle || []) for (const ln of wrapLines(s, font, 9, W - 2 * M)) { text(ln, M, y - 9, { size: 9, color: muted }); y -= 13; }
     y -= 6;
     for (const sec of spec.sections) {
       const total = sec.cols.reduce((a, c) => a + c.w, 0), scale = (W - 2 * M) / total, xs = []; let x = M;
@@ -871,14 +883,18 @@ const PX = (() => {
       };
       if (y < M + 70) newPage();
       text(sec.heading, M, y - 12, { size: 12, bold: true }); y -= 18;
-      if (sec.note) { text(fit(sec.note, font, 8, W - 2 * M), M, y - 8, { color: muted }); y -= 13; }
+      if (sec.note) { const nl = wrapLines(sec.note, font, 8, W - 2 * M); nl.forEach((ln, i) => text(ln, M, y - 8 - 10 * i, { color: muted })); y -= 3 + 10 * nl.length; }
       header();
       sec.rows.forEach((row, ri) => {
-        if (y < M + 26) { newPage(); header(); }
-        if (ri % 2 === 1) page.drawRectangle({ x: M, y: y - 13, width: W - 2 * M, height: 13, color: band });
-        row.forEach((v, i) => { const c = sec.cols[i], w = c.w * scale - 8, f = c.bold ? bold : font, t = fit(v, f, 8, w), tone = c.tone ? c.tone(row) : null;
-          page.drawText(t, { x: c.align === 'r' ? xs[i] + c.w * scale - 4 - f.widthOfTextAtSize(t, 8) : xs[i] + 4, y: y - 9.5, size: 8, font: f, color: tone === 'good' ? good : tone === 'bad' ? bad : ink }); });
-        y -= 13;
+        // text columns wrap onto as many lines as they need (the row grows to fit); right-aligned number columns stay on one line
+        const cells = row.map((v, i) => { const c = sec.cols[i] || { w: 0 }, w = c.w * scale - 8, f = c.bold ? bold : font;
+          return { c, f, lines: c.align === 'r' || c.wrap === false ? [fit(v, f, 8, w)] : wrapLines(v, f, 8, w) }; });
+        const h = 3 + 10 * Math.max(1, ...cells.map((x) => x.lines.length));
+        if (y - h < M + 13) { newPage(); header(); }
+        if (ri % 2 === 1) page.drawRectangle({ x: M, y: y - h, width: W - 2 * M, height: h, color: band });
+        cells.forEach(({ c, f, lines }, i) => { const tone = c.tone ? c.tone(row) : null;
+          lines.forEach((t, li) => page.drawText(t, { x: c.align === 'r' ? xs[i] + c.w * scale - 4 - f.widthOfTextAtSize(t, 8) : xs[i] + 4, y: y - 9.5 - 10 * li, size: 8, font: f, color: tone === 'good' ? good : tone === 'bad' ? bad : ink })); });
+        y -= h;
       });
       if (!sec.rows.length) { text(sec.empty || 'Nothing to show.', M + 4, y - 10, { color: muted }); y -= 14; }
       page.drawLine({ start: { x: M, y }, end: { x: W - M, y }, thickness: 0.5, color: line }); y -= 16;
@@ -906,7 +922,7 @@ const PX = (() => {
 
   const S = {
     stats: null, byName: new Map(), dByTeam: new Map(), dByName: new Map(), injByTeam: new Map(), db: null, ready: false,
-    lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, follows: [], takenKind: ls.get('pp.takenKind', 'all'), activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipWeek: ls.get('pp.slipweek', null), slipApp: ls.get('pp.slipapp', ''), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
+    lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, follows: [], takenShow: ls.get('pp.takenShow', { taken: true, star: true, shark: true }), activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipWeek: ls.get('pp.slipweek', null), slipApp: ls.get('pp.slipapp', ''), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
     slip: [], legs: Math.min(10, Math.max(2, Math.round(Number(ls.get('pp.legs', 2)) || 2))), pay: Math.max(1.5, Number(ls.get('pp.pay', 3)) || 3), be: 57.7, gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 30), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
     stake: ls.get('pp.stake', 10), off: { game: new Set(), market: new Set((ls.get('pp.off3', {}).market) || []), book: new Set((ls.get('pp.off3', {}).book) || []) }, price: '', confirmDel: null, rows: [], rowByKey: new Map(), sort: ls.get('pp.sort', { key: 'edge', dir: 'desc' }),
   };
@@ -1416,40 +1432,55 @@ const PX = (() => {
   }
   // followed props: tracked on Props Taken without being on a slip, so they never count toward win rates or P/L
   const followOf = (r) => { const id = legId(legOf(r)); return S.follows.find((l) => legId(l) === id) || null; };
+  const isShark = (l) => !!l && (l.k === 'shark' || l.k === 'both'), isStar = (l) => !!l && l.k !== 'shark';
   function followBtn(r) {
     if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
-    const f = followOf(r), title = f ? `Following${f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : ''}: tap to edit the line or stop` : 'Follow on Props Taken without betting it (does not count toward win rates or P/L). Lets you set the line you are tracking.';
-    return `<button class="add fbtn" data-follow="${esc(r.key)}" aria-pressed="${!!f || S.fAdding === r.key}" title="${esc(title)}" aria-label="${esc(title)}">${f ? '★' : '☆'}</button>`;
+    const f = followOf(r), sh = isShark(f), st1 = isStar(f), at = f && f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : '';
+    const tS = st1 ? `Starred${at}: tap to edit the line or remove the star` : 'Star it to follow on Props Taken without betting it (does not count toward slip win rates or P/L).';
+    const tH = sh ? `Shark${at}: posted to @edgesharks and tracked. Tap to edit the line or remove` : 'Mark as a shark: you posted this prop to @edgesharks. It is tracked on Props Taken and does not count toward slip win rates or P/L.';
+    return `<button class="add fbtn" data-follow="${esc(r.key)}" data-fk="star" aria-pressed="${st1 || (S.fAdding === r.key && S.fKind === 'star')}" title="${esc(tS)}" aria-label="${esc(tS)}">${st1 ? '★' : '☆'}</button><button class="add fbtn shark" data-follow="${esc(r.key)}" data-fk="shark" aria-pressed="${sh || (S.fAdding === r.key && S.fKind === 'shark')}" title="${esc(tH)}" aria-label="${esc(tH)}"><span class="sk">🦈</span></button>`;
   }
   async function saveFollows(f, note) { S.follows = f; renderBoard(); renderSlips(); if (await save('meta', 'follows', { f }) && note) toast(note); }
-  // ☆/★ on the board opens a small form (like +): set the pick and line you are tracking, save, or stop following
+  // ☆/★ and 🦈 on the board open a small form (like +): set the pick and line you are tracking, save, or remove that mark
   function followForm(r) {
-    const f = followOf(r), side = f ? f.s : r.o.s, pt = f && f.pt != null ? f.pt : r.o.pt;
-    return `<tr class="adding"><td colspan="6"><form class="addform" data-followform="${esc(r.key)}">
-      <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(side)} · ${f ? 'edit followed line' : 'follow on Props Taken'}</span>
+    const kind = S.fKind === 'shark' ? 'shark' : 'star', f = followOf(r), has = kind === 'shark' ? isShark(f) : isStar(f);
+    const side = f ? f.s : r.o.s, pt = f && f.pt != null ? f.pt : r.o.pt, nm = kind === 'shark' ? '🦈 shark (posted to @edgesharks)' : '★ star';
+    return `<tr class="adding"><td colspan="6"><form class="addform" data-followform="${esc(r.key)}" data-fk="${kind}">
+      <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(side)} · ${has ? 'edit ' : 'add '}${nm}</span>
       ${sideSel(side) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(pt)}" inputmode="decimal" required></label>`}
-      <button class="btn sm primary" type="submit">${f ? 'Save' : 'Follow'}</button>${f ? '<button class="btn sm" type="button" data-fstop="1">Stop following</button>' : ''}<button class="btn sm" type="button" data-fcancel="1">Cancel</button>
-      <span class="muted small">Does not count toward win rates or P/L.</span></form></td></tr>`;
+      <button class="btn sm primary" type="submit">${has ? 'Save' : kind === 'shark' ? 'Add shark' : 'Star'}</button>${has ? `<button class="btn sm" type="button" data-fstop="1">Remove ${kind === 'shark' ? 'shark' : 'star'}</button>` : ''}<button class="btn sm" type="button" data-fcancel="1">Cancel</button>
+      <span class="muted small">Does not count toward slip win rates or P/L.${f && isShark(f) !== isStar(f) ? ' The pick and line are shared by the star and the shark.' : f && isShark(f) && isStar(f) ? ' The pick and line are shared by the star and the shark.' : ''}</span></form></td></tr>`;
   }
-  function toggleFollow(key) {
+  function toggleFollow(key, kind) {
     const r = S.rowByKey.get(key); if (!r) return;
-    S.adding = null; S.fAdding = S.fAdding === key ? null : key; renderBoard();
+    kind = kind === 'shark' ? 'shark' : 'star';
+    const same = S.fAdding === key && S.fKind === kind;
+    S.adding = null; S.fAdding = same ? null : key; S.fKind = kind; renderBoard();
     if (S.fAdding) { const i = document.querySelector('form[data-followform] input'); if (i) i.focus(); }
   }
   async function submitFollow(form) {
     const r = S.rowByKey.get(form.dataset.followform); if (!r) { S.fAdding = null; return renderBoard(); }
+    const kind = form.dataset.fk === 'shark' ? 'shark' : 'star';
     const old = followOf(r), leg = old ? { ...old } : legOf(r);
     const pt = form.elements.pt ? Number(form.elements.pt.value) : null;
     if (form.elements.pt && !Number.isFinite(pt)) { form.elements.pt.focus(); return; }
     if (form.elements.pt) leg.pt = pt;
     if (form.elements.s && ['Over', 'Under'].includes(form.elements.s.value)) leg.s = form.elements.s.value;
+    const st = kind === 'star' || isStar(old), sh = kind === 'shark' || isShark(old);
+    if (st && sh) leg.k = 'both'; else if (sh) leg.k = 'shark'; else delete leg.k;
     const oldId = old ? legId(old) : null, newId2 = legId(leg); S.fAdding = null;
-    return saveFollows([...S.follows.filter((l) => legId(l) !== oldId && legId(l) !== newId2), leg], old ? 'Updated followed line.' : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
+    const had = kind === 'shark' ? isShark(old) : isStar(old);
+    return saveFollows([...S.follows.filter((l) => legId(l) !== oldId && legId(l) !== newId2), leg], had ? (kind === 'shark' ? 'Updated shark pick.' : 'Updated followed line.') : kind === 'shark' ? `Shark: tracking ${leg.name || leg.pl}. It shows on Props Taken.` : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
   }
+  // remove one mark; the prop stays tracked if it still has the other one
   function stopFollowForm(key) {
-    const r = S.rowByKey.get(key); S.fAdding = null; if (!r) return renderBoard();
+    const r = S.rowByKey.get(key), kind = S.fKind === 'shark' ? 'shark' : 'star'; S.fAdding = null; if (!r) return renderBoard();
     const f = followOf(r); if (!f) return renderBoard();
-    return saveFollows(S.follows.filter((l) => legId(l) !== legId(f)), 'Stopped following.');
+    const keepStar = kind === 'shark' && isStar(f), keepShark = kind === 'star' && isShark(f);
+    const rest = S.follows.filter((l) => legId(l) !== legId(f));
+    if (!keepStar && !keepShark) return saveFollows(rest, kind === 'shark' ? 'Removed shark.' : 'Stopped following.');
+    const leg = { ...f }; if (keepShark) leg.k = 'shark'; else delete leg.k;
+    return saveFollows([...rest, leg], kind === 'shark' ? 'Removed shark.' : 'Removed star.');
   }
   const unfollow = (pk) => saveFollows(S.follows.filter((l) => propKey(l) !== pk), 'Stopped following.');
   function legValue(l, res) { const row = (res.p || []).map((x) => String(x).split('|')).find((p) => PM.normName(p[0]) === PM.normName(l.name || l.pl) || PM.normName(p[0]) === PM.normName(l.pl)); return row ? Number(row[RIDX[l.m]]) : null; }
@@ -1591,15 +1622,21 @@ const PX = (() => {
     const pst = [...props.values()].map((e) => legState(e.l));
     $('slip-tiles').innerHTML = [
       ['Slips win rate', won + lost ? Math.round(100 * won / (won + lost)) + '%' : '—', `${won} won · ${lost} lost · ${alive} open${needPay ? ` · ${needPay} ${needPay === 1 ? 'needs' : 'need'} the flex payout` : ''} · ${list.length} slips`], /* won and lost only, not voided or open slips */
-      (() => { const h = pst.filter((x) => x.code === 'w').length, m = pst.filter((x) => x.code === 'l').length, o = pst.filter((x) => !['w', 'l', 'p', 'v'].includes(x.code)).length; // win rate counts hits and misses only, not pushes, voids or open props
-        return ['Props win rate', h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${props.size} props`]; })(),
     ].concat(moneyTile(states)).map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
+    // the props win rate lives on the Props Taken tab
+    $('taken-tiles').innerHTML = [
+      (() => { const h = pst.filter((x) => x.code === 'w').length, m = pst.filter((x) => x.code === 'l').length, o = pst.filter((x) => !['w', 'l', 'p', 'v'].includes(x.code)).length; // win rate counts hits and misses only, not pushes, voids or open props
+        return ['Win rate on props taken', h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${props.size} props`]; })(),
+      ...[['Win rate on followed', isStar], ['Win rate on sharks', isShark]].map(([lbl, pick]) => { // followed props sit outside the slips, so they get their own rate: hits and misses only
+        const cs = S.slipApp ? [] : S.follows.filter((l) => pick(l) && (S.slipWeek == null || weekIdx(l.commence) === S.slipWeek)).map((l) => legState(l).code), h = cs.filter((c) => c === 'w').length, m = cs.filter((c) => c === 'l').length, o = cs.filter((c) => !['w', 'l', 'p', 'v'].includes(c)).length;
+        return [lbl, h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${cs.length} props`]; })
+    ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     // every prop, grouped by game, soonest first
     const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide; $('taken-hidedone').checked = hide;
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
     // Props Taken also lists followed props (not on any slip); the tiles above are already counted from slip props only
     const taken = new Map([...props].map(([k, e]) => [k, { ...e, follow: false }]));
-    if (!S.slipApp) S.follows.filter((l) => S.slipWeek == null || weekIdx(l.commence) === S.slipWeek).forEach((l) => { const k = propKey(l), e = taken.get(k); if (e) e.follow = true; else taken.set(k, { l, slips: [], sids: [], follow: true, only: true }); });
+    if (!S.slipApp) S.follows.filter((l) => S.slipWeek == null || weekIdx(l.commence) === S.slipWeek).forEach((l) => { const k = propKey(l), e = taken.get(k); if (e) { e.follow = true; e.shark = isShark(l); e.star = isStar(l); } else taken.set(k, { l, slips: [], sids: [], follow: true, only: true, shark: isShark(l), star: isStar(l) }); });
     const shownProps = [...taken.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
     // a slip is hidden only when its games are over AND it is settled: a flex slip still waiting for what it paid stays in view
@@ -1617,17 +1654,16 @@ const PX = (() => {
     // Props Taken: only props with no result yet (not hit, missed, pushed or void)
     S.takenPending = !!ls.get('pp.takenPending', false); $('taken-pending').checked = S.takenPending;
     if (S.takenPending) { const keep = shownProps.filter((e) => !DONE.includes(legState(e.l).code)); shownProps.length = 0; shownProps.push(...keep); }
-    $('taken-kind').value = S.takenKind;
-    if (S.takenKind !== 'all') { const keep = shownProps.filter((e) => (S.takenKind === 'follow' ? e.follow : !e.only)); shownProps.length = 0; shownProps.push(...keep); }
+    { const sh = S.takenShow || {}; document.querySelectorAll('[data-tk]').forEach((c) => { c.checked = sh[c.dataset.tk] !== false; }); }
+    { const sh = S.takenShow || {}, on = (k) => sh[k] !== false; // a prop shows if it matches any ticked box
+      if (!(on('taken') && on('star') && on('shark'))) { const keep = shownProps.filter((e) => (on('taken') && !e.only) || (on('star') && e.follow && e.star) || (on('shark') && e.shark)); shownProps.length = 0; shownProps.push(...keep); } }
     const byGame = new Map(); shownProps.sort((a, b) => String(a.l.commence).localeCompare(String(b.l.commence)) || String(a.l.game).localeCompare(String(b.l.game)) || legOrder(a.l, b.l)).forEach((e) => { const g = byGame.get(e.l.game) || byGame.set(e.l.game, []).get(e.l.game); g.push(e); });
     $('myprops-panel').hidden = !shownProps.length; $('taken-empty').hidden = !!shownProps.length;
-    { const ng = new Set([...taken.values()].filter((e) => gameEnded(e.l)).map((e) => e.l.eventId)).size;
-      $('taken-hidden-note').textContent = hide && hpT ? `${ng} completed ${ng === 1 ? 'game' : 'games'} hidden (${hpT} ${hpT === 1 ? 'prop' : 'props'})` : ''; }
     $('myprops').innerHTML = `<div class="scroll"><table class="legs">${[...byGame.entries()].map(([g, es]) => `<tr class="gm"><td colspan="2">${esc(g)} · ${esc(kickoff(es[0].l.commence))}</td></tr>` + es.map((e) => { const st = legState(e.l), pk = propKey(e.l);
-      const fol = e.follow ? `<button class="linkbtn" data-unfollow="${esc(pk)}" title="Stop following this prop">Stop following</button>` : '';
-      const where = e.only ? `<div class="muted small">Not on a slip: not counted in win rates or P/L · ${fol}</div>`
-        : `<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${e.slips.map((n, i) => S.site ? esc(n) : `<a href="#slipcard-${esc(e.sids[i])}" data-gotoslip="${esc(e.sids[i])}">${esc(n)}</a>`).join(', ')}${fol ? ' · also following · ' + fol : ''}</div>`;
-      return `<tr${e.only ? ' class="fol"' : ''}><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span>${e.only ? ' <span class="st folt">Following</span>' : ''}</div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}${where}</td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
+      const fol = e.follow ? `<button class="linkbtn" data-unfollow="${esc(pk)}" title="${e.shark ? 'Remove this shark pick' : 'Stop following this prop'}">${e.shark ? 'Remove shark' : 'Stop following'}</button>` : '';
+      const where = e.only ? `<div class="muted small">${e.shark ? 'Posted to @edgesharks · ' : ''}Not on a slip: not counted in slip win rates or P/L · ${fol}</div>`
+        : `<div class="muted small">In ${e.slips.length} ${e.slips.length === 1 ? 'slip' : 'slips'}: ${e.slips.map((n, i) => S.site ? esc(n) : `<a href="#slipcard-${esc(e.sids[i])}" data-gotoslip="${esc(e.sids[i])}">${esc(n)}</a>`).join(', ')}${fol ? (e.shark ? ' · also a shark pick · ' : ' · also following · ') + fol : ''}</div>`;
+      return `<tr${e.only ? ' class="fol"' : ''}><td><div class="pname">${esc(legText(e.l))} <span class="st ${st.code}">${esc(st.label)}</span>${e.shark ? ' <span class="st shark">🦈 Shark</span>' : ''}${e.follow && e.star && (e.only || e.shark) ? ' <span class="st folt">★ Following</span>' : ''}</div><div class="muted small">${esc(needText(e.l))}${st.how ? ' · ' + esc(st.how) : ''}</div>${legCalcHtml(e.l)}${where}</td><td class="r act">${markBtns(pk, S.marks[pk])}</td></tr>`; }).join('')).join('')}</table></div>`;
     // one card per slip
     $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? (S.slipLive ? '<div class="panel panel-pad"><p class="muted">No live slips right now: none is still alive with a game under way. Untick Live slips only to see the rest.</p></div>' : '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>') : shownSlips.map(({ x, st }) => `<div class="panel slipcard" id="slipcard-${esc(x.id)}"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
       ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
@@ -1806,7 +1842,20 @@ const PX = (() => {
     $('psync-note').textContent = (u && u.parlaySyncAt ? `Set from your dashboard ${kickoff(u.parlaySyncAt)}; every pull since then has been added here. ` : 'Counted here from each pull. ') + 'Parlay API charges one credit per market per request, so one pull of the whole week costs 9. If this drifts from your dashboard, type the dashboard number and press Set.';
     $('meter-text').innerHTML = `The Odds API (backup): <span class="num">${used}</span> of ${FREE_CREDITS} free credits used, about <span class="num">${Math.floor((FREE_CREDITS - used) / 9)}</span> game pulls left.`;
   }
+  // Add to board: show progress while the pasted prices are read and saved, game by game
+  let pasteBusy = false;
+  const pasteStep = (text) => { const m = $('paste-msg'); m.className = 'msg busy'; m.textContent = text; };
   async function handlePaste() {
+    if (pasteBusy) return;
+    if (!$('paste').value.trim()) return flash('Paste the text from the link first.', true);
+    const btn = $('paste-add'); pasteBusy = true; btn.disabled = true; btn.textContent = 'Adding…';
+    pasteStep('Reading the pasted prices…');
+    await new Promise((r) => setTimeout(r, 30)); // let the button and message paint before the big paste is parsed
+    try { await addPasted(); }
+    catch (e) { flash('Could not add the lines: ' + ((e && e.message) || 'something went wrong') + '.', true); }
+    finally { pasteBusy = false; btn.disabled = false; btn.textContent = 'Add to board'; }
+  }
+  async function addPasted() {
     const raw = $('paste').value.trim();
     if (!raw) return flash('Paste the text from the link first.', true);
     let j; try { j = JSON.parse(raw); } catch { return flash('That is not complete. Select everything on the page the link opened, copy it and paste again.', true); }
@@ -1822,7 +1871,9 @@ const PX = (() => {
     if (total > 1) { const seenG = new Set(); games = games.filter((g) => { const t = Date.parse(g.commence_time), k = g.home_team + '|' + g.away_team; if (!(t > nowT) || weekIdx(t) !== wk || seenG.has(k)) return false; seenG.add(k); return true; }); }
     if (!games.length) return flash('None of those games are still to be played this week.', true);
     let added = 0, credits = 0, loaded = 0; const dfsN = {}; let parlayAny = false; const pmk = new Set(); // Parlay API bills one credit per market per request, however many games the reply holds
+    let gi = 0;
     for (const g of games) {
+      pasteStep(`Adding prices: game ${++gi} of ${games.length} (${abbr(g.away_team)} @ ${abbr(g.home_team)})…`);
       const parlay = g.canonical_event_id != null || (g.bookmakers || []).some((b) => (b.markets || []).some((mk) => mk.key === 'player_rec_yds' || (mk.outcomes || []).some((oc) => oc.description && /^(Over|Under) ./.test(oc.name || ''))));
       if (parlay) parlayAny = true;
       const gid = parlay ? 'p-' + g.id : g.id, gtime = parlay ? fixMin(g.commence_time) : g.commence_time;
@@ -1858,6 +1909,7 @@ const PX = (() => {
       if (await save('lines', gid, data)) { added += offers.length; offers.forEach((o) => { if (DFS[o.b]) dfsN[o.b] = (dfsN[o.b] || 0) + 1; }); }
     }
     if (!added) return flash('No player props in that reply yet. Books usually post them a few days before kickoff.', true);
+    pasteStep('Updating the board and credit count…');
     for (const [id, d] of [...S.linesRaw]) if (d.example) await remove('lines', id);
     const month = new Date().toISOString().slice(0, 7), u = S.usage && S.usage.month === month ? S.usage : { month, credits: 0, pulls: 0 };
     await save('meta', 'usage', { ...u, month, credits: (u.credits || 0) + credits, pulls: (u.pulls || 0) + loaded, parlayUsed: (Number(u.parlayUsed) || 0) + pmk.size, parlayTotal: Number(u.parlayTotal) > 0 ? Number(u.parlayTotal) : 1000 });
@@ -2040,7 +2092,7 @@ const PX = (() => {
     const PDFLib = await loadPdfLib(), tone = (i) => (row) => (row[i].startsWith('+') && row[i] !== '+0.0' ? 'good' : row[i].startsWith('-') && row[i] !== '-0.0' ? 'bad' : null);
     let sections = [
       { heading: `Props board (${d.props.length} picks)`, note: `Sorted by ${S.sort.key}, ${S.sort.dir === 'asc' ? 'ascending' : 'descending'}, as filtered on the board. Edge in percentage points; EV per $1 staked.`, empty: 'No props on the board with the current filters.',
-        cols: [{ h: 'Player', w: 16, bold: true }, { h: 'Team', w: 9 }, { h: 'Game', w: 9 }, { h: 'Pick', w: 18 }, { h: 'Price', w: 6, align: 'r' }, { h: 'Book', w: 8 }, { h: 'Proj', w: 6, align: 'r' }, { h: 'Model', w: 7, align: 'r' }, { h: 'Market', w: 7, align: 'r' }, { h: 'Edge', w: 6, align: 'r', tone: tone(9) }, { h: 'EV', w: 6, align: 'r' }, { h: 'Notes', w: 23 }],
+        cols: [{ h: 'Player', w: 16, bold: true }, { h: 'Team', w: 9 }, { h: 'Game', w: 9 }, { h: 'Pick', w: 18 }, { h: 'Price', w: 6, align: 'r' }, { h: 'Book', w: 8 }, { h: 'Proj', w: 6, align: 'r' }, { h: 'Model', w: 7, align: 'r' }, { h: 'Market', w: 7, align: 'r' }, { h: 'Edge', w: 6, align: 'r', tone: tone(9) }, { h: 'EV', w: 6, align: 'r' }, { h: 'Notes', w: 34 }],
         rows: d.props.map((p) => [p.player + (p.status ? ' (' + p.status + ')' : ''), [p.team, p.pos].filter(Boolean).join(' '), p.game, p.pick, p.price == null ? '' : am(p.price), p.book, p.proj == null ? '' : p.proj.toFixed(1), pc(p.model), pc(p.market), sg(p.edge), sg(p.ev, 2), p.note || p.adj]) },
       { heading: 'Game lines (FanDuel)', note: 'Model is the team-ratings projection; Market is the books\' prices with the margin removed. Totals use the market only.', empty: 'No game lines loaded.',
         cols: [{ h: 'Game', w: 12, bold: true }, { h: 'Kickoff', w: 18 }, { h: 'Market', w: 10 }, { h: 'Pick', w: 20 }, { h: 'Line', w: 7, align: 'r' }, { h: 'Price', w: 7, align: 'r' }, { h: 'Model', w: 8, align: 'r' }, { h: 'Market', w: 8, align: 'r' }, { h: 'Edge', w: 7, align: 'r', tone: tone(8) }, { h: 'EV', w: 7, align: 'r' }],
@@ -2339,7 +2391,7 @@ const PX = (() => {
       return; }
     if (t.dataset.view) return show(t.dataset.view);
     if (t.dataset.slipadd) return toggleLeg(t.dataset.slipadd);
-    if (t.dataset.follow) return toggleFollow(t.dataset.follow);
+    if (t.dataset.follow) return toggleFollow(t.dataset.follow, t.dataset.fk);
     if (t.dataset.unfollow) return unfollow(t.dataset.unfollow);
     if (t.dataset.addcancel) { S.adding = null; return renderBoard(); }
     if (t.dataset.fcancel) { S.fAdding = null; return renderBoard(); }
@@ -2405,7 +2457,7 @@ const PX = (() => {
   document.addEventListener('change', (e) => {
     { const t = e.target;
       if (t.id === 'taken-pending') { ls.set('pp.takenPending', t.checked); renderSlips(); return; }
-      if (t.id === 'taken-kind') { S.takenKind = ['all', 'taken', 'follow'].includes(t.value) ? t.value : 'all'; ls.set('pp.takenKind', S.takenKind); renderSlips(); return; }
+      if (t.dataset && t.dataset.tk) { S.takenShow = { ...(S.takenShow || {}), [t.dataset.tk]: t.checked }; ls.set('pp.takenShow', S.takenShow); renderSlips(); return; }
       if (t.id === 'slip-live') { ls.set('pp.slipLive', t.checked); renderSlips(); return; }
       if (t.id === 'slip-appf' || t.id === 'taken-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
       if (t.id === 'slip-week' || t.id === 'taken-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
