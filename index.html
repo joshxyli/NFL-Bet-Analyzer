@@ -259,7 +259,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-board" data-view="board" aria-selected="true">Player props</button>
       <button class="tab" role="tab" id="tab-games" data-view="games" aria-selected="false">Game lines</button>
-      <button class="tab" role="tab" id="tab-slips" data-view="slips" aria-selected="false">My slips <span class="num" id="slips-count"></span></button>
+      <button class="tab" role="tab" id="tab-slips" data-view="slips" aria-selected="false">My slips</button>
       <button class="tab" role="tab" id="tab-taken" data-view="taken" aria-selected="false">Props Taken</button>
       <button class="tab" role="tab" id="tab-backtest" data-view="backtest" aria-selected="false">Backtest</button>
       <button class="tab" role="tab" id="tab-lines" data-view="lines" aria-selected="false">Get lines</button>
@@ -1599,7 +1599,6 @@ const PX = (() => {
     const listAll = slipList(), act = activeSlip(); let list = listAll;
     // active = has props and is not yet won, lost or void (the same rule as "still alive" on the tiles)
     const nActive = list.filter((x) => { const st = slipState(x); return st.n > 0 && !['w', 'l', 'v'].includes(st.code); }).length;
-    $('slips-count').textContent = list.length ? `(${nActive})` : '';
     // picker above the board
     const open = list.filter((x) => !x.submittedAt);
     $('slip-sel').innerHTML = (act ? '' : '<option value="new" selected>New slip: starts with the next +</option>') + open.map((x) => `<option value="${esc(x.id)}" ${act && x.id === act.id ? 'selected' : ''}>${esc(x.name)} (${x.legs.length})</option>`).join('');
