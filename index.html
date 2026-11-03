@@ -802,13 +802,13 @@ const PM = (() => {
       addCal(o.kind === 'game' ? 'Game sides' : MARKETS[o.m].label, o); if (o.kind === 'prop') addCal('All props', o); }
     // would betting it have paid? best-priced side per player and prop, $1 flat
     const groups = new Map();
-    for (const o of picks) { if (o.model == null || o.out === 'v') continue; if (o.kind === 'game' && o.b !== 'fanduel') continue;
+    for (const o of picks) { if (o.model == null || o.out === 'v') continue; if (o.kind === 'game' && o.b !== 'fanduel' && o.b !== 'draftkings') continue;
       // props are scored as pick'em picks: each pick pays 1 / break-even (a fair share of the entry), so the bar is the break-even, not the sportsbook price
       const w = o.kind === 'game' ? opt.gw : opt.w, p = w * o.model + (1 - w) * o.fair, pe = o.kind === 'prop' && opt.be, dec = pe ? 1 / opt.be : toDecimal(o.pr), c = { o, p, edge: p - 1 / dec, ev: p * dec - 1, dec };
-      const k = o.kind + '|' + o.eventId + '|' + (o.kind === 'game' ? o.m : normName(o.pl) + '|' + o.m), cur = groups.get(k); if (!cur || c.ev > cur.ev) groups.set(k, c); }
+      const k = o.kind + '|' + o.eventId + '|' + (o.kind === 'game' ? o.m + '|' + o.b : normName(o.pl) + '|' + o.m), cur = groups.get(k); if (!cur || c.ev > cur.ev) groups.set(k, c); }
     const mk = (label) => ({ label, bets: 0, w: 0, l: 0, p: 0, exp: 0, profit: 0 });
-    const bet = { props: [mk('Every pick, no filter'), mk('Any positive edge'), mk('Edge 0 to 2 pts'), mk('Edge 2 to 5 pts'), mk('Edge 5 pts or more')], games: [mk('Every pick, no filter'), mk('Any positive edge')] };
-    for (const c of groups.values()) { const set = bet[c.o.kind === 'game' ? 'games' : 'props'], e = c.edge * 100;
+    const bet = { props: [mk('Every pick, no filter'), mk('Any positive edge'), mk('Edge 0 to 2 pts'), mk('Edge 2 to 5 pts'), mk('Edge 5 pts or more')], games: [mk('Every pick, no filter'), mk('Any positive edge')], gamesDk: [mk('Every pick, no filter'), mk('Any positive edge')] };
+    for (const c of groups.values()) { const set = bet[c.o.kind === 'game' ? (c.o.b === 'draftkings' ? 'gamesDk' : 'games') : 'props'], e = c.edge * 100;
       const into = [set[0]]; if (e > 0) { into.push(set[1]); if (set.length > 2) into.push(e < 2 ? set[2] : e < 5 ? set[3] : set[4]); }
       for (const b of into) { if (c.o.out === 'p') { b.p++; continue; } b.bets++; b.exp += c.p; if (c.o.out === 'w') { b.w++; b.profit += c.dec - 1; } else { b.l++; b.profit -= 1; } } }
     return { games, picks, cal: [...cal.values()], bet };
@@ -2074,7 +2074,7 @@ const PX = (() => {
     warn.hidden = !(n > 0 && n < 500);
     warn.querySelector('p').innerHTML = `<strong>Too few picks to conclude anything yet.</strong> ${n} prop lines are graded. Results swing widely until there are around 500, which takes a week or two of full slates.`;
     const betRow = (b, cls) => `<tr${cls ? ' class="mk"' : ''}><td>${esc(b.label)}</td><td class="r num">${b.bets}</td><td class="r num">${b.bets ? b.w + '-' + b.l + (b.p ? '-' + b.p : '') : '—'}</td><td class="r num">${b.bets ? pct(b.w / b.bets) : '—'}</td><td class="r num">${b.bets ? pct(b.exp / b.bets) : '—'}</td><td class="r"><span class="pill ${!b.bets ? 'flat' : b.profit > 0 ? 'good' : 'bad'}">${roi(b)}</span></td></tr>`;
-    $('bt-bets').innerHTML = bt.bet.props.map((b) => betRow(b)).join('') + `<tr class="mk"><td colspan="6">FanDuel game lines, Trust in model ${S.gweight}%</td></tr>` + bt.bet.games.map((b) => betRow(b)).join('');
+    $('bt-bets').innerHTML = bt.bet.props.map((b) => betRow(b)).join('') + `<tr class="mk"><td colspan="6">FanDuel game lines, Trust in model ${S.gweight}%</td></tr>` + bt.bet.games.map((b) => betRow(b)).join('') + `<tr class="mk"><td colspan="6">DraftKings game lines, Trust in model ${S.gweight}%</td></tr>` + bt.bet.gamesDk.map((b) => betRow(b)).join('');
     const order = ['All props', ...MKEYS.map((k) => PM.MARKETS[k].label), 'Game sides'];
     $('bt-cal').innerHTML = order.map((label) => { const c = bt.cal.find((x) => x.label === label); if (!c) return `<tr><td>${esc(label)}</td><td class="r num">0</td><td class="r muted" colspan="5">nothing graded yet</td></tr>`;
       return `<tr><td>${esc(label)}</td><td class="r num">${c.n}</td><td class="r num">${pct(c.hit / c.n)}</td><td class="r num">${pct(c.model / c.n)}</td><td class="r num">${pct(c.market / c.n)}</td><td class="r num">${(c.bm / c.n).toFixed(3)}</td><td class="r num">${(c.bk / c.n).toFixed(3)}</td></tr>`; }).join('');
