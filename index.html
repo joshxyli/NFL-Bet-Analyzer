@@ -84,6 +84,10 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .addform input { width: 90px; font: 600 14px var(--mono); padding: 6px 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink) }
 #board tr.adding { display: table-row } #board tr.adding td { padding: 0 }
 @container (max-width: 660px) { #board tr.adding { display: block; padding: 0 } #board tr.adding td { display: block } }
+.stackcard { border: 1px solid var(--line); background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px }
+.stackcard .sh { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: baseline }
+.stackcard .sl { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 14px }
+.ro [data-stackadd] { display: none !important }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
 .add small { display: block; font: 600 9px var(--mono); margin-top: -2px }
 .slipcard .hd { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line) }
@@ -300,7 +304,8 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
         </div>
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
-        <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><button class="btn sm" id="slip-other" title="Add a non-NFL or custom prop to this slip">Other…</button><span id="slip-money"></span><button class="btn sm primary" id="slip-submit">Submit slip</button><span class="muted small" id="slip-sum"></span></div>
+        <details class="cond" id="stacks"><summary id="stacks-sum">Script stacks</summary><div class="cond-body"><div class="row"><span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Legs on one team that rise and fall with the same game script: a quarterback's passing yards with his receivers' yards (same direction), and his lead back's rushing yards the opposite way. Built from props with a model chance and an edge at or above the minimum. The correlated chance is approximate: it multiplies the independent chance by ratios measured on 2018 to 2024 box scores (quarterback with a receiver about 1.2 to 1.3, with the back about 1.08, back with a receiver about 1.06). Teammate receivers are treated as independent of each other. Each stack also suggests up to three opposing-team legs from the same game, ranked by measured synergy and edge; those synergies are weak (about 1.02 to 1.10, strongest in games with a total of 47.5 or more). Change the pick or line on any leg to match your PrizePicks or Pick6 entry before adding; the edge and chance shown stay at the book's line. PrizePicks and Pick6 may block some of these combinations.</span></span></span><div class="field"><label class="label" for="stack-min">Min edge per leg</label><select id="stack-min"><option value="0">0 pts</option><option value="2">2 pts</option><option value="5">5 pts</option></select></div></div><div id="stacks-body" class="stack"></div></div></details>
+        <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><button class="btn sm" id="slip-other" title="Add a non-NFL or custom prop to this slip">Other…</button><span id="slip-money"></span><button class="btn sm primary" id="slip-submit">Submit slip</button><button class="btn sm" id="slip-clear" title="Remove every prop from this slip (the slip itself stays)">Clear slip</button><span class="muted small" id="slip-sum"></span></div>
         <form class="addform" id="slip-otherform" data-otherform="1" hidden><label class="field"><span class="label">Other prop</span><input type="text" name="desc" maxlength="120" placeholder="e.g. Caitlin Clark o18.5 points" autocomplete="off" required style="min-width:260px"></label><button class="btn sm primary" type="submit">Add</button><button class="btn sm" type="button" id="slip-othercancel">Cancel</button><span class="muted small">For non-NFL props (like discounted PrizePicks picks). Mark the result yourself with ✓ / ✗ / Void.</span></form>
         <div class="board-wrap"><table id="board">
           <thead><tr><th><button class="sort" data-sort="player">Player<i></i></button></th><th><button class="sort" data-sort="pick">Pick<i></i></button></th><th class="r"><button class="sort" data-sort="proj">Projection<i></i></button></th><th class="r"><button class="sort" data-sort="chance">Chance<i></i></button></th><th class="r"><button class="sort" data-sort="edge">Edge<i></i></button></th><th class="r"><span class="sr">Add to slip</span></th></tr></thead>
@@ -1343,6 +1348,102 @@ const PX = (() => {
     const k = vals.filter((v) => (under ? v < r.o.pt : v > r.o.pt)).length;
     return `chance from game log: ${k} of last ${vals.length} ${under ? 'under' : 'over'} ${r.o.pt}`;
   }
+  /* ---------- script stacks: legs on one team that follow the same game script ---------- */
+  // joint-chance multipliers (both hit vs. independent), measured on 2018-2024 box scores against each player's trailing average
+  const STACK_R = { wr: 1.25, te: 1.20, rb: 1.08, rbwr: 1.06 };
+  const stackMin = () => { const v = Number(ls.get('pp.stackMin', 2)); return Number.isFinite(v) ? v : 2; };
+  function buildStacks() {
+    const minE = stackMin() / 100;
+    const base = S.rows.filter((r) => r.kind !== 'game' && r.kind !== 'dfs' && r.o.pr != null && r.scored && r.player && r.team && !S.off.game.has(r.eventId) && !S.off.book.has(r.o.b));
+    const bestBy = new Map();
+    base.forEach((r) => { const k = r.eventId + '|' + PM.normName(r.o.pl) + '|' + r.o.m + '|' + r.o.s; const b = bestBy.get(k); if (!b || r.ev > b.ev) bestBy.set(k, r); });
+    const all = [...bestBy.values()];
+    // a team's lead back: the one with the highest rushing line
+    const leadPt = new Map();
+    all.forEach((r) => { if (r.pos === 'RB' && r.o.m === 'player_rush_yds' && r.o.pt != null) { const k = r.eventId + '|' + r.team; leadPt.set(k, Math.max(leadPt.get(k) ?? -1, r.o.pt)); } });
+    const ok = all.filter((r) => r.edge >= minE && !(r.watch && r.watch.some((x) => x.self)));
+    const by = new Map();
+    ok.forEach((r) => { const k = r.eventId + '|' + r.team; (by.get(k) || by.set(k, []).get(k)).push(r); });
+    const byEv = new Map(); ok.forEach((r) => (byEv.get(r.eventId) || byEv.set(r.eventId, []).get(r.eventId)).push(r));
+    const out = [];
+    for (const [k, rs] of by) {
+      for (const dir of ['Over', 'Under']) {
+        const opp = dir === 'Over' ? 'Under' : 'Over';
+        const top = (f) => rs.filter(f).sort((a, b) => b.edge - a.edge);
+        const qb = top((r) => r.pos === 'QB' && r.o.m === 'player_pass_yds' && r.o.s === dir)[0]; if (!qb) continue;
+        const rec = top((r) => (r.pos === 'WR' || r.pos === 'TE') && r.o.m === 'player_reception_yds' && r.o.s === dir).slice(0, 2);
+        const rb = top((r) => r.pos === 'RB' && r.o.m === 'player_rush_yds' && r.o.s === opp && r.o.pt != null && r.o.pt >= (leadPt.get(k) ?? 0))[0];
+        const legs = [qb, ...rec, ...(rb ? [rb] : [])]; if (legs.length < 2) continue;
+        let ratio = 1;
+        rec.forEach((r) => { ratio *= r.pos === 'TE' ? STACK_R.te : STACK_R.wr; if (rb) ratio *= STACK_R.rbwr; });
+        if (rb) ratio *= STACK_R.rb;
+        const indep = legs.reduce((a, r) => a * r.p, 1), need = legs.reduce((a, r) => a * r.imp, 1), adj = Math.min(0.99, indep * ratio);
+        // opposing-team legs, same direction as this stack's quarterback (a back is the opposite direction of this stack's back):
+        // measured joint-chance ratios, 2018-2024: opposing QB 1.04 (1.09 high total), opposing receiver 1.03 (1.10 high total, 1.00 low), opposing back 1.02
+        const ec0 = S.ctx && S.ctx.get(qb.eventId), tot = ec0 ? ec0.total : null, hi = tot != null && tot >= 47.5, lo = tot != null && tot <= 43.5;
+        const cands = [];
+        (byEv.get(qb.eventId) || []).forEach((r) => { if (r.team === qb.team) return; let q = 0;
+          if (r.pos === 'QB' && r.o.m === 'player_pass_yds' && r.o.s === dir) q = hi ? 1.09 : 1.04;
+          else if ((r.pos === 'WR' || r.pos === 'TE') && r.o.m === 'player_reception_yds' && r.o.s === dir) q = hi ? 1.10 : lo ? 1.0 : 1.03;
+          else if (r.pos === 'RB' && r.o.m === 'player_rush_yds' && r.o.s === dir && r.o.pt != null && r.o.pt >= (leadPt.get(qb.eventId + '|' + r.team) ?? 0)) q = 1.02;
+          if (q) cands.push({ r, q, score: q * r.p / r.imp }); });
+        cands.sort((a, b) => b.score - a.score);
+        out.push({ legs, dir, team: qb.team, game: qb.game, indep, adj, need, value: adj / need, ratio, opp: cands.slice(0, 3), id: qb.key + '|' + dir });
+      }
+    }
+    return out.sort((a, b) => b.value - a.value).slice(0, 12);
+  }
+  // chance for the legs that are ticked: independent, correlated (same pairwise ratios), and what the prices need
+  // pick and line you can change before adding a stack to a slip (kept per prop until the page reloads)
+  function stackEd(r) {
+    const e = (S.stackEdit && S.stackEdit.get(r.key)) || {}, s = e.s || r.o.s, pt = e.pt != null ? e.pt : r.o.pt;
+    return `<span class="stked"><select data-stacks="${esc(r.key)}" aria-label="Pick for ${esc(r.o.pl)}">${['Over', 'Under'].map((v) => `<option${v === s ? ' selected' : ''}>${v}</option>`).join('')}</select> <input type="number" step="0.5" data-stackpt="${esc(r.key)}" value="${esc(pt)}" inputmode="decimal" aria-label="Line for ${esc(r.o.pl)}" title="Book line ${esc(r.o.pt)}" style="width:72px"></span>`;
+  }
+  function oppHtml(s, i, chosen) {
+    const row = (c) => `<label class="sl"><input type="radio" name="stackopp-${i}" data-stackopp="${esc(s.id)}" value="${esc(c.r.key)}"${chosen && chosen.r.key === c.r.key ? ' checked' : ''}><span class="pname">${esc(c.r.o.pl)}</span><span>${esc((PM.MARKETS[c.r.o.m] || {}).label || '')}</span>${stackEd(c.r)}<span class="num odds">${PM.fmtAm(c.r.o.pr)}</span><span class="book">${BOOKS[c.r.o.b]}</span><span class="pill ${c.r.edge > 0.005 ? 'good' : 'flat'}">${c.r.edge >= 0 ? '+' : ''}${(c.r.edge * 100).toFixed(1)} pts</span><span class="muted small">${pct(c.r.p)} · ${esc(c.r.team)} · synergy ×${c.q.toFixed(2)}</span></label>`;
+    return `<div class="muted small" style="margin-top:4px">Opposing-team leg</div>` + (s.opp.length ? s.opp.map(row).join('') + `<label class="sl"><input type="radio" name="stackopp-${i}" data-stackopp="${esc(s.id)}" value="none"${chosen ? '' : ' checked'}><span class="muted">No opposing leg</span></label>` : '<p class="muted small">No opposing-team leg clears the minimum edge.</p>');
+  }
+  const chosenOpp = (s) => { const sel = S.stackOpp && S.stackOpp.get(s.id); return sel === 'none' ? null : s.opp.find((c) => c.r.key === sel) || s.opp[0] || null; };
+  function stackStats(legs, opp) {
+    const qb = legs.find((r) => r.pos === 'QB'), rb = legs.find((r) => r.pos === 'RB'), rec = legs.filter((r) => r.pos === 'WR' || r.pos === 'TE');
+    let ratio = 1;
+    if (qb) rec.forEach((r) => { ratio *= r.pos === 'TE' ? STACK_R.te : STACK_R.wr; });
+    if (qb && rb) ratio *= STACK_R.rb;
+    if (rb) rec.forEach(() => { ratio *= STACK_R.rbwr; });
+    if (opp) ratio *= opp.q;
+    const all = opp ? legs.concat([opp.r]) : legs;
+    const indep = all.reduce((a, r) => a * r.p, 1), need = all.reduce((a, r) => a * r.imp, 1);
+    return { n: all.length, indep, adj: Math.min(0.99, indep * ratio), need };
+  }
+  function renderStacks() {
+    S.stackOff = S.stackOff || new Set();
+    const box = $('stacks-body'); if (!box) return;
+    const sel = $('stack-min'); if (sel) sel.value = String(stackMin());
+    const list = buildStacks(); S.stackList = list;
+    $('stacks-sum').textContent = `Script stacks (${list.length})`;
+    box.innerHTML = list.length ? list.map((s, i) => { const co = chosenOpp(s), t = stackStats(s.legs.filter((r) => !S.stackOff.has(r.key)), co); return `<div class="stackcard"><div class="sh"><b>${esc(s.team)} ${s.dir === 'Over' ? 'pass-heavy' : 'pass-light'} script</b><span class="muted small">${esc(s.game)}</span></div>${s.legs.map((r) => `<div class="sl"><input type="checkbox" data-stackleg="${esc(r.key)}" ${S.stackOff.has(r.key) ? '' : 'checked'} aria-label="Include ${esc(r.o.pl)} in this stack"><span class="pname">${esc(r.o.pl)}</span><span>${esc((PM.MARKETS[r.o.m] || {}).label || '')}</span>${stackEd(r)}<span class="num odds">${PM.fmtAm(r.o.pr)}</span><span class="book">${BOOKS[r.o.b]}</span><span class="pill ${r.edge > 0.005 ? 'good' : 'flat'}">${r.edge >= 0 ? '+' : ''}${(r.edge * 100).toFixed(1)} pts</span><span class="muted small">${pct(r.p)}</span></div>`).join('')}${oppHtml(s, i, co)}<div class="row" style="justify-content:space-between"><span class="small">${t.n ? `${t.n} hit: ${pct(t.indep)} if independent${t.n > 1 ? `, about ${pct(t.adj)} with correlation` : ''} <span class="muted">(prices need ${pct(t.need)})</span>` : 'Tick at least one leg'}</span><button class="btn sm" data-stackadd="${i}"${t.n ? '' : ' disabled'}>Add ${t.n} to slip</button></div></div>`; }).join('') : '<p class="muted small">No stacks with these filters. A stack needs a quarterback passing-yards leg plus at least one receiver or back leg on the same team, each with a model chance and an edge at or above the minimum.</p>';
+  }
+  async function addStack(i) {
+    const s = (S.stackList || [])[i]; if (!s) return;
+    let act = activeSlip(); if (!act) { const nid = await newSlip(); act = { id: nid, ...(S.slips.get(nid) || S.newSlipDoc.doc) }; }
+    const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id;
+    const co = chosenOpp(s), add = s.legs.filter((r) => !(S.stackOff && S.stackOff.has(r.key))).concat(co ? [co.r] : []).map((r) => { const l = legOf(r), e = S.stackEdit && S.stackEdit.get(r.key); if (e) { if (Number.isFinite(e.pt)) l.pt = e.pt; if (e.s) l.s = e.s; } return l; }); if (!add.length) return; const ids = new Set(add.map(legId));
+    const legs = (cur.legs || []).filter((l) => !ids.has(legId(l))).concat(add);
+    S.adding = null;
+    await save('slips', act.id, { ...cur, legs });
+    toast(`Added ${add.length} props to ${cur.name || act.name}.`);
+  }
+  document.addEventListener('click', (e) => { const b = e.target.closest && e.target.closest('[data-stackadd]'); if (b) addStack(Number(b.dataset.stackadd)); });
+  document.addEventListener('click', async (e) => { if (!(e.target && e.target.id === 'slip-clear')) return; const act = activeSlip(); if (!act || !act.legs.length) return;
+    if (S.clearConfirm !== act.id) { S.clearConfirm = act.id; renderSlips(); setTimeout(() => { if (S.clearConfirm === act.id) { S.clearConfirm = null; renderSlips(); } }, 4000); return; }
+    S.clearConfirm = null; const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id;
+    if (await save('slips', act.id, { ...cur, legs: [] })) toast(`${act.name} cleared.`); renderSlips(); });
+  document.addEventListener('input', (e) => { const k = e.target && e.target.dataset && e.target.dataset.stackpt; if (k == null) return; S.stackEdit = S.stackEdit || new Map(); const v = e.target.value === '' ? null : Number(e.target.value); S.stackEdit.set(k, { ...(S.stackEdit.get(k) || {}), pt: Number.isFinite(v) ? v : null }); });
+  document.addEventListener('change', (e) => { const k = e.target && e.target.dataset && e.target.dataset.stacks; if (k == null) return; S.stackEdit = S.stackEdit || new Map(); S.stackEdit.set(k, { ...(S.stackEdit.get(k) || {}), s: e.target.value }); });
+  document.addEventListener('change', (e) => { const o = e.target && e.target.dataset && e.target.dataset.stackopp; if (o == null) return; S.stackOpp = S.stackOpp || new Map(); S.stackOpp.set(o, e.target.value); renderStacks(); });
+  document.addEventListener('change', (e) => { const c = e.target && e.target.dataset && e.target.dataset.stackleg; if (c == null) return; S.stackOff = S.stackOff || new Set(); if (e.target.checked) S.stackOff.delete(c); else S.stackOff.add(c); renderStacks(); });
+  document.addEventListener('change', (e) => { if (e.target && e.target.id === 'stack-min') { ls.set('pp.stackMin', Number(e.target.value)); renderStacks(); } });
+
   // who the "teammates out" boost comes from: ruled-out teammates whose share of the stat this prop uses is still 1% or more
   function outWho(r) {
     const ec = r.player && S.ctx.get(r.eventId), comp = { player_receptions: 'tgt', player_reception_yds: 'tgt', player_rush_yds: 'car' }[r.o.m];
@@ -1351,6 +1452,7 @@ const PX = (() => {
     return who.length ? ` (${who.join(', ')})` : '';
   }
   function renderBoard() {
+    try { renderStacks(); } catch (e) { /* stacks are optional; never block the board */ }
     const posOnly = $('f-pos').checked, all = $('f-all').checked;
     let rows = S.rows.filter((r) => r.kind !== 'game' && !S.off.game.has(r.eventId) && !S.off.market.has(r.o.m) && !S.off.book.has(r.o.b));
     if (!all) { // best offer per player and prop
@@ -1630,6 +1732,7 @@ const PX = (() => {
     const open = list.filter((x) => !x.submittedAt);
     $('slip-sel').innerHTML = (act ? '' : '<option value="new" selected>New slip: starts with the next +</option>') + open.map((x) => `<option value="${esc(x.id)}" ${act && x.id === act.id ? 'selected' : ''}>${esc(x.name)} (${x.legs.length})</option>`).join('');
     { const sb = $('slip-submit'); if (sb) { sb.disabled = !act || !act.legs.length; sb.title = !act ? 'Add a prop to start a slip' : act.legs.length ? `Mark ${act.name} as submitted and start a new slip` : 'Add a prop first'; } }
+    { const cb = $('slip-clear'); if (cb) { cb.disabled = !act || !act.legs.length; cb.textContent = S.clearConfirm && act && S.clearConfirm === act.id ? 'Confirm clear' : 'Clear slip'; } }
     $('slip-sum').textContent = act ? `${act.legs.length} ${act.legs.length === 1 ? 'prop' : 'props'} in ${act.name}` : '';
     { const sa = $('slip-app'); if (sa && document.activeElement !== sa) { sa.innerHTML = appOptions(act && act.app, 'App…'); sa.disabled = !act; } }
     { const sm = $('slip-money'), foc = document.activeElement; if (sm && !(foc && sm.contains(foc))) sm.innerHTML = act ? moneyHtml(act, slipState(act)) : ''; }
