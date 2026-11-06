@@ -209,7 +209,12 @@ table.bt tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-
 .add[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted) }
 .empty h3 { color: var(--ink); margin-bottom: 6px }
-.plchart svg { display: block; width: 100%; height: auto }
+.plchart svg { display: block; width: 100%; height: auto; touch-action: pan-y; cursor: crosshair }
+.plchart svg:focus { outline: none } .plchart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+#pl-chart { position: relative }
+.pltip { position: absolute; pointer-events: none; z-index: 5; background: var(--surface); border: 1px solid var(--ink); box-shadow: 0 4px 16px rgba(0,0,0,.2); padding: 6px 9px; font: 13px/1.35 var(--body); white-space: nowrap; transform: translate(12px, -50%) }
+.pltip.left { transform: translate(calc(-100% - 12px), -50%) }
+.pltip[hidden] { display: none }
 .plchart .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 13px; color: var(--muted) }
 .plchart .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px }
 
@@ -358,7 +363,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       </div>
       <div class="tiles" id="pl-tiles"></div>
       <div class="panel"><div class="panel-pad"><h3>Cumulative P&amp;L by slip</h3></div><div class="panel-pad plchart" id="pl-chart"></div></div>
-      <div class="panel"><div class="scroll"><table class="bt"><thead id="pl-head"><tr><th data-plth="slip"><button class="sort" data-plsort="slip">Slip<i></i></button></th><th data-plth="app"><button class="sort" data-plsort="app">App<i></i></button></th><th data-plth="res"><button class="sort" data-plsort="res">Result<i></i></button></th><th class="r" data-plth="bet"><button class="sort" data-plsort="bet">Bet<i></i></button></th><th class="r" data-plth="net"><button class="sort" data-plsort="net">Net<i></i></button></th><th class="r" data-plth="cum"><button class="sort" data-plsort="cum">Cumulative<i></i></button></th></tr></thead><tbody id="pl-rows"></tbody></table></div></div>
+      <div class="panel"><div class="scroll"><table class="bt"><thead id="pl-head"><tr><th data-plth="slip"><button class="sort" data-plsort="slip">Slip<i></i></button></th><th data-plth="wk"><button class="sort" data-plsort="wk">Week<i></i></button></th><th data-plth="app"><button class="sort" data-plsort="app">App<i></i></button></th><th data-plth="res"><button class="sort" data-plsort="res">Result<i></i></button></th><th class="r" data-plth="bet"><button class="sort" data-plsort="bet">Bet<i></i></button></th><th class="r" data-plth="net"><button class="sort" data-plsort="net">Net<i></i></button></th><th class="r" data-plth="cum"><button class="sort" data-plsort="cum">Cumulative<i></i></button></th></tr></thead><tbody id="pl-rows"></tbody></table></div></div>
     </div>
   </section>
 
@@ -1653,7 +1658,10 @@ const PX = (() => {
   // bet amount and payout per slip: kept in the app, never shown on the website copy
   const slipAmt = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
   const usd = (v) => '$' + (Math.round(v * 100) / 100).toFixed(Math.abs(v - Math.round(v)) < 0.005 ? 0 : 2);
-  function slipNet(x, st) { const b = slipAmt(x.stake), p = slipAmt(x.flex && x.paid != null ? x.paid : x.payout); if (b == null) return null;
+  // a free play (promo money from the app): a payout entered with no bet, so it risks $0 and a win nets the whole payout
+  const isFree = (x) => slipAmt(x.stake) == null && slipAmt(x.payout) != null;
+  const hasMoney = (x) => slipAmt(x.stake) != null || isFree(x);
+  function slipNet(x, st) { const b = isFree(x) ? 0 : slipAmt(x.stake), p = slipAmt(x.flex && x.paid != null ? x.paid : x.payout); if (b == null) return null;
     if (x.flex && st.lost && st.open === 0) { const paid = slipAmt(x.paid); return paid == null ? undefined : paid - b; }
     if (st.code === 'w') return p == null ? null : p - b; if (st.code === 'l') return -b; if (st.code === 'v') return 0; return undefined; }
   const APPS = ['PrizePicks', 'DK Pick6', 'DK Predictions'];
@@ -1669,11 +1677,11 @@ const PX = (() => {
   }
   function moneyTile(states) {
     if (S.site) return [];
-    const withBet = states.filter((y) => slipAmt(y.x.stake) != null); if (!withBet.length) return [];
-    const bet = withBet.reduce((s, y) => s + slipAmt(y.x.stake), 0);
+    const withBet = states.filter((y) => hasMoney(y.x)); if (!withBet.length) return [];
+    const bet = withBet.reduce((s, y) => s + (slipAmt(y.x.stake) || 0), 0), nFree = withBet.filter((y) => isFree(y.x)).length;
     const settled = withBet.map((y) => slipNet(y.x, y.st)).filter((n) => n != null && n !== undefined), net = settled.reduce((s, n) => s + n, 0);
     const open = withBet.filter((y) => slipNet(y.x, y.st) === undefined), toWin = open.reduce((s, y) => s + (slipAmt(y.x.payout) || 0), 0);
-    return [['Net P/L', (net > 0 ? '+' : net < 0 ? '−' : '') + usd(Math.abs(net)), `${usd(bet)} bet on ${withBet.length} ${withBet.length === 1 ? 'slip' : 'slips'}${open.length ? ` · ${usd(toWin)} possible on ${open.length} still open` : ''}`]];
+    return [['Net P/L', (net > 0 ? '+' : net < 0 ? '−' : '') + usd(Math.abs(net)), `${usd(bet)} bet on ${withBet.length} ${withBet.length === 1 ? 'slip' : 'slips'}${nFree ? ` (${nFree} free ${nFree === 1 ? 'play' : 'plays'})` : ''}${open.length ? ` · ${usd(toWin)} possible on ${open.length} still open` : ''}`]];
   }
   function legText(l) { if (l.m === 'other') return `${l.name || l.pl} · Other`; const j = jerseyOf(l), t = legTeam(l); return `${l.name || l.pl} · ${[t, j ? '#' + j : ''].filter(Boolean).join(' ')}${t || j ? ' · ' : ''}${pickText(l)}`; }
   // projection, chance and edge at the exact line on the slip, from the board's current numbers for the same player, prop and side
@@ -2527,13 +2535,17 @@ const PX = (() => {
     const done = all.filter((y) => typeof y.n === 'number').sort((a, b) => { const no = (y) => { const m = /(\d+)\s*$/.exec(String(y.x.name).trim()); return m ? Number(m[1]) : Infinity; }; return no(a) - no(b) || String(a.when).localeCompare(String(b.when)); });
     const open = all.filter((y) => y.n === undefined && y.st.n > 0).length, noAmt = all.filter((y) => y.n === null && ['w', 'l', 'v'].includes(y.st.code)).length;
     let cum = 0, bet = 0; const pts = done.map((y) => { cum += y.n; if (y.st.code !== 'v') bet += slipAmt(y.x.stake) || 0; return { ...y, cum }; });
-    const won = pts.filter((p) => p.n > 0).length, lost = pts.filter((p) => p.n < 0).length;
+    // by net result; a free play that missed nets $0 but still counts as lost
+    const won = pts.filter((p) => p.n > 0).length, lost = pts.filter((p) => p.n < 0 || (isFree(p.x) && p.st.code === 'l')).length, nFree = pts.filter((p) => isFree(p.x)).length;
     // the same numbers for props: each prop counted once across the slips shown, hit or missed, with open ones (not yet settled) separate
     const pmap = new Map(); list.forEach((x) => x.legs.forEach((l) => pmap.set(propKey(l), l)));
     const pcodes = [...pmap.values()].map((l) => legState(l).code), pHit = pcodes.filter((c) => c === 'w').length, pmiss = pcodes.filter((c) => c === 'l').length, po = pcodes.filter((c) => !['w', 'l', 'p', 'v'].includes(c)).length;
-    $('pl-note').textContent = noAmt ? `${noAmt} settled ${noAmt === 1 ? 'slip has' : 'slips have'} no bet or payout entered, so ${noAmt === 1 ? 'it is' : 'they are'} left out.` : '';
+    { // slips left off the chart for a missing amount, named so they are easy to fix on My slips
+      const miss = all.filter((y) => y.st.n > 0 && (!hasMoney(y.x) || (y.n === null && ['w', 'l', 'v'].includes(y.st.code)))).map((y) => y.x.name);
+      const nm = miss.length > 4 ? miss.slice(0, 4).join(', ') + ` and ${miss.length - 4} more` : miss.join(', ');
+      $('pl-note').textContent = miss.length ? `Not on the chart: ${nm} ${miss.length === 1 ? 'has' : 'have'} no ${miss.length === 1 && slipAmt(all.find((y) => y.x.name === miss[0]).x.stake) != null ? 'payout' : miss.length === 1 ? 'bet amount' : 'bet or payout'} entered. Add ${miss.length === 1 ? 'it' : 'them'} on My slips.` : ''; }
     $('pl-tiles').innerHTML = [
-      ['Net P&L', pts.length ? plFmt(cum) : '—', `${usd(bet)} bet on ${pts.length} settled ${pts.length === 1 ? 'slip' : 'slips'}`],
+      ['Net P&L', pts.length ? plFmt(cum) : '—', `${usd(bet)} bet on ${pts.length} settled ${pts.length === 1 ? 'slip' : 'slips'}${nFree ? ` (${nFree} free ${nFree === 1 ? 'play' : 'plays'})` : ''}`],
       ['Return', pts.length ? (cum / PL_START * 100).toFixed(1) + '%' : '—', pts.length ? `net divided by your ${usd(PL_START)} starting balance (now ${usd(PL_START + cum)})` : `based on a ${usd(PL_START)} starting balance`],
       ['Slip win rate', won + lost ? `${(won / (won + lost) * 100).toFixed(1)}%` : '—', `${won} won / ${lost} lost, by net result · ${open} open`],
       ['Prop win rate', pHit + pmiss ? `${(pHit / (pHit + pmiss) * 100).toFixed(1)}%` : '—', `${pHit} hit / ${pmiss} missed · ${po} open`]
@@ -2553,14 +2565,30 @@ const PX = (() => {
       s += `<line x1="${x}" x2="${x}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 4"/><text x="${x}" y="${H - 30}" text-anchor="middle" ${fnt}>${wk >= 1 && wk <= 22 ? 'Wk ' + wk : ''}</text><text x="${x}" y="${H - 16}" text-anchor="middle" ${fnt}>${fgDate(wi)}</text>`; });
     s += `<line x1="${L}" x2="${W - R}" y1="${py(0)}" y2="${py(0)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 5"/>`;
     s += `<path d="${vals.map((v, i) => (i ? 'L' : 'M') + px(i).toFixed(1) + ',' + py(v).toFixed(1)).join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
-    $('pl-chart').innerHTML = s;
+    s = s.replace('</svg>', `<line class="plguide" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1" visibility="hidden"/><circle class="pldot" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/></svg>`).replace('<svg ', '<svg tabindex="0" ');
+    $('pl-chart').innerHTML = s + '<div class="pltip" hidden></div>';
+    { // hover (or arrow keys): the nearest point's slip, this slip's net and the running total
+      const cp = [{ start: true, cum: 0 }, ...pts.map((p) => ({ name: p.x.name, app: p.x.app, n: p.n, cum: p.cum, when: p.when, free: isFree(p.x) }))];
+      const box = $('pl-chart'), svg = box.querySelector('svg'), tip = box.querySelector('.pltip'), guide = svg.querySelector('.plguide'), dot = svg.querySelector('.pldot');
+      const clr = (n) => `var(--${n > 0 ? 'good' : n < 0 ? 'bad' : 'muted'})`;
+      let cur = -1;
+      const showAt = (i) => { i = Math.max(0, Math.min(cp.length - 1, i)); cur = i; const c = cp[i], x = px(i), y = py(c.cum), rect = svg.getBoundingClientRect(), wk = c.when ? nflWeek(weekIdx(c.when)) : null;
+        guide.setAttribute('x1', x); guide.setAttribute('x2', x); guide.setAttribute('visibility', 'visible'); dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('visibility', 'visible');
+        tip.innerHTML = c.start ? `<b>Start</b><div>Total: <b>${plFmt(0)}</b></div>` : `<b>${esc(c.name)}</b>${c.app ? ` <span class="muted">· ${esc(c.app)}</span>` : ''}<div class="muted">${[wk >= 1 && wk <= 22 ? 'Wk ' + wk : '', dFmt(c.when)].filter(Boolean).join(' · ')}</div><div>This slip: <span style="color:${clr(c.n)};font-weight:600">${plFmt(c.n)}</span>${c.free ? ' <span class="muted">(free play)</span>' : ''}</div><div>Total: <b style="color:${clr(c.cum)}">${plFmt(c.cum)}</b></div>`;
+        tip.hidden = false; tip.classList.toggle('left', x > W / 2);
+        const br = box.getBoundingClientRect(); tip.style.left = (rect.left - br.left + x * rect.width / W) + 'px'; tip.style.top = (rect.top - br.top + y * rect.height / H) + 'px'; };
+      const hide = () => { cur = -1; tip.hidden = true; guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); };
+      svg.addEventListener('pointermove', (ev) => { const rect = svg.getBoundingClientRect(), sx = (ev.clientX - rect.left) / rect.width * W; showAt(Math.round((sx - L) / pw * (cp.length - 1))); });
+      svg.addEventListener('pointerleave', hide); svg.addEventListener('blur', hide);
+      svg.addEventListener('keydown', (ev) => { if (ev.key === 'ArrowRight' || ev.key === 'ArrowLeft') { ev.preventDefault(); showAt(cur < 0 ? cp.length - 1 : cur + (ev.key === 'ArrowRight' ? 1 : -1)); } else if (ev.key === 'Escape') hide(); });
+    }
     { // sortable columns: click a header to sort, click again to reverse; the cumulative column always follows slip order
       const sk = S.plSort || { key: 'slip', dir: 'asc' }, resTxt = (p) => (p.x.flex && ['w', 'l'].includes(p.st.code) ? 'Flex' : p.st.code === 'w' ? 'Won' : p.st.code === 'l' ? 'Lost' : p.st.label);
-      const val = { slip: (p) => pts.indexOf(p), app: (p) => p.x.app || '', res: (p) => resTxt(p) + String(p.st.hit).padStart(3, '0'), bet: (p) => slipAmt(p.x.stake) || 0, net: (p) => p.n, cum: (p) => p.cum }[sk.key];
+      const val = { slip: (p) => pts.indexOf(p), wk: (p) => slipWeek(p.x), app: (p) => p.x.app || '', res: (p) => resTxt(p) + String(p.st.hit).padStart(3, '0'), bet: (p) => slipAmt(p.x.stake) || 0, net: (p) => p.n, cum: (p) => p.cum }[sk.key];
       const ord = pts.slice().sort((a, b) => { const x = val(a), y = val(b), c = typeof x === 'number' ? x - y : String(x).localeCompare(String(y)); return (sk.dir === 'asc' ? c : -c) || pts.indexOf(a) - pts.indexOf(b); });
       pts.length = 0; pts.push(...ord);
       document.querySelectorAll('#pl-head th').forEach((th) => { const on = th.dataset.plth === sk.key; if (on) th.setAttribute('aria-sort', sk.dir === 'asc' ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort'); th.querySelector('i').textContent = on ? (sk.dir === 'asc' ? '▲' : '▼') : ''; }); }
-    $('pl-rows').innerHTML = pts.map((p, i) => `<tr><td>${esc(p.x.name)}</td><td>${esc(p.x.app || '—')}</td><td>${esc(p.x.flex && ['w', 'l'].includes(p.st.code) ? `Flex · ${p.st.hit} / ${p.st.n}` : p.st.code === 'w' ? `Won · ${p.st.hit} / ${p.st.n}` : p.st.code === 'l' ? `Lost · ${p.st.hit} / ${p.st.n}` : p.st.label)}</td><td class="r num">${usd(slipAmt(p.x.stake) || 0)}</td><td class="r num" style="color:var(--${p.n > 0 ? 'good' : p.n < 0 ? 'bad' : 'muted'})">${plFmt(p.n)}</td><td class="r num" style="color:var(--${p.cum > 0 ? 'good' : p.cum < 0 ? 'bad' : 'muted'})">${plFmt(p.cum)}</td></tr>`).join('');
+    $('pl-rows').innerHTML = pts.map((p, i) => `<tr><td>${esc(p.x.name)}</td><td class="num">${(() => { const w = nflWeek(slipWeek(p.x)); return w >= 1 && w <= 22 ? 'Wk ' + w : '—'; })()}</td><td>${esc(p.x.app || '—')}</td><td>${esc(p.x.flex && ['w', 'l'].includes(p.st.code) ? `Flex · ${p.st.hit} / ${p.st.n}` : p.st.code === 'w' ? `Won · ${p.st.hit} / ${p.st.n}` : p.st.code === 'l' ? `Lost · ${p.st.hit} / ${p.st.n}` : p.st.label)}</td><td class="r num">${isFree(p.x) ? '<span class="muted" title="Free play: promo money from the app, no bet of your own">Free</span>' : usd(slipAmt(p.x.stake) || 0)}</td><td class="r num" style="color:var(--${p.n > 0 ? 'good' : p.n < 0 ? 'bad' : 'muted'})">${plFmt(p.n)}</td><td class="r num" style="color:var(--${p.cum > 0 ? 'good' : p.cum < 0 ? 'bad' : 'muted'})">${plFmt(p.cum)}</td></tr>`).join('');
   }
   const VIEWS = ['board', 'games', 'slips', 'taken', 'plchart', 'backtest', 'lines', 'method'];
   function show(view) {
@@ -2604,7 +2632,7 @@ const PX = (() => {
     if (t.dataset.slipuse) { S.activeSlip = t.dataset.slipuse; ls.set('pp.activeSlip', S.activeSlip); renderSlips(); renderBoard(); return; }
     if (t.dataset.slipdel) { const id = t.dataset.slipdel; if (S.slipConfirm !== id) { S.slipConfirm = id; return renderSlips(); } S.slipConfirm = null; if (S.activeSlip === id) { S.activeSlip = null; ls.set('pp.activeSlip', null); } return remove('slips', id); }
     if (t.dataset.legdel) { const [sid, ...rest] = t.dataset.legdel.split('|'), lid = rest.join('|'), cur = S.slips.get(sid); if (!cur) return; return save('slips', sid, { ...cur, legs: (cur.legs || []).filter((l) => legId(l) !== lid) }); }
-    if (t.dataset.plsort) { const k = t.dataset.plsort, c = S.plSort || { key: 'slip', dir: 'asc' }; S.plSort = c.key === k ? { key: k, dir: c.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'slip' || k === 'app' || k === 'res' ? 'asc' : 'desc' }; renderPl(); return; }
+    if (t.dataset.plsort) { const k = t.dataset.plsort, c = S.plSort || { key: 'slip', dir: 'asc' }; S.plSort = c.key === k ? { key: k, dir: c.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'slip' || k === 'wk' || k === 'app' || k === 'res' ? 'asc' : 'desc' }; renderPl(); return; }
     if (t.dataset.sort) { const k = t.dataset.sort; S.sort = S.sort.key === k ? { key: k, dir: S.sort.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'player' || k === 'pick' ? 'asc' : 'desc' }; ls.set('pp.sort', S.sort); return renderBoard(); }
     if (t.dataset.go) return show(t.dataset.go);
     if (t.dataset.add) { const k = t.dataset.add, i = S.slip.findIndex((l) => l.key === k); if (i >= 0) S.slip.splice(i, 1); else { const r = S.rowByKey.get(k); if (r) S.slip.push(snapshot(r)); } return slipChanged(); }
