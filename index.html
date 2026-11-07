@@ -212,6 +212,8 @@ table.bt tr.mk td { background: var(--sunk); font: 600 12px var(--body); letter-
 .plchart svg { display: block; width: 100%; height: auto; touch-action: pan-y; cursor: crosshair }
 .plchart svg:focus { outline: none } .plchart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
 #pl-chart { position: relative }
+.plf .plsel { display: inline-flex; gap: 8px; align-items: center; min-width: 0 }
+@media (max-width: 600px) { .plf { flex-wrap: wrap } .plf .plsel { flex: 1 1 0 } .plf .plsel select { flex: 1 1 auto; min-width: 0; width: 100% } .plf #pl-note { flex-basis: 100% } }
 .pltip { position: absolute; pointer-events: none; z-index: 5; background: var(--surface); border: 1px solid var(--ink); box-shadow: 0 4px 16px rgba(0,0,0,.2); padding: 6px 9px; font: 13px/1.35 var(--body); white-space: nowrap; transform: translate(12px, -50%) }
 .pltip.left { transform: translate(calc(-100% - 12px), -50%) }
 .pltip[hidden] { display: none }
@@ -359,7 +361,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <div class="stack">
       <div class="panel panel-pad stack">
         <h2>P&amp;L Chart</h2>
-        <div class="row" style="gap:10px"><label class="label" for="pl-appf">App</label><select id="pl-appf"></select><span class="muted small" id="pl-note"></span></div>
+        <div class="row plf" style="gap:10px"><span class="plsel"><label class="label" for="pl-appf">App</label><select id="pl-appf"></select></span><span class="plsel"><label class="label" for="pl-week">Week</label><select id="pl-week"></select></span><span class="muted small" id="pl-note"></span></div>
       </div>
       <div class="tiles" id="pl-tiles"></div>
       <div class="panel"><div class="panel-pad"><h3>Cumulative P&amp;L by slip</h3></div><div class="panel-pad plchart" id="pl-chart"></div></div>
@@ -2533,6 +2535,13 @@ const PX = (() => {
     if (!opts.some(([v]) => v === S.plApp)) S.plApp = '';
     if (document.activeElement !== af) af.innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}" ${S.plApp === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
     let list = slipList(); if (S.plApp) list = list.filter((x) => (S.plApp === '-' ? !x.app : x.app === S.plApp));
+    { // week filter: the NFL week each slip falls in (as on My slips); the chart and running total then start at $0 for that week
+      const wf = $('pl-week'), weeks = [...new Set(slipList().filter((x) => x.legs.length).map(slipWeek))].sort((a, b) => b - a);
+      if (S.plWeek != null && !weeks.includes(S.plWeek)) S.plWeek = null;
+      if (document.activeElement !== wf) wf.innerHTML = '<option value="">All weeks</option>' + weeks.map((w) => `<option value="${w}" ${S.plWeek === w ? 'selected' : ''}>${esc(weekLabel(w))}</option>`).join('');
+      // the week's starting balance: the $500 start plus the net of every settled slip from earlier weeks (same App filter)
+      S.plStartBal = S.plWeek == null ? PL_START : PL_START + list.filter((x) => slipWeek(x) < S.plWeek).reduce((a, x) => { const n = slipNet(x, slipState(x)); return a + (typeof n === 'number' ? n : 0); }, 0);
+      if (S.plWeek != null) list = list.filter((x) => slipWeek(x) === S.plWeek); }
     const all = list.map((x) => { const st = slipState(x), n = slipNet(x, st), ts = x.legs.map((l) => l.commence).filter(Boolean).sort(); return { x, st, n, when: ts.length ? ts[ts.length - 1] : String(x.createdAt || '') }; });
     const done = all.filter((y) => typeof y.n === 'number').sort((a, b) => { const no = (y) => { const m = /(\d+)\s*$/.exec(String(y.x.name).trim()); return m ? Number(m[1]) : Infinity; }; return no(a) - no(b) || String(a.when).localeCompare(String(b.when)); });
     const open = all.filter((y) => y.n === undefined && y.st.n > 0).length, noAmt = all.filter((y) => y.n === null && ['w', 'l', 'v'].includes(y.st.code)).length;
@@ -2548,7 +2557,7 @@ const PX = (() => {
       $('pl-note').textContent = miss.length ? `Not on the chart: ${nm} ${miss.length === 1 ? 'has' : 'have'} no ${miss.length === 1 && slipAmt(all.find((y) => y.x.name === miss[0]).x.stake) != null ? 'payout' : miss.length === 1 ? 'bet amount' : 'bet or payout'} entered. Add ${miss.length === 1 ? 'it' : 'them'} on My slips.` : ''; }
     $('pl-tiles').innerHTML = [
       ['Net P&L', pts.length ? plFmt(cum) : '—', `${usd(bet)} bet on ${pts.length} settled ${pts.length === 1 ? 'slip' : 'slips'}${nFree ? ` (${nFree} free ${nFree === 1 ? 'play' : 'plays'})` : ''}`],
-      ['Return', pts.length ? (cum / PL_START * 100).toFixed(1) + '%' : '—', pts.length ? `net divided by your ${usd(PL_START)} starting balance (now ${usd(PL_START + cum)})` : `based on a ${usd(PL_START)} starting balance`],
+      ['Return', pts.length ? (cum / (S.plWeek != null ? S.plStartBal : PL_START) * 100).toFixed(1) + '%' : '—', pts.length ? (S.plWeek != null ? `this week's net divided by the week's starting balance of ${usd(S.plStartBal)} (now ${usd(S.plStartBal + cum)})` : `net divided by your ${usd(PL_START)} starting balance (now ${usd(PL_START + cum)})`) : `based on a ${usd(PL_START)} starting balance`],
       ['Slip win rate', won + lost ? `${(won / (won + lost) * 100).toFixed(1)}%` : '—', `${won} won / ${lost} lost, by net result · ${open} open`],
       ['Prop win rate', pHit + pmiss ? `${(pHit / (pHit + pmiss) * 100).toFixed(1)}%` : '—', `${pHit} hit / ${pmiss} missed · ${po} open`]
     ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
@@ -2689,6 +2698,7 @@ const PX = (() => {
       if (t.dataset && t.dataset.tk) { S.takenShow = { ...(S.takenShow || {}), [t.dataset.tk]: t.checked }; ls.set('pp.takenShow', S.takenShow); renderSlips(); return; }
       if (t.id === 'slip-live') { ls.set('pp.slipLive', t.checked); renderSlips(); return; }
       if (t.id === 'pl-appf') { S.plApp = t.value; renderPl(); return; }
+      if (t.id === 'pl-week') { S.plWeek = t.value === '' ? null : Number(t.value); renderPl(); return; }
       if (t.id === 'slip-appf' || t.id === 'taken-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
       if (t.id === 'slip-week' || t.id === 'taken-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
       if (t.id === 'slip-hidedone' || t.id === 'taken-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); if (t.checked && S.slipPending) toast(`${S.slipPending} ${S.slipPending === 1 ? 'prop from a finished game still needs' : 'props from finished games still need'} a result. ${S.slipPending === 1 ? 'It is' : 'They are'} listed at the top of My slips.`, true); return; }
