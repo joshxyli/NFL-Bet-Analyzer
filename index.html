@@ -335,7 +335,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="panel panel-pad stack">
         <div class="row" style="justify-content:space-between;align-items:baseline"><h2>My slips</h2><span class="row" style="gap:6px"><button class="btn sm" id="slip-xlsx" hidden>Export to Excel</button><button class="btn sm" id="slip-pdf" hidden>Export to PDF</button><button class="btn sm" id="slip-new2">New slip</button></span></div>
         <span class="small muted" id="slip-exp-msg" role="status"></span>
-        <div class="row" style="gap:10px"><label class="label" for="slip-week">Week</label><select id="slip-week"></select><label class="label" for="slip-appf">App</label><select id="slip-appf"></select><label class="check" for="slip-hidedone"><input type="checkbox" id="slip-hidedone"> Hide completed games</label><label class="check" for="slip-live" title="Slips still alive with at least one game kicked off"><input type="checkbox" id="slip-live"> Live slips only</label><span class="muted small" id="slip-hidden-note"></span></div>
+        <div class="row" style="gap:10px"><label class="label" for="slip-week">Week</label><select id="slip-week"></select><label class="label" for="slip-appf">App</label><select id="slip-appf"></select><label class="check" for="slip-live" title="Every slip that still has a chance of winning"><input type="checkbox" id="slip-live"> Live slips only</label><span class="muted small" id="slip-hidden-note"></span></div>
         <div class="notice" id="slip-pending" hidden><p></p><button class="btn sm" id="slip-pending-show">Show them</button></div>
         <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Add props from the Player props board with the + button; the slip picker above the board says which slip they go into. The same prop can sit in as many slips as you like. While games are on, mark each prop hit or missed once and every slip holding it updates. After the final whistle, Fetch results on the Backtest tab grades anything you have not marked from the official box score.</p></span></span>
       </div>
@@ -1773,7 +1773,7 @@ const PX = (() => {
         return [lbl, h + m ? Math.round(100 * h / (h + m)) + '%' : '—', `${h} hit · ${m} missed · ${o} open · ${cs.length} props`]; })
     ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     // every prop, grouped by game, soonest first
-    const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('slip-hidedone').checked = hide; $('taken-hidedone').checked = hide;
+    const DONE = ['w', 'l', 'p', 'v'], hide = S.hideDone; $('taken-hidedone').checked = hide;
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
     // Props Taken also lists followed props (not on any slip); the tiles above are already counted from slip props only
     const taken = new Map([...props].map(([k, e]) => [k, { ...e, follow: false }]));
@@ -1781,9 +1781,9 @@ const PX = (() => {
     const shownProps = [...taken.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
     // a slip is hidden only when its games are over AND it is settled: a flex slip still waiting for what it paid stays in view
-    const shownSlips = states.filter((y) => !hide || !(y.x.legs.length && y.x.legs.every((l) => gameEnded(l)) && doneSlip(y.st)));
+    const shownSlips = states.slice(); // My slips no longer hides finished slips
     // live: not won, lost or void, still has a prop to settle, and at least one of its games has kicked off
-    const isLive = (y) => y.st.n > 0 && !['w', 'l', 'v'].includes(y.st.code) && y.st.open > 0 && y.x.legs.some((l) => Date.now() >= Date.parse(l.commence));
+    const isLive = (y) => y.st.n > 0 && !['w', 'l', 'v'].includes(y.st.code) && y.st.open > 0; // still has a chance of winning, whether or not a game has kicked off
     S.slipLive = !!ls.get('pp.slipLive', false); $('slip-live').checked = S.slipLive;
     if (S.slipLive) { const keep = shownSlips.filter(isLive); shownSlips.length = 0; shownSlips.push(...keep); }
     const hpT = taken.size - shownProps.length, hp = hide ? [...props.values()].filter((e) => gameEnded(e.l)).length : 0, hs = S.slipLive ? 0 : states.length - shownSlips.length;
