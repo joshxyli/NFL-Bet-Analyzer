@@ -457,7 +457,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li><strong>Injury watch.</strong> A prop is highlighted when the player or a teammate who matters to it has an open status: questionable, doubtful, or missing or limited in practice, and not settled by your own tick. For a teammate, the board re-runs the projection as if he sits (or plays, if he is assumed out) and shows the new projection and model chance when the chance moves by 3 points or more. For the player himself it says so; sportsbooks void a prop if he does not play at all, but a short day still loses an over. Official Out players and players off the depth chart count as settled. Tick Hide injury watch to leave these props off the board.</li>
           <li><strong>Players coming back.</strong> A player returning after missing games (from injury, a suspension, or a reserve or exempt list) is on no injury report, so mark him back this week under Injuries, or let the injury update mark him from the news. He is projected from his games before he left, at about 90% of his old share of targets and carries after missing two or three games and 85% after a longer absence or across an offseason. Teammates give back what they gained while he was out: each one's share is cut by the returner's old share times how much of his recent sample was played without him, 0.8 per point of carries among backs and 1.1 per point of targets. The same cut applies to a teammate who is ruled out this week, so only the share he would have had with the returner back is spread to the others. A game counts as played without him when it is missing from his log and was his current team's game that week, so games a teammate played for another team never count, and a player who came back last week still counts as long as he is marked back. Players marked back (by you or the injury update) are treated this way. A player is also counted as back without a mark when the books post yardage or catch props for him this week after he missed two or more straight games, either right up to this week or ending within the team's last two games; he is tagged Back on the board. For these unmarked returners only carries among backs are given back, since in a re-score of 2026 weeks 5 to 7 taking back targets and red-zone chances as well made graded props slightly worse, while carries alone made them very slightly better (error 0.2384 against 0.2386). A single missing game does not count, as a game with no touches leaves no row in the game log. Finding returners from the game logs alone, without prop lines, was also tried and left off. Marking a player back also brings in a player with no games this season, and applies the first-game-back discount unless he already played the team's latest game. Both sizes come from 514 returns by regular starters in 2016 to 2025; checked on 2024 and 2025 while held out, the adjustment cut the error on backup running backs' carry share by about a fifth.</li>
           <li><strong>Backups who start.</strong> When a regular starter is out and a player who has not been a regular starter (fewer than three starts in his last six games) moves into the starting job (he is listed below the starting spots on the depth chart, and moves up to the top quarterback, running back or tight end, or a top-three receiver once the injured players are taken out), he is projected only from games he started, from this season and last, on any team. A start means a full game at the top of his position: most carries for a running back, most throws and at least 70% of the snaps for a quarterback, top snap share for a tight end, or top three in snaps for a receiver, with at least about half the snaps so relief duty after an injury does not count. His games as a backup are left out, and the injured starter's share is not added on top, because his starts already show what he does with the job. With fewer than two starts on record, the board falls back to his backup games scaled up for the injured starter's share, and says so under the projection.</li>
-          <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat.</li>
+          <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat. Running backs' catches, receiving yards and rushing yards get the same fitted spread, with a back listed second or lower (or unlisted) given a real chance of a game with no production. For wide receivers' catches and yards the spread is wider than a plain average would suggest, and a receiver listed third or lower on the depth chart is given roughly a four in ten chance of a game with no production. Fitted on 2016 to 2025 games; on the 2026 saved lines it removed the model's habit of rating WR3 and WR4 overs too high. Receivers listed first or second get a 7% lift on the projection for this step, because their 2026 catches and yards have run above it.</li>
           <li><strong>Market chance.</strong> The book's two prices with its margin removed. This is usually the better estimate.</li>
 <li><strong>Game lines.</strong> Each team has an offense and a defense rating in points, updated after every game since 2002 and pulled a third of the way back to average each season. The projection adds a 2-point home edge and takes about 4.5 points off a team whose starting quarterback is out. The model's chance is blended with the market's by the Trust in model setting on the Game lines tab. Totals use the market only.</li>
           <li><strong>Edge.</strong> Model and market are blended by the Trust in model setting. Edge is that blended chance minus the chance implied by the sportsbook's own price for that prop, with the book's margin left in (a -120 price needs 54.5%). The figure under it is the expected return per $1 at that price. Game lines work the same way.</li>
@@ -660,16 +660,51 @@ const PM = (() => {
       const prior = Math.pow(m.cv * Math.max(mean, 1), 2);
       sd = Math.sqrt((nEff * varObs + 4 * prior) / (nEff + 4));
     }
-    return { mean, sd, nEff, defFactor: d, games: games.length, recent: games.slice(0, 6).map((g) => g[m.idx]), step,
+    // role group for the receiving shape: WR3 or lower on the depth chart (no listing: under 12% of the team's targets)
+    const shape = pos === 'WR' && isCatchKey(marketKey) ? { pos: 'WR', low: /^WR(?:[3-9]|\d\d)$/.test(player.dr || '') || (!player.dr && tsh < 0.12) ? 1 : 0 }
+      : pos === 'RB' && (isCatchKey(marketKey) || marketKey === 'player_rush_yds') ? { pos: 'RB', low: /^RB1$/.test(player.dr || '') ? 0 : 1 } : null;
+    return { mean, sd, nEff, defFactor: d, games: games.length, recent: games.slice(0, 6).map((g) => g[m.idx]), step, shape,
       why: { def: d - 1, dinj: dm - 1, back: backF - 1, ret: retF - 1, script: pct.script, wind: pct.wind, home: pct.home, qb: pct.qb, out: boost - 1, role: S.role / S.w - 1, usage: base > 0 ? usage / base - 1 : 0 } };
   }
   const STEP_MIN = 2; // starts needed before a fill-in is projected from his starts alone
   const isCatchKey = (k) => k === 'player_receptions' || k === 'player_reception_yds';
 
   // Chance each side wins at this line. Pushes are excluded (stake returned).
+  // Receivers' catches and yards (WR only). Fitted on 2016-2025 WR games (snap counts + box scores), checked on 2026 saved lines:
+  // catches vary about 1.47 times as much as a Poisson count (negative binomial); yardage is gamma with cv 0.71, plus a chance of a game with
+  // no production that is about 6% for a WR1/2 and about 40% for a WR3 or lower. The projected mean is used as is for WR3 and lower;
+  // for WR1/2 it is raised 7% first (2026 saved lines: their catches and yards ran about 3 to 6% above projection, and the shape alone rated their overs low).
+  // Running backs get the same treatment for catches, receiving yards and rushing yards (fitted on 2016-2025 RB games; a back listed second or lower, or not listed, is the low group).
+  const SHAPE = {
+    WR: { rec: 1.465, player_reception_yds: { cv: 0.715, z: [-2.164, -0.149, 2.253] } },
+    RB: { rec: 1.492, player_reception_yds: { cv: 0.843, z: [-1.219, -0.191, 1.545] }, player_rush_yds: { cv: 0.588, z: [-2.219, -0.025, 2.381] } },
+  };
+  const WR12_LEVEL = 1.07;
+  function nbCdf(k, r, p) { // P(X <= k) for a negative binomial with size r and success chance p (variance / mean = 1 / p)
+    if (k < 0) return 0;
+    let q = Math.pow(p, r), s = q;
+    for (let i = 0; i < k; i++) { q *= ((i + r) / (i + 1)) * (1 - p); s += q; }
+    return Math.min(1, s);
+  }
+  function shapeProbs(shape, marketKey, mu, point) {
+    const low = shape.low ? 1 : 0, S = SHAPE[shape.pos || 'WR'];
+    if (shape.pos !== 'RB') mu = mu * (low ? 1 : WR12_LEVEL);
+    if (marketKey === 'player_receptions') {
+      const REC_PHI = S.rec, r = mu / (REC_PHI - 1), p = 1 / REC_PHI, isInt = Number.isInteger(point);
+      const under = nbCdf(isInt ? point - 1 : Math.floor(point), r, p), over = 1 - nbCdf(Math.floor(point), r, p), tot = over + under;
+      return tot > 0 ? { over: over / tot, under: under / tot } : { over: 0.5, under: 0.5 };
+    }
+    const Y = S[marketKey], pi = Math.min(0.7, 1 / (1 + Math.exp(-(Y.z[0] + Y.z[1] * Math.log(mu) + Y.z[2] * low)))), m = mu / (1 - pi);
+    const cv2 = Y.cv * Y.cv, k = 1 / cv2, theta = m * cv2;
+    const under = point <= 0 ? 0 : pi + (1 - pi) * gammaP(k, point / theta);
+    return { over: 1 - under, under };
+  }
+  // small yardage lines are scored from the game log, not the average, except for receivers (the fitted shape above covers them)
+  const isThin = (proj, marketKey, point) => MARKETS[marketKey].unit === 'yds' && !(proj && proj.shape) && (point < 5 || proj.mean < 15);
   function sideProbs(proj, marketKey, point) {
     const m = MARKETS[marketKey];
     const mu = Math.max(proj.mean, 0.01);
+    if (proj.shape) return shapeProbs(proj.shape, marketKey, Math.max(proj.mean, 0.05), point);
     let over, under;
     if (m.dist === 'poisson') {
       const isInt = Number.isInteger(point);
@@ -826,7 +861,7 @@ const PM = (() => {
     return { games, picks, cal: [...cal.values()], bet };
   }
 
-  return { MARKETS, settle, backtest, toDecimal, toAmerican, implied, fmtAm, noVig, normCdf, gammaP, poisCdf, project, projectV1, sideProbs, empirical, oneSidedFair, legRho, parlayProb, normName };
+  return { MARKETS, settle, backtest, toDecimal, toAmerican, implied, fmtAm, noVig, normCdf, gammaP, poisCdf, project, projectV1, sideProbs, isThin, empirical, oneSidedFair, legRho, parlayProb, normName };
 })();
 
 
@@ -1202,7 +1237,7 @@ const PX = (() => {
     const pj = PM.project(player, o.m, { opp, home: ecx.neutral ? null : atHome, fav: ecx.favHome == null ? null : (atHome ? ecx.favHome : -ecx.favHome),
       total: ecx.total, indoor: ecx.indoor, wind: ecx.wind, vac: ecx.vac[player.t], ...backCtx(ecx, player), qbOut: ecx.qbOut[player.t] || 0, stepIn: ecx.step.get(player) || null, dOut: ecx.dOut && ecx.dOut[opp] }, S.stats);
     if (!pj || (player.p === 'QB' && pj.step && !pj.step.used)) return null;
-    const thin = PM.MARKETS[o.m].unit === 'yds' && (o.pt < 5 || pj.mean < 15);
+    const thin = PM.isThin(pj, o.m, o.pt);
     const sp = thin ? PM.empirical(player, o.m, o.pt) : PM.sideProbs(pj, o.m, o.pt ?? 0.5);
     return { mean: pj.mean, model: (o.s === 'Under' || o.s === 'No') ? sp.under : sp.over };
   }
@@ -1287,7 +1322,7 @@ const PX = (() => {
           if (!skip) proj = PM.project(player, o.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
             total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
           if (proj && player.p === 'QB' && proj.step && !proj.step.used) { proj = null; skip = 'backup quarterback, under 2 starts'; } // a quarterback's backup snaps say nothing about him starting
-          if (proj) { const thin = PM.MARKETS[o.m].unit === 'yds' && (o.pt < 5 || proj.mean < 15);
+          if (proj) { const thin = PM.isThin(proj, o.m, o.pt);
             const sp = thin ? PM.empirical(player, o.m, o.pt) : PM.sideProbs(proj, o.m, o.pt ?? 0.5); model = (o.s === 'Under' || o.s === 'No') ? sp.under : sp.over; }
           watch = injWatch(player, o, ec, opp, atHome, skip, model, proj ? proj.mean : null);
         }
@@ -1317,7 +1352,7 @@ const PX = (() => {
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
           if (!skip) proj = PM.project(player, o0.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
             total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
-          if (proj) thin = PM.MARKETS[o0.m].unit === 'yds' && (o0.pt < 5 || proj.mean < 15);
+          if (proj) thin = PM.isThin(proj, o0.m, o0.pt);
         }
         const modelOver = !proj ? null : (thin ? PM.empirical(player, o0.m, o0.pt) : PM.sideProbs(proj, o0.m, o0.pt)).over;
         const rf = refs.get(PM.normName(o0.pl) + '|' + o0.m) || [], shifted = rf.map((r) => shiftProb(o0.m, r.pt, r.q, o0.pt, proj)).filter((v) => v != null);
@@ -1698,7 +1733,7 @@ const PX = (() => {
     const calc = (r) => {
       const same = pt == null || r.o.pt == null || r.o.pt === pt;
       let model = r.model;
-      if (!same && r.proj && r.model != null) { const thin = M.unit === 'yds' && (pt < 5 || r.proj.mean < 15); const sp = thin ? PM.empirical(r.player, l.m, pt) : PM.sideProbs(r.proj, l.m, pt); model = under ? sp.under : sp.over; }
+      if (!same && r.proj && r.model != null) { const thin = PM.isThin(r.proj, l.m, pt); const sp = thin ? PM.empirical(r.player, l.m, pt) : PM.sideProbs(r.proj, l.m, pt); model = under ? sp.under : sp.over; }
       const fair = same || r.fair == null ? r.fair : fromOver(shiftProb(l.m, r.o.pt, toOver(r.fair), pt, r.proj));
       const imp = same ? r.imp : fromOver(shiftProb(l.m, r.o.pt, toOver(r.imp), pt, r.proj));
       if (fair == null || imp == null) return null;
@@ -2175,7 +2210,15 @@ const PX = (() => {
     if (g && g.status === 'error' && !busy) st.style.color = 'var(--bad)';
     // re-scored snapshots: the same pre-kickoff lines and injury picture, run through the current model with only stats from before the game
     const useRe = S.rescore.size > 0; // always today's model: re-scored games where they exist, otherwise the picks as saved (already today's model)
-    const logs = useRe ? [...S.log.values()].map((d) => S.rescore.get(d.eventId) || d) : [...S.log.values()];
+    // receivers' and backs' catches, receiving yards and rushing yards are re-run through today's fitted shape from the projection saved with each line (depth chart as it is now), so older saves and re-scored games read the same as new ones
+    const SHAPED = ['player_receptions', 'player_reception_yds', 'player_rush_yds'];
+    const reshape = (d) => ({ ...d, o: (d.o || []).map((s) => { const f = String(s).split('|');
+      if (f.length < 9 || f[0] === 'GAME' || f[6] === '' || f[8] === '' || !SHAPED.includes(f[1]) || (f[3] !== 'Over' && f[3] !== 'Under')) return s;
+      const pl = S.byName.get(PM.normName(f[10] || f[0])) || S.byName.get(PM.normName(f[0])); if (!pl) return s;
+      const dr = pl.dr || '', mean = Number(f[8]), pt = Number(f[4]); if (!(mean >= 0) || !Number.isFinite(pt)) return s;
+      let shape = null; if (pl.p === 'WR' && f[1] !== 'player_rush_yds') shape = { pos: 'WR', low: /^WR(?:[3-9]|\d\d)$/.test(dr) || !dr ? 1 : 0 }; else if (pl.p === 'RB') shape = { pos: 'RB', low: dr === 'RB1' ? 0 : 1 };
+      if (!shape) return s; const sp = PM.sideProbs({ mean: Math.max(mean, 0.05), sd: mean * 0.6, shape }, f[1], pt); f[6] = (f[3] === 'Over' ? sp.over : sp.under).toFixed(4); return f.join('|'); }) });
+    const logs = [...S.log.values()].map((d) => reshape(useRe ? S.rescore.get(d.eventId) || d : d));
     const bt = PM.backtest(logs, S.results, { keyOf: (d) => `${abbr(d.away)}-${abbr(d.home)}-${etDay(d.commence)}`, abbr, w: S.weight / 100, gw: S.gweight / 100, be: 0 }); // props graded at the sportsbook price saved before kickoff
     const props = bt.cal.find((c) => c.label === 'All props'), any = bt.bet.props[1], gradedGames = bt.games.filter((x) => x.res).length;
     const roi = (b) => (b.bets ? (b.profit / b.bets * 100 >= 0 ? '+' : '') + (b.profit / b.bets * 100).toFixed(1) + '%' : '—');
