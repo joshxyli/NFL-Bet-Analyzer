@@ -1,8 +1,8 @@
 name: Pull lines
 on:
   schedule:
-    # 7:00, 11:00 and 15:00 Central (CST = UTC-6 from early November to March; shift by -1 hour while daylight saving time is in effect)
-    - cron: '0 13,17,21 * * *'
+    # 7:00 Central (CST = UTC-6 from early November to March; use 12 instead of 13 while daylight saving time is in effect)
+    - cron: '0 13 * * *'
   workflow_dispatch:
 permissions:
   contents: write
