@@ -58,8 +58,9 @@ def game_offers(g):
 def main():
     if len(sys.argv) > 1: raw = json.load(open(sys.argv[1]))
     else:
-        url = API + '?' + urllib.parse.urlencode({'apiKey': os.environ['PARLAY_KEY'], 'bookmakers': 'fanduel,draftkings', 'markets': MARKETS, 'oddsFormat': 'american'})
-        raw = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'curl/8'}), timeout=120))
+        url = API + '?' + urllib.parse.urlencode({'apiKey': os.environ['PARLAY_KEY'].strip(), 'bookmakers': 'fanduel,draftkings', 'markets': MARKETS, 'oddsFormat': 'american'})
+        try: raw = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'curl/8'}), timeout=120))
+        except urllib.error.HTTPError as e: sys.exit('Parlay API answered HTTP %d: %s' % (e.code, e.read()[:300].decode('utf8', 'replace')))
     if isinstance(raw, dict) and not raw.get('bookmakers'):
         sys.exit('API error: ' + str(raw.get('message') or raw.get('error') or raw.get('detail') or raw)[:300])
     games = raw if isinstance(raw, list) else [raw]
