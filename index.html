@@ -2778,6 +2778,7 @@ const PX = (() => {
   $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
   const start = (location.hash || '').slice(1); if (['games', 'tracker', 'backtest', 'lines', 'method'].includes(start)) show(start);
   fetch('stats.json').then((r) => r.json()).then((stats) => {
+    // games he played with no carry or target come as zero rows (slot [20] = 1): shown in his last games and counted in his projection like any other game
     S.stats = stats; $('asof').textContent = new Date(stats.asOf + 'T12:00:00').toLocaleDateString([], { month: 'long', day: 'numeric' });
     stats.players.forEach((p) => { const k = PM.normName(p.n), ex = S.byName.get(k); if (!ex || p.g.length > ex.g.length) S.byName.set(k, p); (S.byTeam.get(p.t) || S.byTeam.set(p.t, []).get(p.t)).push(p); });
     Object.entries(stats.dst || {}).forEach(([t, list]) => S.dByTeam.set(t, list.map(([n, g, p, miss]) => { const pl = { n, t, g, p, miss: !!miss, d: true }; S.dByName.set(PM.normName(n), pl); return pl; })));
