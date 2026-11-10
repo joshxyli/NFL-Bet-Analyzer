@@ -1,0 +1,27 @@
+name: Pull lines
+on:
+  schedule:
+    # 7:00, 11:00 and 15:00 Central (CST = UTC-6 from early November to March; shift by -1 hour while daylight saving time is in effect)
+    - cron: '0 13,17,21 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pull-lines
+jobs:
+  pull:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull from Parlay API
+        env:
+          PARLAY_KEY: ${{ secrets.PARLAY_KEY }}
+        run: python3 tools/pull_lines.py
+      - name: Commit
+        run: |
+          git config user.name "lines-bot"
+          git config user.email "noreply@github.com"
+          git add lines_pull.json
+          git commit -m "Lines $(date -u +%Y-%m-%dT%H:%MZ)" || echo "no change"
+          git pull --rebase origin main || true
+          git push origin HEAD:main
