@@ -584,11 +584,18 @@ const PM = (() => {
     if (!fit || !T || player.g[0].length < 19) return projectV1(player, marketKey, ctx.opp, stats);
     // filling in for a starter who is out: use only the games he started, never his games as a backup
     let games = player.g, step = null;
+    // the depth chart's QB1 with fewer than two starts on record (a backup or rookie handed the job): treated as a fill-in even
+    // when the man he replaced is no longer on the team's list (traded or released)
+    if (!ctx.stepIn && player.p === 'QB' && player.dr === 'QB1' && player.g.filter((g) => g[19] === 1).length + (player.sg || []).length < STEP_MIN) ctx = { ...ctx, stepIn: { for: [] } };
     if (ctx.stepIn) {
       const starts = player.g.filter((g) => g[19] === 1).concat(player.sg || []);
       step = { for: ctx.stepIn.for || [], n: starts.length, used: starts.length >= STEP_MIN };
       if (step.used) games = starts;
     }
+    // a quarterback taking over with fewer than two starts (a backup or rookie promoted after a trade or injury): his own log is a
+    // few relief throws, so he is projected from the team's usual pass volume and league-average efficiency, with the backup-quarterback effect
+    const qbNew = !!(step && !step.used && player.p === 'QB' && isPass(marketKey));
+    if (step) step.qb = qbNew;
     const curSeason = Math.max(...games.map((g) => g[0]));
     // role: scale older games to the share of snaps he plays now (not needed when only his starts are used)
     const snaps = step && step.used ? [] : games.filter((g) => g[14] > 0).slice(0, 2).map((g) => g[14]);
@@ -611,7 +618,7 @@ const PM = (() => {
     const windX = o.script && !ctx.indoor && ctx.wind != null ? Math.max(0, ctx.wind - 10) : 0;
     const homeX = o.script && ctx.home != null ? (ctx.home ? 0.5 : -0.5) : 0;
     // starting quarterback out: completions, yards per throw and touchdowns fall beyond what the spread already says
-    const bkX = ctx.qbOut && !isPass(marketKey) ? Math.min(1, ctx.qbOut) : 0;
+    const bkX = ctx.qbOut && (!isPass(marketKey) || qbNew) ? Math.min(1, ctx.qbOut) : 0;
     const part = (k) => ({ script: fit[k].fav * favDev + fit[k].imp * impDev, wind: fit[k].wind * windX, home: fit[k].home * homeX, qb: (fit[k].bk || 0) * bkX });
     const eff = (k) => { const p = part(k); return clamp(1 + p.script + p.wind + p.home + p.qb, 0.65, 1.4); };
     const mult = EFF[marketKey].reduce((a, k) => a * eff(k), 1);
@@ -622,7 +629,7 @@ const PM = (() => {
     const tsh = S.tAtt > 0 ? S.tgt / S.tAtt : 0, csh = S.tCar > 0 ? S.car / S.tCar : 0, rzsh = S.tRz > 0 ? S.rz / S.tRz : 0;
     const cr = (U.rec + 15 * cr0) / (U.tgt + 15), ypr = (U.recyd + 10 * ypr0) / (U.rec + 10);
     const ypc = (U.ryd + 40 * fit.lg_ypc) / (U.car + 40), ypa = (U.pyd + 100 * fit.lg_ypa) / (U.att + 100), ptd = (U.ptd + 100 * fit.lg_ptd) / (U.att + 100);
-    const uRec = tsh * T.att * cr, uRecYd = uRec * ypr, uRush = csh * T.car * ypc, uAtt = S.att / S.w;
+    const uRec = tsh * T.att * cr, uRecYd = uRec * ypr, uRush = csh * T.car * ypc, uAtt = qbNew ? T.att : S.att / S.w;
     let usage;
     if (marketKey === 'player_receptions') usage = uRec * eff('cmp');
     else if (marketKey === 'player_reception_yds') usage = uRecYd * eff('att') * eff('ypa');
@@ -653,7 +660,8 @@ const PM = (() => {
     const dc = fit.dinj && fit.dinj[marketKey], dO = ctx.dOut;
     const dm = dc && dO ? clamp(1 + dc.sec * Math.min(3, dO.sec || 0) + dc.f7 * Math.min(3, dO.f7 || 0), 0.9, 1.15) : 1;
     const scale = mult * boost * d * cal * dm * backF * retF;
-    const mean = ((1 - o.blend) * base * mult + o.blend * usage) * boost * d * cal * dm * backF * retF;
+    const bl = qbNew ? 1 : o.blend; // his game log says little about a starter's volume, so the usage estimate carries it
+    const mean = ((1 - bl) * base * mult + bl * usage) * boost * d * cal * dm * backF * retF;
     let sd = null;
     if (m.cv) {
       const varObs = Math.max(0, S.xx / S.w - base * base) * scale * scale;
@@ -1564,8 +1572,8 @@ const PX = (() => {
   // a fill-in's projection basis, in words
   function stepText(r) {
     const st = r.proj && r.proj.step; if (!st) return '';
-    const who = st.for.map((n) => n.split(' ').slice(1).join(' ') || n).join(', ');
-    return st.used ? `In for ${who} · from his ${st.n} starts only` : `In for ${who} · ${st.n ? 'only 1 start' : 'no starts'} on record, backup games scaled up`;
+    const who = st.for.map((n) => n.split(' ').slice(1).join(' ') || n).join(', ') || 'the usual starter';
+    return st.used ? `In for ${who} · from his ${st.n} starts only` : st.qb ? `Starting for ${who} · ${st.n ? 'only 1 start' : 'no starts'} on record, projected from the team's usual pass volume at league-average efficiency, less the backup-QB effect` : `In for ${who} · ${st.n ? 'only 1 start' : 'no starts'} on record, backup games scaled up`;
   }
 
   /* ---------- slips: props you are betting, tracked through the games ---------- */
