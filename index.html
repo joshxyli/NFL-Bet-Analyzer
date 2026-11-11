@@ -381,7 +381,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="notice" id="bt-warn" hidden><p></p></div>
       <div class="two">
         <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid? <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One pick on the better side of each player prop, $1 at the sportsbook price saved before kickoff, using your current Trust in model setting. Edge is the blended chance minus the price's implied chance, so Return above 0 means the picks beat the books' prices.</span></span></span></h3></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
-        <div class="panel"><div class="panel-pad"><h3>Was the chance right? <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">How often overs and yes bets hit, against what the model and the market said. Error is lower when a forecast is better.</span></span></span></h3></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Lines</th><th class="r">Hit</th><th class="r">Model said</th><th class="r">Market said</th><th class="r">Model error</th><th class="r">Market error</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
+        <div class="panel"><div class="panel-pad"><h3>Model win rate by prop type <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">The model's win rate: how often its pick on each player prop (the better side) won, overall and by prop type. Wins and Losses count the model's pick on each prop (the better side), Win rate is wins divided by picks, and Picks is wins plus losses. Pushes and voids are left out. The expected win rate is the average chance the page gave those picks before kickoff: the model's chance blended with the market's no-vig chance, using your Trust in model setting for props.</span></span></span></h3><p class="small" id="bt-wr" style="margin:6px 0 2px"></p></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Picks</th><th class="r">Wins</th><th class="r">Losses</th><th class="r">Win rate</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
       </div>
       <div class="panel"><div class="panel-pad"><h3>Games</h3></div><div class="scroll"><table class="bt"><thead><tr><th>Game</th><th>Kickoff</th><th>Picks saved</th><th>Final</th><th class="r">Graded</th></tr></thead><tbody id="bt-games"></tbody></table></div></div>
     </div>
@@ -392,6 +392,10 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="stack">
       <div class="panel panel-pad stack">
         <h2>Pull this week's lines</h2>
+        <div class="stack" id="pull-now-box" hidden>
+          <div class="row"><button class="btn primary" id="pull-now">Pull latest lines</button></div>
+          <p class="muted small" id="pull-now-state" aria-live="polite"></p>
+        </div>
         <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">A link you open in your own browser and a paste back here. It takes seconds and loads every game at once.</p></span></span>
         <div class="row" role="radiogroup" aria-label="Where to pull from">
           <label class="check" for="src-parlay" style="padding:0"><input type="radio" name="hsrc" id="src-parlay" value="parlay"> Parlay API</label>
@@ -645,23 +649,25 @@ const PM = (() => {
     const boost = vacShare > 0 ? clamp(1 + vk * vacShare / (1 - Math.min(vacShare, 0.6)), 1, 1.5) : 1;
     // a teammate back this week takes back the share he left: per unit of his old share, times how much of this player's
     // window was played while he was out (fitted on 2016-2025 returns: targets 1.11, carries among backs 0.80)
-    let backF = 1;
+    let backF = 1, arrF = 1;
     const bk = isCatchKey(marketKey) ? 'tgt' : marketKey === 'player_rush_yds' ? (pos === 'RB' ? 'car' : null) : null;
     if (bk && ctx.back && ctx.back.length) {
       const C = { tgt: 1.11, car: 0.80, rz: 0.95 }[bk];
       const ws = games.map((g, i) => Math.pow(0.88, i) * (g[0] < curSeason || !player.cur ? 0.5 : 1)), wsum = ws.reduce((a, b) => a + b, 0) || 1;
-      for (const b of ctx.back) { const ov = games.reduce((a, g, i) => a + ((b.miss ? b.miss(g) : g[0] > b.since[0] || (g[0] === b.since[0] && g[1] > b.since[1])) ? ws[i] : 0), 0) / wsum; backF *= 1 - C * (b.R[bk] || 0) * ov; }
-      backF = clamp(backF, 0.4, 1);
+      for (const b of ctx.back) { const ov = games.reduce((a, g, i) => a + ((b.miss ? b.miss(g) : g[0] > b.since[0] || (g[0] === b.since[0] && g[1] > b.since[1])) ? ws[i] : 0), 0) / wsum; const f = 1 - (b.arr ? ARR_C : C) * (b.R[bk] || 0) * ov; if (b.arr) arrF *= f; else backF *= f; }
+      backF = clamp(backF, 0.4, 1); arrF = clamp(arrF, 0.4, 1);
     }
+    // traded in, before his first game for the new team: about 86% of his old share in his first games there
+    const trF = player.trade && player.trade.to === player.t && !isPass(marketKey) ? ARR_SELF : 1;
     const retF = ctx.ret && !isPass(marketKey) ? ctx.ret : 1; // his own first game back: a lighter share than before
     const d = (stats.defs[ctx.opp] && stats.defs[ctx.opp][m.def]) || 1;
     const cal = (o.cal && fit.cal && fit.cal[marketKey]) || 1; // level correction from the 2025 backtest
     // opposing defensive starters out this week: fitted on 2016-2025 team games, per missing starter, capped at three per unit
     const dc = fit.dinj && fit.dinj[marketKey], dO = ctx.dOut;
     const dm = dc && dO ? clamp(1 + dc.sec * Math.min(3, dO.sec || 0) + dc.f7 * Math.min(3, dO.f7 || 0), 0.9, 1.15) : 1;
-    const scale = mult * boost * d * cal * dm * backF * retF;
+    const scale = mult * boost * d * cal * dm * backF * arrF * trF * retF;
     const bl = qbNew ? 1 : o.blend; // his game log says little about a starter's volume, so the usage estimate carries it
-    const mean = ((1 - bl) * base * mult + bl * usage) * boost * d * cal * dm * backF * retF;
+    const mean = ((1 - bl) * base * mult + bl * usage) * boost * d * cal * dm * backF * arrF * trF * retF;
     let sd = null;
     if (m.cv) {
       const varObs = Math.max(0, S.xx / S.w - base * base) * scale * scale;
@@ -672,8 +678,11 @@ const PM = (() => {
     const shape = pos === 'WR' && isCatchKey(marketKey) ? { pos: 'WR', low: /^WR(?:[3-9]|\d\d)$/.test(player.dr || '') || (!player.dr && tsh < 0.12) ? 1 : 0 }
       : pos === 'RB' && (isCatchKey(marketKey) || marketKey === 'player_rush_yds') ? { pos: 'RB', low: /^RB1$/.test(player.dr || '') ? 0 : 1 } : null;
     return { mean, sd, nEff, defFactor: d, games: games.length, recent: games.slice(0, 6).map((g) => g[m.idx]), step, shape,
-      why: { def: d - 1, dinj: dm - 1, back: backF - 1, ret: retF - 1, script: pct.script, wind: pct.wind, home: pct.home, qb: pct.qb, out: boost - 1, role: S.role / S.w - 1, usage: base > 0 ? usage / base - 1 : 0 } };
+      why: { def: d - 1, dinj: dm - 1, back: backF - 1, arr: arrF - 1, tr: trF - 1, ret: retF - 1, script: pct.script, wind: pct.wind, home: pct.home, qb: pct.qb, out: boost - 1, role: S.role / S.w - 1, usage: base > 0 ? usage / base - 1 : 0 } };
   }
+  // traded players, fitted on 2016-2025 in-season trades of backs, receivers and tight ends (20 with 8%+ of targets, 117 new teammates):
+  // the new man kept 86% of his old target share over his first three games, and each new teammate gave up only 0.27 x that share
+  const ARR_C = 0.27, ARR_SELF = 0.86;
   const STEP_MIN = 2; // starts needed before a fill-in is projected from his starts alone
   const isCatchKey = (k) => k === 'player_receptions' || k === 'player_reception_yds';
 
@@ -862,11 +871,13 @@ const PM = (() => {
       const w = o.kind === 'game' ? opt.gw : opt.w, p = w * o.model + (1 - w) * o.fair, pe = o.kind === 'prop' && opt.be, dec = pe ? 1 / opt.be : toDecimal(o.pr), c = { o, p, edge: p - 1 / dec, ev: p * dec - 1, dec };
       const k = o.kind + '|' + o.eventId + '|' + (o.kind === 'game' ? o.m + '|' + o.b : normName(o.pl) + '|' + o.m), cur = groups.get(k); if (!cur || c.ev > cur.ev) groups.set(k, c); }
     const mk = (label) => ({ label, bets: 0, w: 0, l: 0, p: 0, exp: 0, profit: 0 });
+    const byM = new Map(); // the model's pick on every player prop, by prop type
     const bet = { props: [mk('Every pick, no filter'), mk('Any positive edge'), mk('Edge 0 to 2 pts'), mk('Edge 2 to 5 pts'), mk('Edge 5 pts or more')], games: [mk('Every pick, no filter'), mk('Any positive edge')], gamesDk: [mk('Every pick, no filter'), mk('Any positive edge')] };
     for (const c of groups.values()) { const set = bet[c.o.kind === 'game' ? (c.o.b === 'draftkings' ? 'gamesDk' : 'games') : 'props'], e = c.edge * 100;
       const into = [set[0]]; if (e > 0) { into.push(set[1]); if (set.length > 2) into.push(e < 2 ? set[2] : e < 5 ? set[3] : set[4]); }
+      if (c.o.kind !== 'game') { const lab = MARKETS[c.o.m].label, bm = byM.get(lab) || byM.set(lab, { every: mk(lab), pos: mk(lab) }).get(lab); into.push(bm.every); if (e > 0) into.push(bm.pos); }
       for (const b of into) { if (c.o.out === 'p') { b.p++; continue; } b.bets++; b.exp += c.p; if (c.o.out === 'w') { b.w++; b.profit += c.dec - 1; } else { b.l++; b.profit -= 1; } } }
-    return { games, picks, cal: [...cal.values()], bet };
+    return { games, picks, cal: [...cal.values()], bet, byM };
   }
 
   return { MARKETS, settle, backtest, toDecimal, toAmerican, implied, fmtAm, noVig, normCdf, gammaP, poisCdf, project, projectV1, sideProbs, isThin, empirical, oneSidedFair, legRho, parlayProb, normName };
@@ -1026,7 +1037,7 @@ const PX = (() => {
   }
   function applyDoc(coll, id, data) {
     data = dropNoTD(coll, data);
-    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f.filter((l) => l && l.m !== NOTD) : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
+    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'trades') S.trades = (data && Array.isArray(data.list)) ? data.list.filter((x) => x && x.n && x.from && x.to) : []; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f.filter((l) => l && l.m !== NOTD) : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
     if (data) local[coll].set(id, data); else local[coll].delete(id);
   }
   function subscribe() {
@@ -1083,11 +1094,28 @@ const PX = (() => {
     return c.length === 1 ? c[0].e : { st: null, inj: '' };
   }
   // Out unless you say otherwise: listed Out, Claude's call out, Doubtful without a call to play, or he missed the last game and is on no report this week (likely injured reserve).
-  function dDefaultOut(pl) { const r = dReported(pl); if (r.call === 'in') return false; return r.st === 'Out' || r.call === 'out' || r.st === 'Doubtful' || (!r.st && !!pl.miss); }
+  // Trades (meta/trades): a traded player moves to his new team until his first game there reaches the stats file. His old team
+  // treats him as gone (his targets, carries and red-zone share are freed; a quarterback's leaving counts as the starter out),
+  // and his new teammates give up the share he brings, the same way they would to a teammate coming back. A traded defensive
+  // starter counts as out for his old team.
+  function applyTrades() {
+    const tr = new Map((S.trades || []).map((x) => [PM.normName(x.n), x]));
+    const sig = JSON.stringify(S.trades || []); if (S.tradeSig === sig && S.tradeFor === S.stats) return; S.tradeSig = sig; S.tradeFor = S.stats;
+    S.byTeam = new Map(); S.departed = new Map(); twFor = null;
+    S.stats.players.forEach((p) => {
+      if (p.t0 == null) { p.t0 = p.t; p.off0 = p.off; p.dr0 = p.dr; }
+      const x = tr.get(PM.normName(p.n));
+      if (x && p.t0 === x.from) { p.t = x.to; delete p.off; delete p.dr; p.trade = x; (S.departed.get(x.from) || S.departed.set(x.from, []).get(x.from)).push(p); }
+      else { p.t = p.t0; if (p.off0) p.off = p.off0; else delete p.off; if (p.dr0) p.dr = p.dr0; else delete p.dr; delete p.trade; }
+      (S.byTeam.get(p.t) || S.byTeam.set(p.t, []).get(p.t)).push(p); });
+    S.dTraded = new Map((S.trades || []).map((x) => [PM.normName(x.n) + '|' + x.from, x]));
+  }
+  function dDefaultOut(pl) { if (S.dTraded && S.dTraded.has(PM.normName(pl.n) + '|' + pl.t)) return true; const r = dReported(pl); if (r.call === 'in') return false; return r.st === 'Out' || r.call === 'out' || r.st === 'Doubtful' || (!r.st && !!pl.miss); }
   function dStatus(pl) {
     const k = PM.normName(pl.n), r = dReported(pl);
     if (S.over.in.includes(k)) return { absent: false, label: null };
     if (S.over.out.includes(k)) return { absent: true, label: 'Out', note: 'marked out by you' };
+    { const x = S.dTraded && S.dTraded.get(k + '|' + pl.t); if (x) return { absent: true, label: 'Traded', note: 'traded to ' + x.to }; }
     if (r.call === 'out') return { absent: true, label: 'Out', note: "Claude's call" + (r.why ? ': ' + r.why : ''), call: 'out' };
     if (r.call === 'in') return { absent: false, label: 'Q', note: 'Claude expects him to play' + (r.why ? ': ' + r.why : ''), call: 'in' };
     if (r.st === 'Out' || r.st === 'Doubtful') return { absent: true, label: r.st, note: r.inj };
@@ -1163,6 +1191,8 @@ const PX = (() => {
   function eventCtx(eventId, doc, flip) {
     const home = abbr(doc.home), away = abbr(doc.away);
     const gone = (pl) => (flip && flip.has(pl) ? !status(pl).absent : status(pl).absent);
+    const roster = (t) => [...(S.byTeam.get(t) || []), ...((S.departed && S.departed.get(t)) || [])]; // current players plus anyone traded away
+    const goneIn = (pl, t) => pl.t !== t || gone(pl);
     const props = propPlayers(doc);
     const g = (S.stats.games || []).find((x) => x.home === home && x.away === away) || null;
     const live = doc.ctx && doc.ctx.fav != null;
@@ -1194,7 +1224,10 @@ const PX = (() => {
         const byProps = !backFlag(pl) && propBack(pl), flagged = backFlag(pl) || byProps, latest = pl.g[0][0] * 100 + pl.g[0][1], miss = missOf(pl, flagged ? Infinity : latest), R = backShare(pl);
         // automatic detection of unmarked returners is off: re-scored on 2026 weeks 5-7 it made graded props slightly worse (error 0.2395 vs 0.2386)
         if (!flagged && !(AUTO_BACK && pl.cur && (R.tgt >= 0.1 || R.car >= 0.25) && miss.any())) return null;
-        return { n: pl.n, pl, since: [pl.g[0][0], pl.g[0][1]], miss, R: byProps && PROP_BACK_CAR ? { tgt: 0, car: R.car, rz: 0 } : R, f: flagged ? backFactor(pl, t) : 1, auto: !flagged, byProps }; }).filter(Boolean); }
+        return { n: pl.n, pl, since: [pl.g[0][0], pl.g[0][1]], miss, R: byProps && PROP_BACK_CAR ? { tgt: 0, car: R.car, rz: 0 } : R, f: flagged ? backFactor(pl, t) : 1, auto: !flagged, byProps }; }).filter(Boolean);
+      // traded in: none of his new teammates' games had him, so each gives up his share as if he were coming back (not tested on past trades)
+      (S.byTeam.get(t) || []).filter((pl) => pl.trade && pl.trade.to === t && pl.p !== 'QB' && pl.g && pl.g.length && !gone(pl)).forEach((pl) => {
+        if (back[t].some((b) => b.pl === pl)) return; back[t].push({ n: pl.n, pl, since: [pl.g[0][0], pl.g[0][1]], miss: () => true, R: backShare(pl), f: 1, arr: true }); }); }
     // a teammate ruled out frees only the share he would have had with the returner back: what he picked up while the returner was out is the returner's again, not up for grabs
     const BACK_C = { tgt: 1.11, car: 0.80, rz: 0.95 };
     const cutFor = (pl, t) => { const f = { tgt: 1, car: 1, rz: 1 }, bs = (back[t] || []).filter((b) => b.pl !== pl); if (!bs.length || !pl.g || !pl.g.length) return f;
@@ -1204,27 +1237,27 @@ const PX = (() => {
       for (const k of ['tgt', 'car', 'rz']) f[k] = Math.min(1, Math.max(0, f[k])); return f; };
     const vac = {};
     for (const t of [home, away]) { const v = vac[t] = { tgt: 0, car: 0, rz: 0, names: [], who: [] };
-      (S.byTeam.get(t) || []).forEach((pl) => { if (pl.u && pl.p !== 'QB' && gone(pl)) { // a quarterback's runs go to the man replacing him, not to teammates
+      roster(t).forEach((pl) => { if (pl.u && pl.p !== 'QB' && goneIn(pl, t)) { // a quarterback's runs go to the man replacing him, not to teammates
         const c = cutFor(pl, t), s = { n: pl.n, tgt: pl.u[0] * c.tgt, car: pl.u[1] * c.car, rz: pl.u[2] * c.rz };
         v.tgt += s.tgt; v.car += s.car; v.rz += s.rz; v.names.push(pl.n); v.who.push(s); } }); }
     // starting quarterback: the depth chart's QB1, else whoever has thrown most recently. If he is out, strength = how much of the recent sample was his.
     const qbOut = {};
-    for (const t of [home, away]) { const qbs = (S.byTeam.get(t) || []).filter((pl) => pl.p === 'QB' && pl.u);
+    for (const t of [home, away]) { const qbs = roster(t).filter((pl) => pl.p === 'QB' && pl.u);
       const qb1 = qbs.find((pl) => pl.dr === 'QB1') || qbs.slice().sort((a, b) => (b.u[3] || 0) - (a.u[3] || 0))[0];
       const starter = qbs.slice().sort((a, b) => (b.u[3] || 0) - (a.u[3] || 0))[0];
-      const qgone = [qb1, starter].filter((q, i, arr) => q && arr.indexOf(q) === i && gone(q));
+      const qgone = [qb1, starter].filter((q, i, arr) => q && arr.indexOf(q) === i && goneIn(q, t));
       qbOut[t] = qgone.length ? Math.max(...qgone.map((q) => q.u[3] || 0)) : 0; if (qbOut[t]) vac[t].qb = qgone[0].n; }
     // fill-ins: a projected starter this week (top of the depth chart among players still active) who started fewer than
     // three in four of his last six games, while a regular starter at his position is out. He is projected from his starts only.
     const step = new Map();
     if (!window.__noStep) for (const t of [home, away]) {
       for (const [pos, n] of Object.entries(SLOTS)) {
-        const ps = (S.byTeam.get(t) || []).filter((pl) => pl.p === pos);
+        const ps = roster(t).filter((pl) => pl.p === pos);
         const rate = (pl, k) => { const r = pl.g.slice(0, k); return r.length ? r.filter((g) => g[19] === 1).length / r.length : 0; };
-        const out = ps.filter((pl) => rate(pl, 4) >= 0.5 && gone(pl)).sort((a, b) => usage(b) - usage(a));
+        const out = ps.filter((pl) => rate(pl, 4) >= 0.5 && goneIn(pl, t)).sort((a, b) => usage(b) - usage(a));
         if (!out.length) continue;
         const rank = (pl) => { const m = new RegExp('^' + pos + '(\\d+)$').exec(pl.dr || ''); return m ? +m[1] : 99; };
-        const ins = ps.filter((pl) => !gone(pl)).sort((a, b) => rank(a) - rank(b) || usage(b) - usage(a)).slice(0, n).filter((pl) => rank(pl) > n && rate(pl, 6) < 0.75); // listed below the usual starting spots, and not a regular starter lately
+        const ins = ps.filter((pl) => !goneIn(pl, t)).sort((a, b) => rank(a) - rank(b) || usage(b) - usage(a)).slice(0, n).filter((pl) => rank(pl) > n && rate(pl, 6) < 0.75); // listed below the usual starting spots, and not a regular starter lately
         ins.forEach((pl, i) => { const g0 = out[i % out.length]; step.set(pl, { for: [g0.n], u: g0.u || [0, 0, 0] }); });
       }
     }
@@ -1548,7 +1581,7 @@ const PX = (() => {
       const edgeCls = !r.scored ? 'flat' : r.edge > 0.005 ? 'good' : r.edge < -0.005 ? 'bad' : 'flat';
       const sub = r.kind === 'game' ? 'Game line' : r.player ? `${esc(r.player.t)} ${esc(r.player.dr || r.player.p)}${r.opp ? ' vs ' + esc(r.opp) : ''}` : 'No game log found';
       const tag = r.st && r.st.label ? `<span class="tag ${r.st.cls}" title="${esc(r.st.note || '')}">${esc(r.st.label)}</span>` : '';
-      const why = r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out' + outWho(r), r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
+      const why = r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out' + outWho(r), r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['new teammate', r.proj.why.arr || 0], ['new team', r.proj.why.tr || 0], ['first game back', r.proj.why.ret || 0]]
         .filter(([, v]) => Math.abs(v) >= 0.01).map(([n, v]) => `${n} ${v > 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(0)}%`).join(' · ') : '';
       const stepNote = stepText(r), wt = watchText(r);
       const wchip = r.watch && r.watch.length ? `<span class="tag watch" title="${esc(r.watch.map((x) => x.self ? x.text : `${x.text}: ${x.mean.toFixed(1)}, model ${pct(x.model)}`).join('; '))}">Injury watch</span>` : '';
@@ -2170,7 +2203,8 @@ const PX = (() => {
       : ij && ij.status === 'error' ? `Last update ${kickoff(ij.at)} failed: ${ij.message || 'no reason given.'}`
       : `Injury reports are from ${new Date(S.stats.asOf + 'T12:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}.`;
     const injBar = `<div class="stack" style="gap:6px"><div class="row"><button class="btn sm primary" id="inj-go" ${injBusy || S.injFiring ? 'disabled' : ''}>${S.injFiring ? 'Starting…' : injBusy ? 'Update in progress' : 'Update injuries, depth charts and weather'}</button><span class="small" style="flex:1 1 240px;min-width:0${ij && ij.status === 'error' && !injBusy ? ';color:var(--bad)' : ''}">${esc(injState)}</span></div>${S.injMsg ? `<div class="msg ${S.injMsg.bad ? 'err' : 'ok'}" role="status">${esc(S.injMsg.text)}</div>` : ''}</div>`;
-    $('cond-body').innerHTML = S.ctx.size ? injBar + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out, or back this week</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button><button class="btn sm" id="back-add" style="align-self:flex-end" title="Back from injury, a suspension or a reserve list">Mark back this week</button></div><span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. Mark back this week is for a player returning after missing games (injury, suspension, a reserve or exempt list), which no injury report shows: he is projected from his games before he left at about 90% of his old share (85% after a long absence), and teammates who filled in give back the share they gained while he was out. The injury update also looks for these returns in the news and marks them for you. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p></span></span>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
+    const tradeNote = (S.trades || []).length ? `<p class="small"><strong>Trades applied:</strong> ${S.trades.map((x) => `${esc(x.n)} ${esc(x.from)} → ${esc(x.to)}`).join(' · ')}. Each player counts for his new team until his first game there is in the stats; his old team plays without him.</p>` : '';
+    $('cond-body').innerHTML = S.ctx.size ? injBar + tradeNote + (blocks.length ? blocks.join('') : '<p class="muted small">No uncertain injuries among players with props for the games loaded.</p>') + `<div class="row"><div class="field"><label class="label" for="out-name">Mark another player out, or back this week</label><input type="text" id="out-name" list="out-list" placeholder="Player name" autocomplete="off"><datalist id="out-list">${[...names].sort().map((n) => `<option value="${esc(n)}"></option>`).join('')}</datalist></div><button class="btn sm" id="out-add" style="align-self:flex-end">Mark out</button><button class="btn sm" id="back-add" style="align-self:flex-end" title="Back from injury, a suspension or a reserve list">Mark back this week</button></div><span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><p class="muted small">Update injuries and weather also fills in the forecast wind for every outdoor game (from nflweather.com); the board shows its effect as wind in each prop's adjustments. It reads the official NFL.com report for every team with a game left this week, checks current news on each doubtful or questionable player, and makes a best guess on who sits: those players are ticked for you with the reason shown. It is a guess, not the inactive list, which comes out 90 minutes before kickoff. Your own ticks and unticks always win and are kept. Only players with at least one prop on the board are listed. Players who are definitely out (listed Out, on injured reserve, suspended or off the depth chart) are not listed here; the model already treats them as out. Claude's calls on uncertain players without props still count in the model: their share goes to teammates, and a teammate's status still shows as Injury watch on the board. A ticked player gets no projection and his targets, carries and red-zone chances are spread over his teammates. Ticking a starting quarterback also lowers his team's catches, receiving yards and touchdowns. Mark back this week is for a player returning after missing games (injury, suspension, a reserve or exempt list), which no injury report shows: he is projected from his games before he left at about 90% of his old share (85% after a long absence), and teammates who filled in give back the share they gained while he was out. The injury update also looks for these returns in the news and marks them for you. The update also makes a call on each team's defensive starters. They are not listed here, but each front-seven starter expected out adds about 3.6% to the other team's rushing yards and 2.3% to its touchdowns; missing defensive backs barely moved passing numbers in past seasons, so they change almost nothing.</p></span></span>` : '<p class="muted small">Load lines to see each game\'s spread, total, venue and injury report.</p>';
   }
   /* ---------- backtest ---------- */
   // Freeze each game's picks before kickoff. Written once per change in the inputs (a new pull, an injury update, a tick), never after kickoff.
@@ -2241,9 +2275,14 @@ const PX = (() => {
     warn.querySelector('p').innerHTML = `<strong>Too few picks to conclude anything yet.</strong> ${n} prop lines are graded. Results swing widely until there are around 500, which takes a week or two of full slates.`;
     const betRow = (b, cls) => `<tr${cls ? ' class="mk"' : ''}><td>${esc(b.label)}</td><td class="r num">${b.bets}</td><td class="r num">${b.bets ? b.w + '-' + b.l + (b.p ? '-' + b.p : '') : '—'}</td><td class="r num">${b.bets ? pct(b.w / b.bets) : '—'}</td><td class="r num">${b.bets ? pct(b.exp / b.bets) : '—'}</td><td class="r"><span class="pill ${!b.bets ? 'flat' : b.profit > 0 ? 'good' : 'bad'}">${roi(b)}</span></td></tr>`;
     $('bt-bets').innerHTML = bt.bet.props.map((b) => betRow(b)).join('') + `<tr class="mk"><td colspan="6">FanDuel game lines, Trust in model ${S.gweight}%</td></tr>` + bt.bet.games.map((b) => betRow(b)).join('') + `<tr class="mk"><td colspan="6">DraftKings game lines, Trust in model ${S.gweight}%</td></tr>` + bt.bet.gamesDk.map((b) => betRow(b)).join('');
-    const order = ['All props', ...MKEYS.map((k) => PM.MARKETS[k].label), 'Game sides'];
-    $('bt-cal').innerHTML = order.map((label) => { const c = bt.cal.find((x) => x.label === label); if (!c) return `<tr><td>${esc(label)}</td><td class="r num">0</td><td class="r muted" colspan="5">nothing graded yet</td></tr>`;
-      return `<tr><td>${esc(label)}</td><td class="r num">${c.n}</td><td class="r num">${pct(c.hit / c.n)}</td><td class="r num">${pct(c.model / c.n)}</td><td class="r num">${pct(c.market / c.n)}</td><td class="r num">${(c.bm / c.n).toFixed(3)}</td><td class="r num">${(c.bk / c.n).toFixed(3)}</td></tr>`; }).join('');
+    { // the model's win rate: how often its pick on each player prop won (the better side of every prop; pushes and voids left out)
+      const ev = bt.bet.props[0], ed = bt.bet.props[1], wr = (b) => `${pct(b.w / b.bets)} (${b.w}-${b.l} on ${b.bets} picks)`;
+      $('bt-wr').innerHTML = ev.bets ? `<strong>Model's win rate on props: ${wr(ev)}.</strong>${ed.bets ? ` Its picks with a positive edge won ${wr(ed)}; the model expected ${pct(ed.exp / ed.bets)}.` : ''}` : '<strong>Model\'s win rate on props:</strong> <span class="muted">no graded picks yet.</span>';
+    }
+    const order = ['All props', ...MKEYS.map((k) => PM.MARKETS[k].label)];
+    $('bt-cal').innerHTML = order.map((label) => { const c = bt.cal.find((x) => x.label === label); if (!c) return `<tr><td>${esc(label)}</td><td class="r num">0</td><td class="r muted" colspan="3">nothing graded yet</td></tr>`;
+      const pb = label === 'All props' ? bt.bet.props[0] : (bt.byM.get(label) || {}).every, wl = pb && pb.bets ? `<td class="r num">${pb.w}</td><td class="r num">${pb.l}</td><td class="r num">${pct(pb.w / pb.bets)}</td>` : '<td class="r muted">—</td><td class="r muted">—</td><td class="r muted">—</td>';
+      return `<tr><td>${esc(label)}</td><td class="r num">${pb ? pb.bets : 0}</td>${wl}</tr>`; }).join('');
     $('bt-games').innerHTML = bt.games.length ? bt.games.sort((a, b) => String(b.commence).localeCompare(String(a.commence))).map((x) => `<tr><td class="pname">${esc(x.game)}</td><td>${esc(kickoff(x.commence))}</td><td>${x.saved} <span class="muted small">saved ${esc(kickoff(x.savedAt))}</span></td><td>${x.res ? `${esc(x.res.away)} ${x.res.awayScore}, ${esc(x.res.home)} ${x.res.homeScore}` : `<span class="muted">${Date.now() < Date.parse(x.commence) ? 'not played yet' : 'waiting for results'}</span>`}</td><td class="r num">${x.res ? x.graded : '—'}</td></tr>`).join('')
       : `<tr><td colspan="5" class="muted" style="padding:20px 16px">${S.db ? 'No games saved yet. Pull lines for a game before it kicks off and open this page; its picks are saved automatically.' : 'Saving is off in this view, so picks cannot be stored for grading.'}</td></tr>`;
   }
@@ -2262,7 +2301,7 @@ const PX = (() => {
   const loadPdfLib = () => pdfLibP || (pdfLibP = new Promise((res, rej) => { if (window.PDFLib) return res(window.PDFLib);
     const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
     sc.onload = () => (window.PDFLib ? res(window.PDFLib) : rej(new Error('missing'))); sc.onerror = () => { pdfLibP = null; rej(new Error('load')); }; document.head.appendChild(sc); }));
-  const whyOf = (r) => r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out' + outWho(r), r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['first game back', r.proj.why.ret || 0]]
+  const whyOf = (r) => r.proj && r.proj.why ? [['script', r.proj.why.script], ['wind', r.proj.why.wind], ['home', r.proj.why.home], ['backup QB', r.proj.why.qb || 0], ['teammates out' + outWho(r), r.proj.why.out], ['defense', r.proj.why.def], ['defenders out', r.proj.why.dinj || 0], ['teammate back', r.proj.why.back || 0], ['new teammate', r.proj.why.arr || 0], ['new team', r.proj.why.tr || 0], ['first game back', r.proj.why.ret || 0]]
     .filter(([, v]) => Math.abs(v) >= 0.01).map(([n, v]) => `${n} ${v > 0 ? '+' : '-'}${Math.abs(v * 100).toFixed(0)}%`).join(', ') : '';
   function exportData() {
     const props = (S.view || []).map((r) => ({ game: r.game, player: r.o.pl, team: r.player ? r.player.t : '', pos: r.player ? (r.player.dr || r.player.p) : '', status: r.st && r.st.label ? r.st.label : '',
@@ -2503,7 +2542,44 @@ const PX = (() => {
     if (S.pull && S.pull.status === 'running' && now - at < PULL_WINDOW) return true;
     return !!S.pullStarted && now - S.pullStarted < PULL_WINDOW && !(S.pull && S.pull.status !== 'running' && at > S.pullStarted - 60e3);
   }
+  // On-demand pull: asks the scheduled "load lines" task to run now. It starts the GitHub pull from Parlay API, waits for it, then copies the lines in.
+  const LOAD_TRIGGER = 'trig_01LpwAvfbuJ1e98CbNX2Hcdc';
+  mcpReady.then((m) => { if (m && !S.ro) { const b = $('pull-now-box'); if (b) b.hidden = false; } });
+  function pullNowBusy() {
+    const now = Date.now(), p = S.pull, at = p && p.at ? Date.parse(p.at) : 0;
+    if (S.firing) return true;
+    if (p && p.status === 'running' && now - at < 15 * 60e3) return true;
+    return !!S.pullNowAt && now - S.pullNowAt < 15 * 60e3 && !(p && p.status !== 'running' && at > S.pullNowAt - 60e3);
+  }
+  function renderPullNow() {
+    const btn = $('pull-now'); if (!btn) return;
+    const busy = pullNowBusy(), st = $('pull-now-state'), p = S.pull; st.style.color = '';
+    btn.disabled = busy; btn.textContent = S.firing ? 'Starting…' : busy ? 'Pull in progress' : 'Pull latest lines';
+    if (busy) st.textContent = 'Claude is pulling and loading the lines. This takes a few minutes, and the board updates on its own when it finishes.';
+    else if (p && p.status === 'done') st.textContent = `Last pull ${kickoff(p.at)}: ${p.message || (p.games || 0) + ' games loaded.'}${p.offers ? ' ' + p.offers + ' prices.' : ''}`;
+    else if (p && p.status === 'error') { st.textContent = `Last pull ${kickoff(p.at)} failed: ${p.message || 'no reason given.'}`; st.style.color = 'var(--bad)'; }
+    else if (p && p.status === 'running') { st.textContent = `A pull started ${kickoff(p.at)} did not finish. You can start another.`; st.style.color = 'var(--bad)'; }
+    else st.textContent = 'No pulls yet.';
+  }
+  async function pullNow() {
+    const mcp = await mcpReady, st = $('pull-now-state'); if (!mcp) { st.textContent = 'This view cannot start a pull.'; st.style.color = 'var(--bad)'; return; }
+    if (pullNowBusy()) return;
+    S.firing = true; renderPullNow();
+    try {
+      await mcp.callTool('Claude Code Remote', 'fire_trigger', { trigger_id: LOAD_TRIGGER, text: 'ON_DEMAND: started by the Pull latest lines button.' }, { cache: false });
+      S.pullNowAt = Date.now();
+      await save('meta', 'pull', { status: 'running', at: new Date().toISOString(), source: 'parlay', askOdds: false, missing: [], games: 0, offers: 0, message: 'Pull requested from the app.' });
+    } catch (e) {
+      const c = e && e.code;
+      st.textContent = c === 'not_in_manifest' || c === 'approval_required' || c === 'consent_required' || c === 'not_granted' ? 'This page needs your permission to start a Claude run. Press the button again and choose Allow.'
+        : c === 'blocked_by_policy' ? 'Your organization does not let this page start Claude runs.'
+        : c === 'server_not_connected' || c === 'needs_reauth' || c === 'selection_required' || c === 'server_not_found' ? 'Claude could not reach its task runner for your account. Reload the page and try again.'
+        : 'Could not start the pull' + (e && e.message ? ': ' + e.message : '.'); st.style.color = 'var(--bad)';
+    }
+    S.firing = false; renderPullNow();
+  }
   function renderPull() {
+    renderPullNow();
     if (!$('pull-go')) return; // the pull button was removed; lines come from the paste box
     const busy = pullBusy(), go = $('pull-go'), scope = S.popts && S.popts.scope === 'night' ? 'night' : 'all';
     $('scope-all').checked = scope === 'all'; $('scope-night').checked = scope === 'night'; $('scope-all').disabled = $('scope-night').disabled = busy || S.firing;
@@ -2543,7 +2619,7 @@ const PX = (() => {
     }
     S.firing = false; S.pullConfirm = false; renderPull();
   }
-  function renderAll() { if (!S.stats) return; mergeLines(); prepInj(); buildRows(); renderStatus(); renderCond(); renderBoard(); renderGames(); renderSlip(); renderSlips(); renderTracker(); renderLines(); renderPull(); renderBacktest(); saveLogs(); }
+  function renderAll() { if (!S.stats) return; applyTrades(); mergeLines(); prepInj(); buildRows(); renderStatus(); renderCond(); renderBoard(); renderGames(); renderSlip(); renderSlips(); renderTracker(); renderLines(); renderPull(); renderBacktest(); saveLogs(); }
   function renderGames() {
     $('g-weight').value = S.gweight; $('g-weight-val').textContent = S.gweight + '%';
     SPORTSBOOKS.forEach((bk) => { $('gb-' + bk).checked = S.gbooks.has(bk); });
@@ -2710,6 +2786,7 @@ const PX = (() => {
     if (t.dataset.grade) { const tk = S.tickets.get(t.dataset.grade); if (!tk) return; const legs = tk.legs.map((l, i) => i === Number(t.dataset.leg) ? { ...l, result: l.result === t.dataset.r ? null : t.dataset.r } : l); return save('tickets', t.dataset.grade, { ...tk, legs }); }
     if (t.dataset.del) { if (S.confirmDel === t.dataset.del) { S.confirmDel = null; return remove('tickets', t.dataset.del); } S.confirmDel = t.dataset.del; return renderTracker(); }
     if (t.dataset.rmgame) { const id = t.dataset.rmgame; if (S.linesRaw.has(id)) await remove('lines', id); for (const [pid, p] of [...S.pulls]) if (p && (p.eventId === id || (S.aliasOf && S.aliasOf(p.eventId, p) === id))) await remove('pulls', pid); return; }
+    if (t.id === 'pull-now') return pullNow();
     if (t.id === 'pull-go') { if (!S.pullConfirm) { S.pullConfirm = true; pullMsg(''); return renderPull(); } return firePull(); }
     if (t.id === 'inj-go') return fireInj();
     if (t.id === 'grade-go') return fireGrade();
