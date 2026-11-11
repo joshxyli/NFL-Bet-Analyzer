@@ -429,7 +429,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       </div>
       <div class="stack">
         <div class="panel panel-pad stack">
-          <div class="row" style="justify-content:space-between"><h2>Games</h2><label class="check" for="g-all" style="padding:0"><input type="checkbox" id="g-all" checked> Show day games too</label></div>
+          <div class="row" style="justify-content:space-between"><h2>Games</h2></div>
           <div id="games"></div>
         </div>
         <div class="panel panel-pad stack">
@@ -2051,7 +2051,7 @@ const PX = (() => {
     if (oa) { if (S.key) { oa.href = 'https://joshxyli.github.io/NFL-Bet-Analyzer/pull.html#key=' + encodeURIComponent(S.key); oa.removeAttribute('aria-disabled'); oa.classList.remove('quiet'); } else { oa.removeAttribute('href'); oa.setAttribute('aria-disabled', 'true'); oa.classList.add('quiet'); } }
     const ev = $('events-link');
     if (S.key) { ev.href = `${API}/events?apiKey=${encodeURIComponent(S.key)}`; ev.removeAttribute('aria-disabled'); ev.classList.remove('quiet'); } else { ev.removeAttribute('href'); ev.setAttribute('aria-disabled', 'true'); ev.classList.add('quiet'); }
-    const showAll = $('g-all').checked, now = Date.now(), seen = new Set(), list = [];
+    const showAll = true /* every game is listed (the day-games checkbox was removed) */, now = Date.now(), seen = new Set(), list = [];
     // The saved game list and the pulled lines can carry different ids for the same game (one per odds source), so match them on teams and date.
     const gk = (d) => { try { return `${abbr(d.away)}|${abbr(d.home)}|${etDay(d.commence)}`; } catch (e) { return null; } }, byKey = new Map();
     for (const [id, d] of S.lines) { const k = gk(d); if (k) byKey.set(k, id); }
