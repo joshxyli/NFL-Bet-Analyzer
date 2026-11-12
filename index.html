@@ -1608,22 +1608,22 @@ const PX = (() => {
   function midOf(r) {
     if (r.__mid !== undefined) return r.__mid;
     const p = r.proj, k = r.o.m, M = PM.MARKETS[k]; let out = null;
-    if (p && M) try {
+    if (p && M && M.unit !== 'TDs') try {
       if (M.dist === 'poisson' || p.shape && k === 'player_receptions') { for (let x = 0; x < 40; x++) if (PM.sideProbs(p, k, x + 0.5).under >= 0.5) { out = x; break; } }
       else if (p.shape || p.sd) { let lo = 0, hi = Math.max(60, p.mean * 5);
         for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (PM.sideProbs(p, k, mid).over > 0.5) lo = mid; else hi = mid; }
-        out = Math.round(lo); }
+        out = Math.round(lo * 10) / 10; }
     } catch (e) { out = null; }
     Object.defineProperty(r, '__mid', { value: out, enumerable: false, configurable: true, writable: true }); return out;
   }
   // the projection as shown: the middle outcome, with the average in small text
-  const projHtml = (r, M) => { const md = midOf(r), avg = r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1);
+  const projHtml = (r, M) => { const md = midOf(r), avg = r.proj.mean.toFixed(1);
     return md == null ? `<span class="num">${avg}</span> <span class="muted small">${M.unit}</span>`
-      : `<span class="num" title="Middle outcome: half of his likely results fall below this and half above, so a line above it leans Under and a line below it leans Over (before the market blend).">${md}</span> <span class="muted small">${M.unit}</span><span class="sub2">avg <span class="num">${avg}</span></span>`; };
+      : `<span class="num" title="Middle outcome: half of his likely results fall below this and half above, so a line above it leans Under and a line below it leans Over (before the market blend).">${md.toFixed(1)}</span> <span class="muted small">${M.unit}</span><span class="sub2">avg <span class="num">${avg}</span></span>`; };
   // the injury watch, in words: one line per open status, with the projection and model chance if it goes the other way
   function watchText(r) {
     if (!r.watch || !r.watch.length) return '';
-    const m = PM.MARKETS[r.o.m] || { unit: '' }, f = (v) => v.toFixed(m.unit === 'yds' ? 0 : 1);
+    const m = PM.MARKETS[r.o.m] || { unit: '' }, f = (v) => v.toFixed(1);
     return r.watch.map((x) => x.self ? x.text : `${x.text}: ${f(x.mean)} ${m.unit}, model ${pct(x.model)}${r.model != null ? ` (now ${pct(r.model)})` : ''}`).join(' · ');
   }
   // a fill-in's projection basis, in words
@@ -1824,7 +1824,7 @@ const PX = (() => {
     const c = legCalc(l);
     if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection.</div>' : '';
     const r = c.r, M = PM.MARKETS[l.m] || {};
-    const md = r.proj ? midOf(r) : null, proj = r.proj ? (md == null ? `${r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1)} ${esc(M.unit || '')}` : `${md} ${esc(M.unit || '')} <small style="font-weight:400">avg ${r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1)}</small>`) : esc(r.skip || 'none');
+    const md = r.proj ? midOf(r) : null, proj = r.proj ? (md == null ? `${r.proj.mean.toFixed(1)} ${esc(M.unit || '')}` : `${md.toFixed(1)} ${esc(M.unit || '')} <small style="font-weight:400">avg ${r.proj.mean.toFixed(1)}</small>`) : esc(r.skip || 'none');
     const book = `${BOOKS[r.o.b]} ${r.o.pt != null ? r.o.pt + ' ' : ''}${PM.fmtAm(r.o.pr)}`;
     const note = c.same ? `vs ${book}` : `at your line ${l.pt}; ${book} now, priced at your line from that`;
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
