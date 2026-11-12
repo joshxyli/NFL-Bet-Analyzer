@@ -78,6 +78,12 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .tag.q { background: var(--warn-soft); color: var(--warn) }
 .slipbar { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--sunk) }
 .slipbar select { min-width: 160px }
+.slipprev { padding: 6px 16px 10px; border-bottom: 1px solid var(--line); background: var(--sunk) }
+.slipprev ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column }
+.slipprev li { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-top: 1px dashed var(--line); font-size: 14px }
+.slipprev li:first-child { border-top: 0 }
+.slipprev li > span:first-child { flex: 1 1 auto; min-width: 0 }
+.slipprev .xbtn { flex: none }
 .addform { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; padding: 10px 14px; background: var(--sunk); border-left: 3px solid var(--accent) }
 .addform .field { display: flex; flex-direction: column; gap: 3px }
 .addform > span.small:first-child { flex-basis: 100% }
@@ -313,6 +319,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
         <details class="cond" id="stacks"><summary id="stacks-sum">Script stacks</summary><div class="cond-body"><div class="row"><span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Legs on one team that rise and fall with the same game script: a quarterback's passing yards with his receivers' yards (same direction), and his lead back's rushing yards the opposite way. Built from props with a model chance and an edge at or above the minimum. The correlated chance is approximate: it multiplies the independent chance by ratios measured on 2018 to 2024 box scores (quarterback with a receiver about 1.2 to 1.3, with the back about 1.08, back with a receiver about 1.06). Teammate receivers are treated as independent of each other. Each stack also suggests up to three opposing-team legs from the same game, ranked by measured synergy and edge; those synergies are weak (about 1.02 to 1.10, strongest in games with a total of 47.5 or more). Change the pick or line on any leg to match your PrizePicks or Pick6 entry before adding; the edge and chance shown stay at the book's line. PrizePicks and Pick6 may block some of these combinations.</span></span></span><div class="field"><label class="label" for="stack-min">Min edge per leg</label><select id="stack-min"><option value="0">0 pts</option><option value="2">2 pts</option><option value="5">5 pts</option></select></div></div><div id="stacks-body" class="stack"></div></div></details>
         <div class="slipbar" id="slipbar"><label class="label" for="slip-sel">Adding to</label><select id="slip-sel"></select><button class="btn sm" id="slip-new">New slip</button><button class="btn sm" id="slip-other" title="Add a non-NFL or custom prop to this slip">Other…</button><span id="slip-money"></span><button class="btn sm primary" id="slip-submit">Submit slip</button><button class="btn sm" id="slip-clear" title="Remove every prop from this slip (the slip itself stays)">Clear slip</button><span class="muted small" id="slip-sum"></span></div>
+        <div class="slipprev" id="slip-preview" hidden></div>
         <form class="addform" id="slip-otherform" data-otherform="1" hidden><label class="field"><span class="label">Other prop</span><input type="text" name="desc" maxlength="120" placeholder="e.g. Caitlin Clark o18.5 points" autocomplete="off" required style="min-width:260px"></label><button class="btn sm primary" type="submit">Add</button><button class="btn sm" type="button" id="slip-othercancel">Cancel</button><span class="muted small">For non-NFL props (like discounted PrizePicks picks). Mark the result yourself with ✓ / ✗ / Void.</span></form>
         <div class="board-wrap"><table id="board">
           <thead><tr><th><button class="sort" data-sort="player">Player<i></i></button></th><th><button class="sort" data-sort="pick">Pick<i></i></button></th><th class="r"><button class="sort" data-sort="proj">Projection<i></i></button></th><th class="r"><button class="sort" data-sort="chance">Chance<i></i></button></th><th class="r"><button class="sort" data-sort="edge">Edge<i></i></button></th><th class="r"><span class="sr">Add to slip</span></th></tr></thead>
@@ -1362,7 +1369,7 @@ const PX = (() => {
           else if (player.p === 'QB' && player.dr && player.dr !== 'QB1' && !ec.step.has(player)) skip = 'backup quarterback';
           if (!skip) proj = PM.project(player, o.m, { opp, home: !opp || ec.neutral ? null : atHome, fav: !opp || ec.favHome == null ? null : (atHome ? ec.favHome : -ec.favHome),
             total: opp ? ec.total : null, indoor: ec.indoor, wind: ec.wind, vac: ec.vac[player.t], ...backCtx(ec, player), qbOut: ec.qbOut[player.t] || 0, stepIn: ec.step.get(player) || null, dOut: opp && ec.dOut ? ec.dOut[opp] : null }, S.stats);
-          if (proj && player.p === 'QB' && proj.step && !proj.step.used) { proj = null; skip = 'backup quarterback, under 2 starts'; } // a quarterback's backup snaps say nothing about him starting
+          if (proj && player.p === 'QB' && proj.step && !proj.step.used && !proj.step.qb) { proj = null; skip = 'backup quarterback, under 2 starts'; } // a quarterback's backup snaps say nothing about him starting; his passing props use the new-starter projection (team pass volume, league-average efficiency) instead
           if (proj) { const thin = PM.isThin(proj, o.m, o.pt);
             const sp = thin ? PM.empirical(player, o.m, o.pt) : PM.sideProbs(proj, o.m, o.pt ?? 0.5); model = (o.s === 'Under' || o.s === 'No') ? sp.under : sp.over; }
           watch = injWatch(player, o, ec, opp, atHome, skip, model, proj ? proj.mean : null);
@@ -1554,7 +1561,7 @@ const PX = (() => {
     }
     // picks without a value for the sorted column always sink to the bottom
     const VAL = { player: (r) => r.o.pl.toLowerCase(), pick: (r) => ALLK.indexOf(r.o.m) * 1e5 + (r.o.pt ?? 0) + (r.o.s === 'Under' ? 0.1 : 0),
-      proj: (r) => (r.proj ? r.proj.mean : null), chance: (r) => r.model, edge: (r) => (r.scored ? r.edge : null) };
+      proj: (r) => (r.proj ? (midOf(r) ?? r.proj.mean) + r.proj.mean / 1e4 : null), chance: (r) => r.model, edge: (r) => (r.scored ? r.edge : null) };
     const val = VAL[S.sort.key] || VAL.edge, sign = S.sort.dir === 'asc' ? 1 : -1;
     rows.sort((a, b) => { const x = val(a), y = val(b);
       if (x == null || y == null) return (x == null) - (y == null) || b.ev - a.ev;
@@ -1588,7 +1595,7 @@ const PX = (() => {
       return `<tr${wchip ? ' class="watch"' : ''}>
         <td class="c-player"><div class="pname">${esc(o.pl)}${tag}${wchip}</div>${wt ? `<div class="watchl small">${esc(wt)}</div>` : ''}<div class="muted small">${sub} · ${esc(r.game)}</div></td>
         <td class="c-pick"><div class="pick">${esc(r.kind === 'dfs' ? pickText(o).replace(/^Over/, 'More').replace(/^Under/, 'Less') : pickText(o))}</div><div class="price">${r.kind === 'dfs' ? `<span class="book">${BOOKS[o.b]}</span>${r.refText ? ` <span class="muted small">books: ${esc(r.refText)}</span>` : ' <span class="muted small">no sportsbook line</span>'}` : `<span class="book" style="margin-left:0" title="Line from ${BOOK_NAMES[o.b] || o.b}">${BOOKS[o.b]}</span>${o.pr != null ? ` <span class="num odds" title="${esc(BOOK_NAMES[o.b] || o.b)} price">${PM.fmtAm(o.pr)}</span>` : ''}${r.opened && r.opened.pr != null && r.opened.pr !== o.pr && (r.opened.pt == null || r.opened.pt === o.pt) ? ` <span class="muted small">opened ${PM.fmtAm(r.opened.pr)}</span>` : ''}${r.opened && r.opened.pt != null && r.opened.pt !== o.pt ? ` <span class="muted small">opened at ${r.opened.pt}</span>` : ''}`}</div></td>
-        <td class="r c-proj" data-l="Proj">${r.proj ? `<span class="num">${r.proj.mean.toFixed(m.unit === 'yds' ? 0 : 1)}</span> <span class="muted small">${m.unit}</span>${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}${logNote(r) ? `<div class="why">${esc(logNote(r))}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
+        <td class="r c-proj" data-l="Proj">${r.proj ? `${projHtml(r, m)}${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}${logNote(r) ? `<div class="why">${esc(logNote(r))}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
         <td class="r c-chance" data-l="Model"><span class="num">${r.model == null ? '—' : pct(r.model)}</span><span class="sub2">market <span class="num">${r.fair == null ? '—' : pct(r.fair)}</span></span></td>
         <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
       <td class="r c-add">${followBtn(r)}${addBtn(r)}</td>
@@ -1596,6 +1603,23 @@ const PX = (() => {
     }).join('');
   }
 
+  // middle outcome (median) of the projected spread: the point where over and under are even, which is what an over/under line
+  // is judged against. It is the board's headline projection; the average (mean) is shown under it.
+  function midOf(r) {
+    if (r.__mid !== undefined) return r.__mid;
+    const p = r.proj, k = r.o.m, M = PM.MARKETS[k]; let out = null;
+    if (p && M) try {
+      if (M.dist === 'poisson' || p.shape && k === 'player_receptions') { for (let x = 0; x < 40; x++) if (PM.sideProbs(p, k, x + 0.5).under >= 0.5) { out = x; break; } }
+      else if (p.shape || p.sd) { let lo = 0, hi = Math.max(60, p.mean * 5);
+        for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (PM.sideProbs(p, k, mid).over > 0.5) lo = mid; else hi = mid; }
+        out = Math.round(lo); }
+    } catch (e) { out = null; }
+    Object.defineProperty(r, '__mid', { value: out, enumerable: false, configurable: true, writable: true }); return out;
+  }
+  // the projection as shown: the middle outcome, with the average in small text
+  const projHtml = (r, M) => { const md = midOf(r), avg = r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1);
+    return md == null ? `<span class="num">${avg}</span> <span class="muted small">${M.unit}</span>`
+      : `<span class="num" title="Middle outcome: half of his likely results fall below this and half above, so a line above it leans Under and a line below it leans Over (before the market blend).">${md}</span> <span class="muted small">${M.unit}</span><span class="sub2">avg <span class="num">${avg}</span></span>`; };
   // the injury watch, in words: one line per open status, with the projection and model chance if it goes the other way
   function watchText(r) {
     if (!r.watch || !r.watch.length) return '';
@@ -1800,7 +1824,7 @@ const PX = (() => {
     const c = legCalc(l);
     if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection.</div>' : '';
     const r = c.r, M = PM.MARKETS[l.m] || {};
-    const proj = r.proj ? `${r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1)} ${esc(M.unit || '')}` : esc(r.skip || 'none');
+    const md = r.proj ? midOf(r) : null, proj = r.proj ? (md == null ? `${r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1)} ${esc(M.unit || '')}` : `${md} ${esc(M.unit || '')} <small style="font-weight:400">avg ${r.proj.mean.toFixed(M.unit === 'yds' ? 0 : 1)}</small>`) : esc(r.skip || 'none');
     const book = `${BOOKS[r.o.b]} ${r.o.pt != null ? r.o.pt + ' ' : ''}${PM.fmtAm(r.o.pr)}`;
     const note = c.same ? `vs ${book}` : `at your line ${l.pt}; ${book} now, priced at your line from that`;
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
@@ -1822,6 +1846,11 @@ const PX = (() => {
     { const sb = $('slip-submit'); if (sb) { sb.disabled = !act || !act.legs.length; sb.title = !act ? 'Add a prop to start a slip' : act.legs.length ? `Mark ${act.name} as submitted and start a new slip` : 'Add a prop first'; } }
     { const cb = $('slip-clear'); if (cb) { cb.disabled = !act || !act.legs.length; cb.textContent = S.clearConfirm && act && S.clearConfirm === act.id ? 'Confirm clear' : 'Clear slip'; } }
     $('slip-sum').textContent = act ? `${act.legs.length} ${act.legs.length === 1 ? 'prop' : 'props'} in ${act.name}` : '';
+    { // preview of the slip being built: every prop on it, each with × to take it off before you submit
+      const pv = $('slip-preview'), legs = act ? [...act.legs].sort(legOrder) : [];
+      pv.hidden = !legs.length;
+      pv.innerHTML = legs.length ? `<div class="label" style="margin:4px 0 2px">${esc(act.name)} preview</div><ul>${legs.map((l) => { const c = l.m === 'other' ? null : legCalc(l);
+        return `<li><span><strong>${esc(legText(l))}</strong> <span class="muted small">${esc([l.game, needText(l)].filter(Boolean).join(' · '))}${c && c.model != null ? ` · model ${pct(c.model)}` : ''}</span></span><button class="xbtn" data-legdel="${esc(act.id)}|${esc(legId(l))}" title="Remove from ${esc(act.name)}" aria-label="Remove ${esc(l.name || l.pl)} from ${esc(act.name)}">×</button></li>`; }).join('')}</ul>` : ''; }
     { const sa = $('slip-app'); if (sa && document.activeElement !== sa) { sa.innerHTML = appOptions(act && act.app, 'App…'); sa.disabled = !act; } }
     { const sm = $('slip-money'), foc = document.activeElement; if (sm && !(foc && sm.contains(foc))) sm.innerHTML = act ? moneyHtml(act, slipState(act)) : ''; }
     if ($('view-slips').hidden && $('view-taken').hidden && !$('slip-cards').dataset.init) return; $('slip-cards').dataset.init = '1';
