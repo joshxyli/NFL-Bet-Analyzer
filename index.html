@@ -494,7 +494,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
 </div>
 
 <button class="totop" id="totop" aria-label="Back to top" title="Back to top" hidden>&#8593;</button>
-<button class="tojump" id="tojump" data-view="taken" title="Go to the Props Taken tab" hidden>Props Taken</button>
+<button class="tojump" id="tojump" title="Go to the Props Taken tab" hidden>Props Taken</button>
 <script>
 /* Props model: odds maths, projections, parlay simulation. Pure functions, no DOM. */
 const PM = (() => {
@@ -2767,14 +2767,21 @@ const PX = (() => {
     $('panel-props').hidden = view === 'games'; $('panel-games').hidden = view !== 'games';
     if (view === 'slips' || view === 'taken') renderSlips();
     if (view === 'plchart') renderPl();
-    $('tojump').hidden = view !== 'slips' || !!S.site;
-    if (view === 'taken' && window.scrollY > 0) window.scrollTo({ top: 0 });
+    { const tj = $('tojump'); tj.hidden = view !== 'slips' || !!S.site; // on My slips: back to Props Taken, to the spot you left if you came from there
+      tj.textContent = S.takenBack ? '← Back to Props Taken' : 'Props Taken'; tj.title = S.takenBack ? 'Back to the prop you were on in Props Taken' : 'Go to the Props Taken tab'; }
+    if (view === 'taken' && window.scrollY > 0 && !S.takenRestoring) window.scrollTo({ top: 0 });
     try { history.replaceState(null, '', '#' + view); } catch {}
   }
 
   document.addEventListener('click', async (e) => {
     const t = e.target.closest('button, a'); if (!t) return;
-    if (t.dataset && t.dataset.gotoslip) { e.preventDefault(); const id = t.dataset.gotoslip; if (!$('view-taken').hidden) show('slips');
+    if (t.id === 'tojump') { const b = S.takenBack; S.takenBack = null; S.takenRestoring = !!b; show('taken'); S.takenRestoring = false;
+      if (b) requestAnimationFrame(() => { const btn = b.pk ? [...document.querySelectorAll('#myprops [data-pk]')].find((x) => x.dataset.pk === b.pk) : null, row = btn && btn.closest('tr');
+        window.scrollTo({ top: row ? row.getBoundingClientRect().top + window.scrollY - b.top : b.y, behavior: 'auto' });
+        if (row) { row.style.outline = '2px solid var(--accent)'; setTimeout(() => { row.style.outline = ''; }, 1500); } });
+      return; }
+    if (t.dataset && t.dataset.gotoslip) { e.preventDefault(); const id = t.dataset.gotoslip;
+      if (!$('view-taken').hidden) { const row = t.closest('tr'), pkb = row && row.querySelector('[data-pk]'); S.takenBack = { y: window.scrollY, pk: pkb ? pkb.dataset.pk : null, top: row ? row.getBoundingClientRect().top : 0 }; show('slips'); }
       const find = () => document.getElementById('slipcard-' + id);
       let card = find();
       if (!card) { S.hideDone = false; ls.set('pp.hidedone', false); S.slipWeek = null; S.slipApp = ''; try { renderSlips(); } catch {} card = find(); }
