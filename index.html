@@ -1824,7 +1824,7 @@ const PX = (() => {
     const c = legCalc(l);
     if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection.</div>' : '';
     const r = c.r, M = PM.MARKETS[l.m] || {};
-    const md = r.proj ? midOf(r) : null, proj = r.proj ? (md == null ? `${r.proj.mean.toFixed(1)} ${esc(M.unit || '')}` : `${md} ${esc(M.unit || '')} <small style="font-weight:400">avg ${r.proj.mean.toFixed(1)}</small>`) : esc(r.skip || 'none');
+    const md = r.proj ? midOf(r) : null, proj = r.proj ? (md == null ? `${r.proj.mean.toFixed(1)} ${esc(M.unit || '')}` : `${md} ${esc(M.unit || '')} <small style="display:block;font:400 11px var(--mono);color:var(--muted)">avg ${r.proj.mean.toFixed(1)}</small>`) : esc(r.skip || 'none');
     const book = `${BOOKS[r.o.b]} ${r.o.pt != null ? r.o.pt + ' ' : ''}${PM.fmtAm(r.o.pr)}`;
     const note = c.same ? `vs ${book}` : `at your line ${l.pt}; ${book} now, priced at your line from that`;
     const cell = (k, v, x) => `<span${x && x.cls ? ` class="${x.cls}"` : ''}><i>${k}</i><b${x && x.b ? ` class="${x.b}"` : ''}>${v}</b></span>`;
