@@ -1025,12 +1025,14 @@ const PX = (() => {
   const local = { lines: S.linesRaw, tickets: S.tickets, pulls: S.pulls, log: S.log, rescore: S.rescore, slips: S.slips, results: S.results };
   async function save(coll, id, data) {
     if (S.ro) return false; // view-only: nothing to save
+    if (S.db && coll === 'slips') { applyDoc(coll, id, data); lightRender(); } // show the change at once; the snapshot only confirms it
     if (S.db) { try { await S.db.doc(coll + '/' + id).set(data); return true; } catch (e) { flash('Could not save: ' + (e && e.message || 'the database refused the write') + '.', true); return false; } }
-    applyDoc(coll, id, data); renderAll(); return true;
+    applyDoc(coll, id, data); coll === 'slips' ? lightRender() : renderAll(); return true;
   }
   async function remove(coll, id) {
+    if (S.db && coll === 'slips') { applyDoc(coll, id, null); lightRender(); }
     if (S.db) { try { await S.db.doc(coll + '/' + id).delete(); } catch (e) { flash('Could not delete. Try again.', true); } return; }
-    applyDoc(coll, id, null); renderAll();
+    applyDoc(coll, id, null); coll === 'slips' ? lightRender() : renderAll();
   }
   // Anytime TD props are not supported: drop any saved copies (lines, logged picks, slip legs, followed lines)
   const NOTD = 'player_anytime_td';
@@ -1043,16 +1045,17 @@ const PX = (() => {
   }
   function applyDoc(coll, id, data) {
     data = dropNoTD(coll, data);
+    if (coll === 'slips') S.slipVer = (S.slipVer || 0) + 1;
     if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'trades') S.trades = (data && Array.isArray(data.list)) ? data.list.filter((x) => x && x.n && x.from && x.to) : []; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f.filter((l) => l && l.m !== NOTD) : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
     if (data) local[coll].set(id, data); else local[coll].delete(id);
   }
   function subscribe() {
     for (const coll of ['lines', 'pulls', 'tickets', 'meta', 'log', 'rescore', 'slips', 'results']) {
       S.db.collection(coll).onSnapshot((snap) => {
-        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} }; } else local[coll].clear();
+        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} }; } else { local[coll].clear(); if (coll === 'slips') S.slipVer = (S.slipVer || 0) + 1; }
         snap.docs.forEach((d) => applyDoc(coll, d.id, d.data())); S.loaded.add(coll);
-        S.ready = true; renderAll();
-      }, () => { S.ready = true; renderAll(); });
+        S.ready = true; scheduleRender(coll !== 'slips');
+      }, () => { S.ready = true; scheduleRender(true); });
     }
   }
 
@@ -1452,7 +1455,7 @@ const PX = (() => {
     all.forEach((r) => { if (r.pos === 'RB' && r.o.m === 'player_rush_yds' && r.o.pt != null) { const k = r.eventId + '|' + r.team; leadPt.set(k, Math.max(leadPt.get(k) ?? -1, r.o.pt)); } });
     // Hide props already on a slip (board filter) applies here too: same game, player, prop and side as any slip leg
     const onSlip = $('f-noslip') && $('f-noslip').checked ? new Set(slipList().flatMap((x) => x.legs.map(legId))) : null;
-    const ok = all.filter((r) => r.edge >= minE && !(r.watch && r.watch.some((x) => x.self)) && !(onSlip && onSlip.has(legId(legOf(r)))));
+    const ok = all.filter((r) => r.edge >= minE && !(r.watch && r.watch.some((x) => x.self)) && !(onSlip && onSlip.has(rowLegId(r))));
     const by = new Map();
     ok.forEach((r) => { const k = r.eventId + '|' + r.team; (by.get(k) || by.set(k, []).get(k)).push(r); });
     const byEv = new Map(); ok.forEach((r) => (byEv.get(r.eventId) || byEv.set(r.eventId, []).get(r.eventId)).push(r));
@@ -1558,7 +1561,7 @@ const PX = (() => {
     if ($('f-nowatch').checked) rows = rows.filter((r) => !(r.watch && r.watch.length));
     if ($('f-noslip').checked) { // same game, player, prop and side as a leg on any slip, whatever the line or book
       const onSlip = new Set(slipList().flatMap((x) => x.legs.map(legId)));
-      rows = rows.filter((r) => !onSlip.has(legId(legOf(r))));
+      rows = rows.filter((r) => !onSlip.has(rowLegId(r)));
     }
     // picks without a value for the sorted column always sink to the bottom
     const VAL = { player: (r) => r.o.pl.toLowerCase(), pick: (r) => ALLK.indexOf(r.o.m) * 1e5 + (r.o.pt ?? 0) + (r.o.s === 'Under' ? 0.1 : 0),
@@ -1640,7 +1643,16 @@ const PX = (() => {
   const propKey = (l) => [l.eventId, PM.normName(l.name || l.pl), l.m, l.s, l.pt ?? ''].join('|');
   // a slip holds one leg per player, prop and side: the line is whatever you entered, and the app (PrizePicks, Pick6) is not tracked
   const legId = (l) => [l.eventId, PM.normName(l.name || l.pl), l.m, l.s].join('|');
-  const slipList = () => [...S.slips.entries()].map(([id, d]) => ({ ...d, id, legs: d.legs || [] })).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  let slipMemo = null;
+  const slipList = () => {
+    if (slipMemo && slipMemo.v === S.slipVer) return slipMemo.list;
+    const list = [...S.slips.entries()].map(([id, d]) => ({ ...d, id, legs: d.legs || [] })).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    const idx = new Map(); // leg id -> [{ slip, leg }] in slip order, so each board row is a lookup instead of a scan of every slip
+    list.forEach((x) => x.legs.forEach((l) => { const k = legId(l); (idx.get(k) || idx.set(k, []).get(k)).push({ x, l }); }));
+    slipMemo = { v: S.slipVer, list, idx }; return list;
+  };
+  const slipIdx = () => { slipList(); return slipMemo.idx; };
+  const rowLegId = (r) => r.__lid || (r.__lid = [r.eventId, PM.normName(r.player ? r.player.n : r.o.pl), r.o.m, r.o.s].join('|'));
   const newId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   function legOf(r) {
     const doc = S.lines.get(r.eventId) || {};
@@ -1659,14 +1671,19 @@ const PX = (() => {
   }
   function addBtn(r) {
     if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
-    const id = legId(legOf(r)), act = activeSlip(), held = (x) => x.legs.find((l) => legId(l) === id), inAct = !!act && !!held(act);
-    const others = slipList().filter((x) => (!act || x.id !== act.id) && held(x));
-    const heldAt = (x) => { const l = held(x); return l.pt != null && l.pt !== r.o.pt ? `${x.name} (at ${l.pt})` : x.name; };
-    const title = (inAct ? `In ${act.name}${held(act).pt != null && held(act).pt !== r.o.pt ? ' at ' + held(act).pt : ''}: tap to remove` : `Add to ${act ? act.name : 'a new slip'}`) + (others.length ? `. Also in ${others.map(heldAt).join(', ')}` : '');
+    const id = rowLegId(r), act = activeSlip(), hits = slipIdx().get(id) || [], mine = act ? hits.find((h) => h.x.id === act.id) : null, inAct = !!mine;
+    const others = hits.filter((h) => !act || h.x.id !== act.id).map((h) => h.x);
+    const heldAt = (x) => { const l = hits.find((h) => h.x === x).l; return l.pt != null && l.pt !== r.o.pt ? `${x.name} (at ${l.pt})` : x.name; };
+    const title = (inAct ? `In ${act.name}${mine.l.pt != null && mine.l.pt !== r.o.pt ? ' at ' + mine.l.pt : ''}: tap to remove` : `Add to ${act ? act.name : 'a new slip'}`) + (others.length ? `. Also in ${others.map(heldAt).join(', ')}` : '');
     return `<button class="add" data-slipadd="${esc(r.key)}" aria-pressed="${inAct || S.adding === r.key}" title="${esc(title)}" aria-label="${esc(title)}">${inAct ? '✓' : '+'}${others.length ? `<small>+${others.length}</small>` : ''}</button>`;
   }
   // followed props: tracked on Props Taken without being on a slip, so they never count toward win rates or P/L
-  const followOf = (r, kind) => { const id = legId(legOf(r)); return S.follows.find((l) => legId(l) === id && (!kind || (kind === 'shark' ? isShark(l) : isStar(l)))) || null; };
+  let folMemo = null;
+  const followOf = (r, kind) => {
+    if (!folMemo || folMemo.f !== S.follows) { const m = new Map(); S.follows.forEach((l) => { const k = legId(l); (m.get(k) || m.set(k, []).get(k)).push(l); }); folMemo = { f: S.follows, m }; }
+    const id = rowLegId(r);
+    return (folMemo.m.get(id) || []).find((l) => !kind || (kind === 'shark' ? isShark(l) : isStar(l))) || null;
+  };
   const isShark = (l) => !!l && (l.k === 'shark' || l.k === 'both'), isStar = (l) => !!l && l.k !== 'shark';
   function followBtn(r) {
     if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
@@ -2656,6 +2673,10 @@ const PX = (() => {
     }
     S.firing = false; S.pullConfirm = false; renderPull();
   }
+  // snapshots arrive in bursts (eight collections at start, one per slip change): coalesce them, and for slips redraw only what shows them
+  let rqT = 0, rqFull = false;
+  function scheduleRender(full) { rqFull = rqFull || !!full; if (rqT) return; rqT = setTimeout(() => { rqT = 0; const f = rqFull; rqFull = false; f ? renderAll() : lightRender(); }, 40); }
+  function lightRender() { if (!S.stats) return; if (!S.rows || !S.rows.length) return renderAll(); renderBoard(); renderSlip(); renderSlips(); renderTracker(); }
   function renderAll() { if (!S.stats) return; applyTrades(); mergeLines(); prepInj(); buildRows(); renderStatus(); renderCond(); renderBoard(); renderGames(); renderSlip(); renderSlips(); renderTracker(); renderLines(); renderPull(); renderBacktest(); saveLogs(); }
   function renderGames() {
     $('g-weight').value = S.gweight; $('g-weight-val').textContent = S.gweight + '%';
@@ -2925,7 +2946,7 @@ const PX = (() => {
     let snap; try { const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return false; snap = await r.json(); } catch (e) { return false; }
     if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
     S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; $('tab-taken').hidden = true; $('tab-plchart').hidden = true; if (!$('view-slips').hidden || !$('view-taken').hidden || !$('view-plchart').hidden) show('board');
-    for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) local[coll].clear();
+    for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) { local[coll].clear(); if (coll === "slips") S.slipVer = (S.slipVer || 0) + 1; }
     S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
     $('ro-note').hidden = false; $('ro-note').querySelector('p').innerHTML = `<strong>Read-only copy, last updated ${esc(kickoff(snap.at))}.</strong> Lines and injuries are as of that time. This page picks up new updates on its own.`;
