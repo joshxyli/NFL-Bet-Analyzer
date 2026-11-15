@@ -89,7 +89,7 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .addform > span.small:first-child { flex-basis: 100% }
 .addform input { width: 90px; font: 600 14px var(--mono); padding: 6px 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink) }
 #board tr.adding { display: table-row } #board tr.adding td { padding: 0 }
-@container (max-width: 660px) { #board tr.adding { display: block; padding: 0 } #board tr.adding td { display: block } }
+@container (max-width: 800px) { #board tr.adding { display: block; padding: 0 } #board tr.adding td { display: block } }
 .stackcard { border: 1px solid var(--line); background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px }
 .stackcard .sh { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; align-items: baseline }
 .stackcard .sl { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 14px }
@@ -147,7 +147,7 @@ table { border-collapse: collapse; width: 100% }
 .price { white-space: nowrap }
 td.r .recent { justify-content: flex-end }
 .sub2 { white-space: nowrap; display: block; font-size: 12px; color: var(--muted); margin-top: 2px }
-@container (max-width: 660px) {
+@container (max-width: 800px) {
   #board, #board tbody { display: block }
   #board thead { display: none }
   #board tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); align-items: start }
@@ -164,7 +164,7 @@ td.r .recent { justify-content: flex-end }
 .sort i { font-style: normal; font-size: 10px; width: 8px; color: var(--accent) }
 .board-panel { container-type: inline-size }
 .sortsel { display: none }
-@container (max-width: 660px) { .sortsel { display: flex } }
+@container (max-width: 800px) { .sortsel { display: flex } }
 th { text-align: left; font: 600 12px var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap }
 td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
 th.r, td.r { text-align: right }
@@ -308,9 +308,8 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <fieldset class="group" id="grp-market"><legend class="label">Props</legend><div class="opts"></div></fieldset>
           <fieldset class="group" id="grp-book"><legend class="label">Books</legend><div class="opts"></div></fieldset>
           <div class="break"></div>
-          <label class="check" for="f-pos"><input type="checkbox" id="f-pos"> Positive edge only</label>
-          <label class="check" for="f-big"><input type="checkbox" id="f-big"> Edge 5 pts or more</label>
-          <label class="check" for="f-all"><input type="checkbox" id="f-all"> Show every offer, not just the best</label>
+          <div class="field"><label class="label" for="f-edge">Edge</label><select id="f-edge"><option value="">Any edge</option><option value="0">Positive edge only</option><option value="0.02">Edge 2 pts or more</option><option value="0.05">Edge 5 pts or more</option></select></div>
+          <div class="field"><label class="label" for="f-price">Odds</label><select id="f-price"><option value="">Show all</option><option value="minus">Below -100 only</option><option value="plus">Above +100 only</option></select></div>
           <label class="check" for="f-noslip"><input type="checkbox" id="f-noslip"> Hide props already on a slip</label>
           <label class="check" for="f-nowatch"><input type="checkbox" id="f-nowatch"> Hide injury watch</label>
           <div class="field"><label class="label" for="f-weight">Trust in model <span class="num" id="f-weight-val">20%</span></label><input type="range" id="f-weight" min="0" max="100" step="10" value="20"></div>
@@ -1545,15 +1544,17 @@ const PX = (() => {
   }
   function renderBoard() {
     try { renderStacks(); } catch (e) { /* stacks are optional; never block the board */ }
-    const posOnly = $('f-pos').checked, all = $('f-all').checked;
+    const edgeV = $('f-edge').value, priceV = $('f-price').value;
     let rows = S.rows.filter((r) => r.kind !== 'game' && !S.off.game.has(r.eventId) && !S.off.market.has(r.o.m) && !S.off.book.has(r.o.b));
-    if (!all) { // best offer per player and prop
+    // odds filter first, so the best offer shown is the best one that fits it
+    if (priceV === 'minus') rows = rows.filter((r) => r.o.pr != null && r.o.pr < -100); else if (priceV === 'plus') rows = rows.filter((r) => r.o.pr != null && r.o.pr > 100);
+    { // best offer per player and prop
       const best = new Map();
       rows.forEach((r) => { const k = r.eventId + '|' + (r.kind === 'game' ? r.o.pl : PM.normName(r.o.pl)) + '|' + r.o.m + (r.kind === 'game' ? '|' + r.o.s : ''); /* books spell names differently (Ted Hurst / Ted Hurst III) */ const b = best.get(k); if (!b || r.ev > b.ev) best.set(k, r); });
       rows = [...best.values()];
     }
-    if (posOnly) rows = rows.filter((r) => r.scored && r.edge > 0);
-    if ($('f-big').checked) rows = rows.filter((r) => r.scored && r.edge >= 0.05);
+    if (edgeV === '0') rows = rows.filter((r) => r.scored && r.edge > 0);
+    else if (edgeV) { const em = Number(edgeV); rows = rows.filter((r) => r.scored && r.edge >= em - 1e-9); }
     if ($('f-nowatch').checked) rows = rows.filter((r) => !(r.watch && r.watch.length));
     if ($('f-noslip').checked) { // same game, player, prop and side as a leg on any slip, whatever the line or book
       const onSlip = new Set(slipList().flatMap((x) => x.legs.map(legId)));
@@ -1665,25 +1666,25 @@ const PX = (() => {
     return `<button class="add" data-slipadd="${esc(r.key)}" aria-pressed="${inAct || S.adding === r.key}" title="${esc(title)}" aria-label="${esc(title)}">${inAct ? '✓' : '+'}${others.length ? `<small>+${others.length}</small>` : ''}</button>`;
   }
   // followed props: tracked on Props Taken without being on a slip, so they never count toward win rates or P/L
-  const followOf = (r) => { const id = legId(legOf(r)); return S.follows.find((l) => legId(l) === id) || null; };
+  const followOf = (r, kind) => { const id = legId(legOf(r)); return S.follows.find((l) => legId(l) === id && (!kind || (kind === 'shark' ? isShark(l) : isStar(l)))) || null; };
   const isShark = (l) => !!l && (l.k === 'shark' || l.k === 'both'), isStar = (l) => !!l && l.k !== 'shark';
   function followBtn(r) {
     if (r.kind === 'game' || r.kind === 'dfs' || r.o.pr == null) return '';
-    const f = followOf(r), sh = isShark(f), st1 = isStar(f), at = f && f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : '';
-    const tS = st1 ? `Starred${at}: tap to edit the line or remove the star` : 'Star it to follow on Props Taken without betting it (does not count toward slip win rates or P/L).';
-    const tH = sh ? `Shark${at}: posted to @edgesharks and tracked. Tap to edit the line or remove` : 'Mark as a shark: you posted this prop to @edgesharks. It is tracked on Props Taken and does not count toward slip win rates or P/L.';
+    const fs = followOf(r, 'star'), fh = followOf(r, 'shark'), sh = !!fh, st1 = !!fs, atOf = (f) => (f && f.pt != null && f.pt !== r.o.pt ? ' at ' + f.pt : '');
+    const tS = st1 ? `Starred${atOf(fs)}: tap to edit the line or remove the star` : 'Star it to follow on Props Taken without betting it (does not count toward slip win rates or P/L).';
+    const tH = sh ? `Shark${atOf(fh)}: posted to @edgesharks and tracked. Tap to edit the line or remove` : 'Mark as a shark: you posted this prop to @edgesharks. It is tracked on Props Taken and does not count toward slip win rates or P/L.';
     return `<button class="add fbtn" data-follow="${esc(r.key)}" data-fk="star" aria-pressed="${st1 || (S.fAdding === r.key && S.fKind === 'star')}" title="${esc(tS)}" aria-label="${esc(tS)}">${st1 ? '★' : '☆'}</button><button class="add fbtn shark" data-follow="${esc(r.key)}" data-fk="shark" aria-pressed="${sh || (S.fAdding === r.key && S.fKind === 'shark')}" title="${esc(tH)}" aria-label="${esc(tH)}"><span class="sk">🦈</span></button>`;
   }
   async function saveFollows(f, note) { S.follows = f; renderBoard(); renderSlips(); if (await save('meta', 'follows', { f }) && note) toast(note); }
   // ☆/★ and 🦈 on the board open a small form (like +): set the pick and line you are tracking, save, or remove that mark
   function followForm(r) {
-    const kind = S.fKind === 'shark' ? 'shark' : 'star', f = followOf(r), has = kind === 'shark' ? isShark(f) : isStar(f);
+    const kind = S.fKind === 'shark' ? 'shark' : 'star', f = followOf(r, kind), has = !!f;
     const side = f ? f.s : r.o.s, pt = f && f.pt != null ? f.pt : r.o.pt, nm = kind === 'shark' ? '🦈 shark (posted to @edgesharks)' : '★ star';
     return `<tr class="adding"><td colspan="6"><form class="addform" data-followform="${esc(r.key)}" data-fk="${kind}">
       <span class="small"><strong>${esc(r.o.pl)}</strong> · ${esc(side)} · ${has ? 'edit ' : 'add '}${nm}</span>
       ${sideSel(side) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(pt)}" inputmode="decimal" required></label>`}
       <button class="btn sm primary" type="submit">${has ? 'Save' : kind === 'shark' ? 'Add shark' : 'Star'}</button>${has ? `<button class="btn sm" type="button" data-fstop="1">Remove ${kind === 'shark' ? 'shark' : 'star'}</button>` : ''}<button class="btn sm" type="button" data-fcancel="1">Cancel</button>
-      <span class="muted small">Does not count toward slip win rates or P/L.${f && isShark(f) !== isStar(f) ? ' The pick and line are shared by the star and the shark.' : f && isShark(f) && isStar(f) ? ' The pick and line are shared by the star and the shark.' : ''}</span></form></td></tr>`;
+      <span class="muted small">Does not count toward slip win rates or P/L.${f && f.k === 'both' ? ' The star and the shark share this line until you save a different one here.' : ''}</span></form></td></tr>`;
   }
   function toggleFollow(key, kind) {
     const r = S.rowByKey.get(key); if (!r) return;
@@ -1695,23 +1696,30 @@ const PX = (() => {
   async function submitFollow(form) {
     const r = S.rowByKey.get(form.dataset.followform); if (!r) { S.fAdding = null; return renderBoard(); }
     const kind = form.dataset.fk === 'shark' ? 'shark' : 'star';
-    const old = followOf(r), leg = old ? { ...old } : legOf(r);
+    const old = followOf(r, kind), leg = old ? { ...old } : legOf(r);
     const pt = form.elements.pt ? Number(form.elements.pt.value) : null;
     if (form.elements.pt && !Number.isFinite(pt)) { form.elements.pt.focus(); return; }
     if (form.elements.pt) leg.pt = pt;
     if (form.elements.s && ['Over', 'Under'].includes(form.elements.s.value)) leg.s = form.elements.s.value;
-    const st = kind === 'star' || isStar(old), sh = kind === 'shark' || isShark(old);
-    if (st && sh) leg.k = 'both'; else if (sh) leg.k = 'shark'; else delete leg.k;
-    const oldId = old ? legId(old) : null, newId2 = legId(leg); S.fAdding = null;
-    const had = kind === 'shark' ? isShark(old) : isStar(old);
-    return saveFollows([...S.follows.filter((l) => legId(l) !== oldId && legId(l) !== newId2), leg], had ? (kind === 'shark' ? 'Updated shark pick.' : 'Updated followed line.') : kind === 'shark' ? `Shark: tracking ${leg.name || leg.pl}. It shows on Props Taken.` : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
+    // the star and the shark are separate entries, so each can have its own line; one entry marked both only while they share a line
+    const kOf = (l, k) => (k === 'shark' ? isShark(l) : isStar(l)), other = kind === 'shark' ? 'star' : 'shark';
+    const sib = old && old.k === 'both' ? { ...old } : null;
+    if (sib) { if (kind === 'shark') delete sib.k; else sib.k = 'shark'; }
+    if (kind === 'shark') leg.k = 'shark'; else delete leg.k;
+    const newId = legId(leg); S.fAdding = null;
+    const sibMerge = !!sib && legId(sib) === newId && sib.pt === leg.pt;
+    const twin = sib ? null : S.follows.find((l) => l !== old && l.k !== 'both' && legId(l) === newId && l.pt === leg.pt && kOf(l, other));
+    if (sibMerge || twin) leg.k = 'both';
+    const rest = S.follows.filter((l) => l !== old && l !== twin && !(legId(l) === newId && kOf(l, kind)));
+    const had = !!old;
+    return saveFollows([...rest, ...(sib && !sibMerge ? [sib] : []), leg], had ? (kind === 'shark' ? 'Updated shark pick.' : 'Updated followed line.') : kind === 'shark' ? `Shark: tracking ${leg.name || leg.pl}. It shows on Props Taken.` : `Following ${leg.name || leg.pl}. It shows on Props Taken and does not count toward win rates or P/L.`);
   }
   // remove one mark; the prop stays tracked if it still has the other one
   function stopFollowForm(key) {
     const r = S.rowByKey.get(key), kind = S.fKind === 'shark' ? 'shark' : 'star'; S.fAdding = null; if (!r) return renderBoard();
-    const f = followOf(r); if (!f) return renderBoard();
+    const f = followOf(r, kind); if (!f) return renderBoard();
     const keepStar = kind === 'shark' && isStar(f), keepShark = kind === 'star' && isShark(f);
-    const rest = S.follows.filter((l) => legId(l) !== legId(f));
+    const rest = S.follows.filter((l) => l !== f);
     if (!keepStar && !keepShark) return saveFollows(rest, kind === 'shark' ? 'Removed shark.' : 'Stopped following.');
     const leg = { ...f }; if (keepShark) leg.k = 'shark'; else delete leg.k;
     return saveFollows([...rest, leg], kind === 'shark' ? 'Removed shark.' : 'Removed star.');
@@ -1882,7 +1890,7 @@ const PX = (() => {
     // hide only once the game itself is over (final score in, or 4 hours past kickoff), even if the prop is already settled
     // Props Taken also lists followed props (not on any slip); the tiles above are already counted from slip props only
     const taken = new Map([...props].map(([k, e]) => [k, { ...e, follow: false }]));
-    if (!S.slipApp) S.follows.filter((l) => S.slipWeek == null || weekIdx(l.commence) === S.slipWeek).forEach((l) => { const k = propKey(l), e = taken.get(k); if (e) { e.follow = true; e.shark = isShark(l); e.star = isStar(l); } else taken.set(k, { l, slips: [], sids: [], follow: true, only: true, shark: isShark(l), star: isStar(l) }); });
+    if (!S.slipApp) S.follows.filter((l) => S.slipWeek == null || weekIdx(l.commence) === S.slipWeek).forEach((l) => { const k = propKey(l), e = taken.get(k); if (e) { e.follow = true; e.shark = e.shark || isShark(l); e.star = e.star || isStar(l); } else taken.set(k, { l, slips: [], sids: [], follow: true, only: true, shark: isShark(l), star: isStar(l) }); });
     const shownProps = [...taken.values()].filter((e) => !hide || !gameEnded(e.l));
     const doneSlip = (st) => st.n > 0 && ['w', 'l', 'v'].includes(st.code); // a lost slip is finished even with legs still to play
     // a slip is hidden only when its games are over AND it is settled: a flex slip still waiting for what it paid stays in view
@@ -2881,7 +2889,7 @@ const PX = (() => {
       ls.set('pp.off3', { market: [...S.off.market], book: [...S.off.book] });
       renderGroups(); renderBoard(); const again = document.getElementById(t.id); if (again) again.focus();
     }
-    if (['f-pos', 'f-big', 'f-all', 'f-nowatch', 'f-noslip'].includes(t.id)) { if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); if (t.id === 'f-noslip') ls.set('pp.noslip', t.checked); renderBoard(); }
+    if (['f-edge', 'f-price', 'f-nowatch', 'f-noslip'].includes(t.id)) { if (t.id === 'f-price') ls.set('pp.price', t.value); if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); if (t.id === 'f-noslip') ls.set('pp.noslip', t.checked); renderBoard(); }
     if (t.id === 'f-sort') { const [key, dir] = t.value.split(':'); S.sort = { key, dir }; ls.set('pp.sort', S.sort); renderBoard(); }
     if (t.id === 'slip-stake' || t.id === 'slip-price') renderSlip();
     if (t.id === 'g-all') renderLines();
@@ -2897,7 +2905,7 @@ const PX = (() => {
     window.addEventListener('scroll', upd, { passive: true }); tt.addEventListener('click', () => { window.scrollTo(0, 0); }); upd(); }
   /* ---------- boot ---------- */
   renderGroups();
-  $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
+  $('f-price').value = ['minus', 'plus'].includes(ls.get('pp.price', '')) ? ls.get('pp.price', '') : ''; $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
   const start = (location.hash || '').slice(1); if (['games', 'tracker', 'backtest', 'lines', 'method'].includes(start)) show(start);
   fetch('stats.json').then((r) => r.json()).then((stats) => {
     // games he played with no carry or target come as zero rows (slot [20] = 1): shown in his last games and counted in his projection like any other game
