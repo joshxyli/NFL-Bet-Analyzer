@@ -1804,6 +1804,12 @@ const PX = (() => {
     const paid = x.flex && st.n && st.open === 0 && st.lost ? f('paid', 'Paid') : ''; // after a flex slip settles with a miss, what it actually paid
     return `<span class="money">${app}${flex}${f('stake', 'Bet')}${f('payout', x.flex ? 'Max pays' : 'Pays')}${paid}${net}</span>`;
   }
+  function refocusMoney(fk) { /* keep the cursor in the money field you tabbed to when the slip re-renders after a save */
+    S.tabTo = null; if (!fk) return; const a = document.activeElement; if (a && a.dataset && a.dataset.slipmoney === fk[0] && a.dataset.slipid === fk[1]) return;
+    const box = fk[2] ? $('slip-money') : $('slip-cards'), el = box && box.querySelector(`[data-slipmoney="${fk[0]}"][data-slipid="${CSS.escape(fk[1])}"]`); if (el) { el.focus(); if (el.select) el.select(); } }
+  document.addEventListener('keydown', (e) => { const t = e.target; if (e.key !== 'Tab' || e.shiftKey || !t || !t.dataset || t.dataset.slipmoney !== 'stake') return;
+    const box = t.closest('#slip-money') || t.closest('.slipcard'), nx = box && box.querySelector(`[data-slipmoney="payout"][data-slipid="${CSS.escape(t.dataset.slipid)}"]`); if (!nx) return;
+    e.preventDefault(); S.tabTo = ['payout', t.dataset.slipid, !!t.closest('#slip-money')]; nx.focus(); if (nx.select) nx.select(); });
   function moneyTile(states) {
     if (S.site) return [];
     const withBet = states.filter((y) => hasMoney(y.x)); if (!withBet.length) return [];
@@ -2903,7 +2909,7 @@ const PX = (() => {
       if (t.dataset && t.dataset.slipflex) { const id = t.dataset.slipflex, cur = S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.checked) d.flex = true; else { delete d.flex; delete d.paid; } save('slips', id, d).then(() => renderSlips()); return; }
       if (t.id === 'slip-app' || (t.dataset && t.dataset.slipapp)) { const id = t.id === 'slip-app' ? (activeSlip() || {}).id : t.dataset.slipapp, cur = id && S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.value) d.app = t.value; else delete d.app; save('slips', id, d).then(() => renderSlips()); return; }
       if (t.dataset && t.dataset.slipmoney) { const cur = S.slips.get(t.dataset.slipid), k = t.dataset.slipmoney, v = t.value === '' ? null : Math.max(0, Math.round(Number(t.value) * 100) / 100);
-        if (cur && (v === null || Number.isFinite(v)) && v !== (cur[k] ?? null)) { const d = { ...cur }; if (v === null) delete d[k]; else d[k] = v; save('slips', t.dataset.slipid, d).then(() => renderSlips()); } return; }
+        if (cur && (v === null || Number.isFinite(v)) && v !== (cur[k] ?? null)) { const d = { ...cur }; if (v === null) delete d[k]; else d[k] = v; save('slips', t.dataset.slipid, d).then(() => { const a = document.activeElement, fk = a && a.dataset && a.dataset.slipmoney ? [a.dataset.slipmoney, a.dataset.slipid, !!a.closest('#slip-money')] : S.tabTo; renderSlips(); refocusMoney(fk); }); } return; }
       if (t.dataset && t.dataset.slipname) { const cur = S.slips.get(t.dataset.slipname), name = t.value.trim().slice(0, 40); if (cur && name && name !== cur.name) save('slips', t.dataset.slipname, { ...cur, name }); return; } }
     const t = e.target;
     if (t.dataset.g) {
