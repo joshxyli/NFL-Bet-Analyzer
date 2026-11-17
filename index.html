@@ -119,6 +119,8 @@ textarea { font: 12px/1.4 var(--mono); width: 100%; min-height: 110px; resize: v
 .xbtn { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 6px }
 td.c-add { white-space: nowrap } td.c-add .add { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; vertical-align: top; padding: 0; line-height: 1; box-sizing: border-box } td.c-add .add small { margin-top: 0 } .add.fbtn { margin-right: 6px; font-size: 15px; border-color: var(--line) } .add.fbtn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent) } .add.fbtn[aria-pressed="false"] { border-color: var(--line); color: var(--muted); font-weight: 400 } .add.fbtn.shark[aria-pressed="false"] .sk { filter: grayscale(1); opacity: .6 } .add.fbtn.shark[aria-pressed="true"] { border-color: var(--good); background: var(--good-soft) }
 .st.folt { background: var(--accent-soft); color: var(--accent) } .st.shark { background: var(--good-soft); color: var(--good) } #myprops .legs tr.fol td { background: rgba(70,110,200,.13) }
+.ro .nba-pull, .ro .nbaadd, .ro #nba-slipbar { display: none !important }
+#nba-body .scroll { margin-top: 4px } #nba-body table { min-width: 520px } .nbarank { width: 2.2em; color: var(--muted) }
 .linkbtn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer }
 .ro .fbtn, .ro [data-unfollow] { display: none !important }
 .ro .c-add, .ro #board thead th:last-child, .ro #slipbar, .ro #slip-otherform, .ro span.mk, .ro .xbtn, .ro #slip-new2, .ro .addhere, .ro [data-slipdel], .ro [data-slipuse], .ro [data-slipreopen], .ro #inj-go, .ro #grade-go, .ro #tab-lines, .ro #out-add, .ro #back-add, .ro [data-unback], .ro label[for="out-name"], .ro #out-name { display: none !important }
@@ -284,6 +286,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button class="tab" role="tab" id="tab-board" data-view="board" aria-selected="true">Player props</button>
       <button class="tab" role="tab" id="tab-games" data-view="games" aria-selected="false">Game lines</button>
+      <button class="tab" role="tab" id="tab-nba" data-view="nba" aria-selected="false">NBA Props</button>
       <button class="tab" role="tab" id="tab-taken" data-view="taken" aria-selected="false">Props Taken</button>
       <button class="tab" role="tab" id="tab-slips" data-view="slips" aria-selected="false">My slips</button>
       <button class="tab" role="tab" id="tab-plchart" data-view="plchart" aria-selected="false">P&amp;L Chart</button>
@@ -390,6 +393,34 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
         <div class="panel"><div class="panel-pad"><h3>Model win rate by prop type <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">The model's win rate: how often its pick on each player prop (the better side) won, overall and by prop type. Wins and Losses count the model's pick on each prop (the better side), Win rate is wins divided by picks, and Picks is wins plus losses. Pushes and voids are left out. The expected win rate is the average chance the page gave those picks before kickoff: the model's chance blended with the market's no-vig chance, using your Trust in model setting for props.</span></span></span></h3><p class="small" id="bt-wr" style="margin:6px 0 2px"></p></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Picks</th><th class="r">Wins</th><th class="r">Losses</th><th class="r">Win rate</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
       </div>
       <div class="panel"><div class="panel-pad"><h3>Games</h3></div><div class="scroll"><table class="bt"><thead><tr><th>Game</th><th>Kickoff</th><th>Picks saved</th><th>Final</th><th class="r">Graded</th></tr></thead><tbody id="bt-games"></tbody></table></div></div>
+    </div>
+  </section>
+
+  <section id="view-nba" hidden>
+    <div class="panel panel-pad stack">
+      <h2>NBA Props <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">The 20 NBA player-prop sides DraftKings prices as most likely to win, for games that have not started. No model: each probability is DraftKings' own two-way price with its margin removed (the Over and Under prices are scaled to add to 100%). Only props where DraftKings posts both the Over and the Under are ranked, one side per player and prop. A high chance is not an edge: the books have already priced it in, so these are the safest sides, not the best value.</span></span></span></h2>
+      <div class="row">
+        <div class="field"><label class="label" for="nba-when">Games</label><select id="nba-when"><option value="all">All upcoming</option><option value="today">Today only</option></select></div>
+        <div class="field"><label class="label" for="nba-mkt">Prop</label><select id="nba-mkt"><option value="">All props</option></select></div>
+      </div>
+      <div class="slipbar" id="nba-slipbar"><label class="label" for="nba-slip-sel">Adding to</label><select id="nba-slip-sel"></select><button class="btn sm" id="nba-slip-new" hidden>New NBA slip</button><span id="nba-money"></span><button class="btn sm primary" id="nba-submit">Submit slip</button><button class="btn sm" id="nba-clear" title="Remove every prop from this slip (the slip itself stays)">Clear slip</button></div>
+      <p class="muted small" id="nba-status" aria-live="polite"></p>
+      <div id="nba-body"></div>
+    </div>
+    <div class="panel panel-pad stack nba-pull" id="nba-pull" style="margin-top:14px">
+      <h3>Load NBA lines</h3>
+      <div class="steps">
+        <div class="step"><div class="stack">
+          <p><a class="btn sm" id="nba-link" target="_blank" rel="noopener">Open NBA lines</a> <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">Opens one Parlay API page with every NBA game's DraftKings props: points, rebounds, assists, threes and points + rebounds + assists. It costs 5 credits from your Parlay API balance (one per prop type), however many games are on the slate. Select all, copy, and paste below. It uses the Parlay API key saved on the Get lines tab.</span></span></span></p>
+          <p class="muted small" id="nba-nokey" hidden>Save your Parlay API key on the Get lines tab first.</p>
+        </div></div>
+        <div class="step"><div class="stack">
+          <label class="label" for="nba-paste">Paste what the link shows</label>
+          <textarea id="nba-paste" spellcheck="false" placeholder='[{"id":"…","bookmakers":[…]}, …]'></textarea>
+          <div class="row"><button class="btn primary" id="nba-add">Add NBA lines</button></div>
+          <div id="nba-msg" role="status"></div>
+        </div></div>
+      </div>
     </div>
   </section>
 
@@ -1046,13 +1077,13 @@ const PX = (() => {
   function applyDoc(coll, id, data) {
     data = dropNoTD(coll, data);
     if (coll === 'slips') S.slipVer = (S.slipVer || 0) + 1;
-    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'trades') S.trades = (data && Array.isArray(data.list)) ? data.list.filter((x) => x && x.n && x.from && x.to) : []; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f.filter((l) => l && l.m !== NOTD) : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
+    if (coll === 'meta') { if (id === 'pull') S.pull = data; if (id === 'pullopts') S.popts = data; if (id === 'injuries') S.inj = data; if (id === 'grade') S.grade = data; if (id === 'usage') S.usage = data; if (id === 'events') S.events = data; if (id === 'nba') S.nba = data; if (id === 'marks') S.marks = (data && data.m) || {}; if (id === 'trades') S.trades = (data && Array.isArray(data.list)) ? data.list.filter((x) => x && x.n && x.from && x.to) : []; if (id === 'follows') S.follows = (data && Array.isArray(data.f)) ? data.f.filter((l) => l && l.m !== NOTD) : []; if (id === 'overrides') S.over = data ? { out: data.out || [], in: data.in || [], back: data.back || [], wind: data.wind || {} } : { out: [], in: [], back: [], wind: {} }; return; }
     if (data) local[coll].set(id, data); else local[coll].delete(id);
   }
   function subscribe() {
     for (const coll of ['lines', 'pulls', 'tickets', 'meta', 'log', 'rescore', 'slips', 'results']) {
       S.db.collection(coll).onSnapshot((snap) => {
-        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} }; } else { local[coll].clear(); if (coll === 'slips') S.slipVer = (S.slipVer || 0) + 1; }
+        if (coll === 'meta') { S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.nba = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} }; } else { local[coll].clear(); if (coll === 'slips') S.slipVer = (S.slipVer || 0) + 1; }
         snap.docs.forEach((d) => applyDoc(coll, d.id, d.data())); S.loaded.add(coll);
         S.ready = true; scheduleRender(coll !== 'slips');
       }, () => { S.ready = true; scheduleRender(true); });
@@ -1077,8 +1108,9 @@ const PX = (() => {
     return out;
   }
   const legKey = (eventId, o) => [eventId, o.pl, o.m, o.s, o.b, o.pt ?? ''].join('|');
+  const NBA_MKT = { player_points: 'Points', player_rebounds: 'Rebounds', player_assists: 'Assists', player_threes: '3-pointers', player_points_rebounds_assists: 'Pts + Reb + Ast' };
   const GAME = { h2h: 'Moneyline', spreads: 'Spread', totals: 'Total' }, ALLK = [...MKEYS, 'h2h', 'spreads', 'totals'];
-  const pickText = (o) => o.m === 'h2h' ? 'Moneyline' : o.m === 'spreads' ? `Spread ${o.pt > 0 ? '+' : ''}${o.pt}` : o.m === 'totals' ? `${o.s} ${o.pt} points` : `${o.s} ${o.pt} ${PM.MARKETS[o.m] ? PM.MARKETS[o.m].label.toLowerCase() : o.m}`;
+  const pickText = (o) => o.m === 'h2h' ? 'Moneyline' : o.m === 'spreads' ? `Spread ${o.pt > 0 ? '+' : ''}${o.pt}` : o.m === 'totals' ? `${o.s} ${o.pt} points` : `${o.s} ${o.pt} ${PM.MARKETS[o.m] ? PM.MARKETS[o.m].label.toLowerCase() : NBA_MKT[o.m] ? NBA_MKT[o.m].toLowerCase() : o.m}`;
   function flash(text, bad) { const m = $('paste-msg'); m.className = 'msg ' + (bad ? 'err' : 'ok'); m.textContent = text; }
   // a short message at the bottom of the screen, whichever tab is open
   function toast(text, bad) { let el = document.querySelector('.toast'); if (!el) { el = document.createElement('div'); el.setAttribute('role', 'status'); document.body.appendChild(el); }
@@ -1660,7 +1692,8 @@ const PX = (() => {
       m: r.o.m, s: r.o.s, pt: r.o.pt ?? null, at: new Date().toISOString() };
   }
   // the slip being built: never a submitted one; after a submit (activeSlip 'new') the next + starts a new slip
-  function activeSlip() { const l = slipList().filter((x) => !x.submittedAt); if (S.activeSlip === 'new') return null; return l.find((x) => x.id === S.activeSlip) || l[0] || null; }
+  function activeSlip() { const l = slipList().filter((x) => !x.submittedAt); if (S.activeSlip === 'new') return null; return l.find((x) => x.id === S.activeSlip) || l.find((x) => !isNbaSlip(x)) || null; }
+  const isNbaSlip = (x) => !!(x && x.legs && x.legs.length && x.legs.every((g) => g && g.nba));
   async function submitSlip() {
     const act = activeSlip(); if (!act || !act.legs.length) return;
     const cur = S.slips.get(act.id) || act;
@@ -1776,7 +1809,7 @@ const PX = (() => {
   // jersey number from the stats file (roster), matched by name and team
   let jerseyMap = null, jerseyFor = null;
   function jerseyOf(l) {
-    if (!S.stats || !S.stats.players) return '';
+    if (l.nba || !S.stats || !S.stats.players) return '';
     if (jerseyFor !== S.stats) { jerseyFor = S.stats; jerseyMap = new Map(); S.stats.players.forEach((p) => { if (p.j) { jerseyMap.set(PM.normName(p.n) + '|' + p.t, p.j); if (!jerseyMap.has(PM.normName(p.n))) jerseyMap.set(PM.normName(p.n), p.j); } }); }
     const nm = PM.normName(l.name || l.pl);
     return jerseyMap.get(nm + '|' + (l.team || '')) || jerseyMap.get(nm) || '';
@@ -1806,10 +1839,10 @@ const PX = (() => {
   }
   function refocusMoney(fk) { /* keep the cursor in the money field you tabbed to when the slip re-renders after a save */
     S.tabTo = null; if (!fk) return; const a = document.activeElement; if (a && a.dataset && a.dataset.slipmoney === fk[0] && a.dataset.slipid === fk[1]) return;
-    const box = fk[2] ? $('slip-money') : $('slip-cards'), el = box && box.querySelector(`[data-slipmoney="${fk[0]}"][data-slipid="${CSS.escape(fk[1])}"]`); if (el) { el.focus(); if (el.select) el.select(); } }
+    const box = fk[2] ? ($('view-nba').hidden ? $('slip-money') : $('nba-money')) : $('slip-cards'), el = box && box.querySelector(`[data-slipmoney="${fk[0]}"][data-slipid="${CSS.escape(fk[1])}"]`); if (el) { el.focus(); if (el.select) el.select(); } }
   document.addEventListener('keydown', (e) => { const t = e.target; if (e.key !== 'Tab' || e.shiftKey || !t || !t.dataset || t.dataset.slipmoney !== 'stake') return;
-    const box = t.closest('#slip-money') || t.closest('.slipcard'), nx = box && box.querySelector(`[data-slipmoney="payout"][data-slipid="${CSS.escape(t.dataset.slipid)}"]`); if (!nx) return;
-    e.preventDefault(); S.tabTo = ['payout', t.dataset.slipid, !!t.closest('#slip-money')]; nx.focus(); if (nx.select) nx.select(); });
+    const box = t.closest('#slip-money, #nba-money') || t.closest('.slipcard'), nx = box && box.querySelector(`[data-slipmoney="payout"][data-slipid="${CSS.escape(t.dataset.slipid)}"]`); if (!nx) return;
+    e.preventDefault(); S.tabTo = ['payout', t.dataset.slipid, !!t.closest('#slip-money, #nba-money')]; nx.focus(); if (nx.select) nx.select(); });
   function moneyTile(states) {
     if (S.site) return [];
     const withBet = states.filter((y) => hasMoney(y.x)); if (!withBet.length) return [];
@@ -1818,7 +1851,7 @@ const PX = (() => {
     const open = withBet.filter((y) => slipNet(y.x, y.st) === undefined), toWin = open.reduce((s, y) => s + (slipAmt(y.x.payout) || 0), 0);
     return [['Net P/L', (net > 0 ? '+' : net < 0 ? '−' : '') + usd(Math.abs(net)), `${usd(bet)} bet on ${withBet.length} ${withBet.length === 1 ? 'slip' : 'slips'}${nFree ? ` (${nFree} free ${nFree === 1 ? 'play' : 'plays'})` : ''}${open.length ? ` · ${usd(toWin)} possible on ${open.length} still open` : ''}`]];
   }
-  function legText(l) { if (l.m === 'other') return `${l.name || l.pl} · Other`; const j = jerseyOf(l), t = legTeam(l); return `${l.name || l.pl} · ${[t, j ? '#' + j : ''].filter(Boolean).join(' ')}${t || j ? ' · ' : ''}${pickText(l)}`; }
+  function legText(l) { if (l.m === 'other') return `${l.name || l.pl} · Other`; if (l.nba) return `${l.name || l.pl} · NBA · ${pickText(l)}`; const j = jerseyOf(l), t = legTeam(l); return `${l.name || l.pl} · ${[t, j ? '#' + j : ''].filter(Boolean).join(' ')}${t || j ? ' · ' : ''}${pickText(l)}`; }
   // projection, chance and edge at the exact line on the slip, from the board's current numbers for the same player, prop and side
   function legCalc(l) {
     const nm = PM.normName(l.name || l.pl), under = l.s === 'Under' || l.s === 'No';
@@ -1852,6 +1885,7 @@ const PX = (() => {
   }
   function legCalcHtml(l) {
     if (l.m === 'other') return '';
+    if (l.nba) return l.dk != null ? `<div class="muted small">DraftKings ${PM.fmtAm(l.dk)}${l.dkp != null ? ' · ' + pct(l.dkp) + ' chance' : ''} when added (no model)</div>` : '';
     const c = legCalc(l);
     if (!c) return Date.now() < Date.parse(l.commence) ? '<div class="muted small">No current sportsbook line for this prop, so no projection.</div>' : '';
     const r = c.r, M = PM.MARKETS[l.m] || {};
@@ -1948,7 +1982,7 @@ const PX = (() => {
     // one card per slip
     $('slip-cards').innerHTML = list.length ? (!shownSlips.length ? (S.slipLive ? '<div class="panel panel-pad"><p class="muted">No live slips right now: none is still alive with a game under way. Untick Live slips only to see the rest.</p></div>' : '<div class="panel panel-pad"><p class="muted">Every slip is finished. Untick Hide completed to see them.</p></div>') : shownSlips.map(({ x, st }) => `<div class="panel slipcard" id="slipcard-${esc(x.id)}"><div class="hd"><input value="${esc(x.name)}" data-slipname="${esc(x.id)}" aria-label="Slip name" maxlength="40"><span class="st ${st.code}">${esc(st.label)}</span>${moneyHtml(x, st)}<span class="row" style="gap:6px">${x.submittedAt ? `<span class="muted small">Submitted ${esc(kickoff(x.submittedAt))}</span><button class="btn sm" data-slipreopen="${esc(x.id)}" title="Reopen this slip to add or remove props">Reopen</button>` : act && act.id === x.id ? '<span class="muted small addhere">adding here</span>' : `<button class="btn sm" data-slipuse="${esc(x.id)}">Add props here</button>`}<button class="btn sm" data-slipdel="${esc(x.id)}">${S.slipConfirm === x.id ? 'Confirm delete' : 'Delete'}</button></span></div>
       ${x.legs.length ? `<div class="scroll"><table class="legs">${[...x.legs].sort(legOrder).map((l) => { const ls2 = legState(l), pk = propKey(l); if (S.editLeg === x.id + '|' + legId(l) && l.m === 'other') return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><label class="field"><span class="label">Other prop</span><input type="text" name="desc" maxlength="120" value="${esc(l.name || l.pl)}" autocomplete="off" required style="min-width:260px"></label><button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
-        if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || '')}</span>${sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
+        if (S.editLeg === x.id + '|' + legId(l)) return `<tr class="adding"><td colspan="2"><form class="addform" data-legform="${esc(x.id)}|${esc(legId(l))}"><span class="small"><strong>${esc(l.name || l.pl)}</strong> · ${esc(l.s)} ${esc((PM.MARKETS[l.m] || {}).label || NBA_MKT[l.m] || '')}</span>${sideSel(l.s) + `<label class="field"><span class="label">Line</span><input type="number" step="0.5" name="pt" value="${esc(l.pt)}" inputmode="decimal" required></label>`}<button class="btn sm primary" type="submit">Save</button><button class="btn sm" type="button" data-editcancel="1">Cancel</button></form></td></tr>`;
         return `<tr><td><div class="pname">${esc(legText(l))} <span class="st ${ls2.code}">${esc(ls2.label)}</span></div><div class="muted small">${[l.game, needText(l), ls2.how].filter(Boolean).map(esc).join(' · ')}</div></td><td class="r act">${markBtns(pk, S.marks[pk])}<button class="xbtn" data-legedit="${esc(x.id)}|${esc(legId(l))}" title="${l.m === 'other' ? 'Edit the description' : 'Change the pick or line'}" aria-label="Edit">✎</button><button class="xbtn" data-legdel="${esc(x.id)}|${esc(legId(l))}" title="Remove from this slip" aria-label="Remove from this slip">×</button></td></tr>`; }).join('')}</table></div>` : '<p class="muted small" style="padding:14px 16px">No props yet. Pick this slip above the board and tap + on any prop.</p>'}</div>`).join(''))
       : '<div class="panel panel-pad"><p class="muted">No slips yet. Tap + on any prop on the Player props board to start Slip 1, or press New slip.</p></div>';
   }
@@ -2090,6 +2124,106 @@ const PX = (() => {
             <div class="grade" role="group" aria-label="Result for ${esc(l.player)}">${[['w', 'Won'], ['l', 'Lost'], ['p', 'Push']].map(([r, n]) => `<button data-grade="${esc(t.id)}" data-leg="${i}" data-r="${r}" aria-pressed="${l.result === r}">${n}</button>`).join('')}</div></div>`; }).join('')}
       </div>`; }).join('')
       : `<div class="empty"><h3>${S.ready ? 'No tickets yet' : 'Loading tickets'}</h3><p>Build a parlay on the board and choose Save ticket. It shows up here to grade after the game.</p></div>`;
+  }
+
+
+  /* ---------- NBA props: the 20 likeliest sides by DraftKings' own prices (no model) ---------- */
+  const NBA_API = 'https://parlay-api.com/v1/sports/basketball_nba';
+  const NBA_KEYS = Object.keys(NBA_MKT).join(',');
+  const nbaLabel = (k) => NBA_MKT[k] || String(k).replace(/^player_/, '').replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+  const nbaUrl = () => `${NBA_API}/odds?apiKey=${encodeURIComponent(S.pkey)}&bookmakers=draftkings&markets=${NBA_KEYS}&oddsFormat=american`;
+  function nbaMsg(text, bad) { const m = $('nba-msg'); m.className = 'msg ' + (bad ? 'err' : 'ok'); m.textContent = text; }
+  // Read a pasted Parlay API reply into compact DraftKings prop offers: [player, market, side, point, price] per game.
+  function parseNba(j) {
+    const games = Array.isArray(j) ? j : (j && j.bookmakers ? [j] : []), out = [];
+    for (const g of games) {
+      if (!g || !g.bookmakers || !g.commence_time || !g.home_team) continue;
+      const offers = [];
+      for (const b of g.bookmakers) { if (b.key !== 'draftkings') continue;
+        for (const mk of (b.markets || [])) { if (!/^player_/.test(mk.key)) continue;
+          for (const oc of (mk.outcomes || [])) {
+            if (!oc.description || oc.point == null) continue;
+            const w1 = String(oc.name || '').split(' ')[0].toLowerCase(), side = w1 === 'over' ? 'Over' : w1 === 'under' ? 'Under' : null; if (!side) continue;
+            let pr = Number(oc.price); if (oc.price == null || !Number.isFinite(pr)) continue; if (Math.abs(pr) < 100) pr = PM.toAmerican(pr); // decimal odds pasted
+            offers.push([String(oc.description).trim(), mk.key, side, Number(oc.point), pr]); } } }
+      if (offers.length) out.push({ id: String(g.id), home: g.home_team, away: g.away_team, commence: fixMin(g.commence_time), offers });
+    }
+    return out;
+  }
+  async function addNba() {
+    const btn = $('nba-add'), raw = $('nba-paste').value.trim();
+    if (!raw) return nbaMsg('Paste the text from the link first.', true);
+    let j; try { j = JSON.parse(raw); } catch { return nbaMsg('That is not complete. Select everything on the page the link opened, copy it and paste again.', true); }
+    if (j && !Array.isArray(j) && !j.bookmakers && (j.message || j.error || j.detail)) return nbaMsg('The service said: ' + String(j.message || j.error || (typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail))), true);
+    const games = parseNba(j);
+    if (!games.length) return nbaMsg(Array.isArray(j) && !j.length ? 'The list is empty. DraftKings may not have posted NBA props yet.' : 'No DraftKings NBA player props in that text. Copy the whole page the link opens.', true);
+    btn.disabled = true; btn.textContent = 'Adding…';
+    const data = { at: new Date().toISOString(), games };
+    const ok = await save('meta', 'nba', data);
+    btn.disabled = false; btn.textContent = 'Add NBA lines';
+    if (ok) { if (S.db == null) S.nba = data; $('nba-paste').value = ''; const n = games.reduce((a, g) => a + g.offers.length, 0); nbaMsg(`Loaded ${games.length} ${games.length === 1 ? 'game' : 'games'}, ${n} DraftKings prices.`); renderNba(); }
+  }
+  // Rank: pair each Over with its Under at the same line, strip the margin, keep the likelier side, one per player and prop.
+  function nbaRank(d, when, mkt) {
+    const now = Date.now(), ctDay = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date(t)), today = ctDay(now), best = new Map();
+    for (const g of (d.games || [])) {
+      const t = Date.parse(g.commence); if (!(t > now)) continue; if (when === 'today' && ctDay(t) !== today) continue;
+      const by = new Map();
+      for (const [pl, m, side, pt, pr] of g.offers) { if (mkt && m !== mkt) continue; const k = pl + '|' + m + '|' + pt, e = by.get(k) || { pl, m, pt }; e[side] = pr; by.set(k, e); }
+      for (const e of by.values()) { if (e.Over == null || e.Under == null) continue;
+        const [po, pu] = PM.noVig(e.Over, e.Under), over = po >= pu, p = over ? po : pu, k = e.pl + '|' + e.m, cur = best.get(k);
+        if (!cur || p > cur.p) best.set(k, { pl: e.pl, m: e.m, pt: e.pt, side: over ? 'Over' : 'Under', pr: over ? e.Over : e.Under, p, imp: PM.implied(over ? e.Over : e.Under), game: `${abbrNba(g.away)} @ ${abbrNba(g.home)}`, t, gid: g.id, home: g.home, away: g.away, commence: g.commence }); } }
+    return [...best.values()].sort((a, b) => b.p - a.p || a.t - b.t).slice(0, 20);
+  }
+  const abbrNba = (n) => String(n || '').split(' ').slice(-1)[0]; // "Los Angeles Lakers" -> "Lakers"
+  const nbaLegId = (r) => ['nba-' + r.gid, PM.normName(r.pl), r.m, r.side].join('|');
+  const nbaOk = (x) => !x.submittedAt && (!x.legs.length || x.legs.every((g) => g && g.nba)); // an NBA slip holds NBA props only: Pick6 will not combine them with NFL props
+  function nbaActive() { const open = slipList().filter(nbaOk); if (S.nbaSlip === 'new') return null; return open.find((x) => x.id === S.nbaSlip) || open[0] || null; }
+  async function addNbaLeg(key) {
+    const r = (S.nbaRows || []).find((x) => x.gid + '|' + x.pl + '|' + x.m === key); if (!r || S.ro) return;
+    const id = nbaLegId(r); let act = nbaActive();
+    if (act) { const cur = S.slips.get(act.id) || act, legs = (cur.legs || []).slice(), i = legs.findIndex((l) => legId(l) === id);
+      if (i >= 0) { legs.splice(i, 1); const c2 = { ...cur }; delete c2.id; return save('slips', act.id, { ...c2, legs }); } }
+    if (!act) { // a new NBA slip: the NFL board's own "Adding to" choice is left alone
+      const prev = S.activeSlip, n = Math.max(0, ...slipList().map((x) => { const m = /^NBA Slip (\d+)$/.exec(String(x.name).trim()); return m ? Number(m[1]) : 0; })) + 1;
+      const nid = await newSlip('NBA Slip ' + n); S.activeSlip = prev; ls.set('pp.activeSlip', prev); S.nbaSlip = nid; ls.set('pp.nbaSlip', nid); act = { id: nid, ...(S.slips.get(nid) || S.newSlipDoc.doc) }; }
+    const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id;
+    const leg = { eventId: 'nba-' + r.gid, game: r.game, commence: r.commence, home: r.home, away: r.away, pl: r.pl, name: r.pl, team: '', m: r.m, s: r.side, pt: r.pt, at: new Date().toISOString(), nba: true, dk: r.pr, dkp: Math.round(r.p * 1000) / 1000 };
+    await save('slips', act.id, { ...cur, legs: [...(cur.legs || []).filter((l) => legId(l) !== id), leg] });
+  }
+  async function submitNba() {
+    const act = nbaActive(); if (!act || !act.legs.length) return;
+    const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id;
+    if (!cur.app) { toast('Pick which app this slip is on (PrizePicks, DK Pick6 or DK Predictions), then submit.', true); const a = document.querySelector('#nba-money [data-slipapp]'); if (a) a.focus(); return; }
+    S.nbaSlip = 'new'; ls.set('pp.nbaSlip', 'new');
+    if (await save('slips', act.id, { ...cur, submittedAt: new Date().toISOString() })) toast(`${act.name} submitted. The next NBA prop you add starts a new slip.`);
+    renderSlips(); renderNba();
+  }
+  async function clearNba() {
+    const act = nbaActive(); if (!act || !act.legs.length) return;
+    if (S.nbaClear !== act.id) { S.nbaClear = act.id; renderNba(); setTimeout(() => { if (S.nbaClear === act.id) { S.nbaClear = null; renderNba(); } }, 4000); return; }
+    S.nbaClear = null; const cur = { ...(S.slips.get(act.id) || act) }; delete cur.id;
+    if (await save('slips', act.id, { ...cur, legs: [] })) toast(`${act.name} cleared.`); renderSlips(); renderNba();
+  }
+  function renderNba() {
+    const body = $('nba-body'); if (!body) return;
+    const l = $('nba-link'); if (l) { if (S.pkey) { l.href = nbaUrl(); l.removeAttribute('aria-disabled'); l.classList.remove('quiet'); } else { l.removeAttribute('href'); l.setAttribute('aria-disabled', 'true'); l.classList.add('quiet'); } $('nba-nokey').hidden = !!S.pkey; }
+    const d = S.nba, st = $('nba-status');
+    const sel = $('nba-mkt'), keep = sel.value, seen = new Set(); (d && d.games || []).forEach((g) => g.offers.forEach((o) => seen.add(o[1])));
+    const want = ['', ...seen].join('|'); if (sel.dataset.have !== want) { sel.innerHTML = '<option value="">All props</option>' + [...seen].map((k) => `<option value="${esc(k)}">${esc(nbaLabel(k))}</option>`).join(''); sel.dataset.have = want; sel.value = seen.has(keep) ? keep : ''; }
+    if (!d || !d.games || !d.games.length) { st.textContent = ''; body.innerHTML = `<div class="empty"><h3>No NBA lines loaded yet</h3><p>${S.ro ? 'Lines have not been loaded.' : 'Use Open NBA lines below, copy the page, paste it and press Add NBA lines.'}</p></div>`; return; }
+    const rows = nbaRank(d, $('nba-when').value, sel.value); S.nbaRows = rows;
+    const open = slipList().filter(nbaOk), act = nbaActive(), idx = slipIdx();
+    { const sel2 = $('nba-slip-sel'), html = (act ? '' : '<option value="new" selected>New NBA slip: starts with the next +</option>') + open.map((x) => `<option value="${esc(x.id)}"${act && x.id === act.id ? ' selected' : ''}>${esc(x.name)} (${x.legs.length})</option>`).join('');
+      if (sel2.dataset.have !== html) { sel2.innerHTML = html; sel2.dataset.have = html; }
+      $('nba-slip-new').hidden = !act;
+      const nm = $('nba-money'), foc = document.activeElement; if (nm && !(foc && nm.contains(foc))) nm.innerHTML = act ? moneyHtml(act, slipState(act)) : '';
+      const sb = $('nba-submit'), cb = $('nba-clear'), has = !!(act && act.legs.length);
+      sb.disabled = !has; sb.title = !act ? 'Add a prop to start a slip' : has ? `Mark ${act.name} as submitted and start a new NBA slip` : 'Add a prop first';
+      cb.disabled = !has; cb.textContent = S.nbaClear && act && S.nbaClear === act.id ? 'Confirm clear' : 'Clear slip'; }
+    st.textContent = `DraftKings prices pulled ${kickoff(d.at)}. Probability is the price with the book's margin removed.`;
+    if (!rows.length) { body.innerHTML = '<div class="empty"><h3>No props to rank</h3><p>Every game in the last pull has started, or none has an Over and an Under posted. Pull again closer to tip-off.</p></div>'; return; }
+    body.innerHTML = `<div class="scroll"><table class="bt"><thead><tr><th></th><th>Player</th><th>Game</th><th>Pick</th><th class="r">DK price</th><th class="r">Chance</th><th class="nbaadd"></th></tr></thead><tbody>${rows.map((r, i) => { const hits = idx.get(nbaLegId(r)) || [], inAct = !!(act && hits.some((h) => h.x.id === act.id)), others = hits.filter((h) => !act || h.x.id !== act.id).length; return `<tr><td class="nbarank num">${i + 1}</td><td class="pname">${esc(r.pl)}</td><td><div>${esc(r.game)}</div><div class="muted small">${esc(kickoff(new Date(r.t).toISOString()))}</div></td><td>${esc(r.side)} ${esc(r.pt)} ${esc(nbaLabel(r.m).toLowerCase())}</td><td class="r num">${PM.fmtAm(r.pr)}</td><td class="r num"><strong>${pct(r.p)}</strong></td><td class="c-add nbaadd"><button class="add" data-nbaadd="${esc(r.gid + '|' + r.pl + '|' + r.m)}" aria-pressed="${inAct}" title="${esc(inAct ? 'In ' + act.name + ': tap to remove' : 'Add to ' + (act ? act.name : 'a new NBA slip'))}" aria-label="${esc(inAct ? 'Remove from slip' : 'Add to slip')}">${inAct ? '✓' : '+'}${others ? `<small>+${others}</small>` : ''}</button></td></tr>`; }).join('')}</tbody></table></div>`;
   }
 
   /* ---------- lines ---------- */
@@ -2491,7 +2625,7 @@ const PX = (() => {
     msg('Preparing the file…');
     let bytes;
     const vw = which === 'view' ? curView() : null;
-    if (vw === 'lines') return msg('Nothing to export on this tab.', true);
+    if (vw === 'lines' || vw === 'nba') return msg('Nothing to export on this tab.', true);
     if ((vw === 'slips' || vw === 'taken') && !S.slips.size) return msg('No slips to export yet.', true);
     try { if (vw) bytes = await buildViewPdf(vw); else if (which === 'slips') { const d = slipsData(); bytes = kind === 'xlsx' ? buildSlipsXlsx(d) : await buildSlipsPdf(d); } else { const d = exportData(); bytes = kind === 'xlsx' ? buildXlsx(d) : await buildPdf(d); } }
     catch (e) { return msg(kind === 'pdf' && e && e.message === 'load' ? 'The PDF builder did not load. Check your connection and try again.' : 'Could not build the file.', true); }
@@ -2684,8 +2818,8 @@ const PX = (() => {
   // snapshots arrive in bursts (eight collections at start, one per slip change): coalesce them, and for slips redraw only what shows them
   let rqT = 0, rqFull = false;
   function scheduleRender(full) { rqFull = rqFull || !!full; if (rqT) return; rqT = setTimeout(() => { rqT = 0; const f = rqFull; rqFull = false; f ? renderAll() : lightRender(); }, 40); }
-  function lightRender() { if (!S.stats) return; if (!S.rows || !S.rows.length) return renderAll(); renderBoard(); renderSlip(); renderSlips(); renderTracker(); }
-  function renderAll() { if (!S.stats) return; applyTrades(); mergeLines(); prepInj(); buildRows(); renderStatus(); renderCond(); renderBoard(); renderGames(); renderSlip(); renderSlips(); renderTracker(); renderLines(); renderPull(); renderBacktest(); saveLogs(); }
+  function lightRender() { if (!S.stats) return; if (!S.rows || !S.rows.length) return renderAll(); renderBoard(); renderSlip(); renderSlips(); renderTracker(); renderNba(); }
+  function renderAll() { if (!S.stats) return; applyTrades(); mergeLines(); prepInj(); buildRows(); renderStatus(); renderCond(); renderBoard(); renderGames(); renderSlip(); renderSlips(); renderTracker(); renderLines(); renderPull(); renderBacktest(); renderNba(); saveLogs(); }
   function renderGames() {
     $('g-weight').value = S.gweight; $('g-weight-val').textContent = S.gweight + '%';
     SPORTSBOOKS.forEach((bk) => { $('gb-' + bk).checked = S.gbooks.has(bk); });
@@ -2795,12 +2929,13 @@ const PX = (() => {
       document.querySelectorAll('#pl-head th').forEach((th) => { const on = th.dataset.plth === sk.key; if (on) th.setAttribute('aria-sort', sk.dir === 'asc' ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort'); th.querySelector('i').textContent = on ? (sk.dir === 'asc' ? '▲' : '▼') : ''; }); }
     $('pl-rows').innerHTML = pts.map((p, i) => `<tr><td>${esc(p.x.name)}</td><td class="num">${(() => { const w = nflWeek(slipWeek(p.x)); return w >= 1 && w <= 22 ? 'Wk ' + w : '—'; })()}</td><td>${esc(p.x.app || '—')}</td><td>${esc(p.x.flex && ['w', 'l'].includes(p.st.code) ? `Flex · ${p.st.hit} / ${p.st.n}` : p.st.code === 'w' ? `Won · ${p.st.hit} / ${p.st.n}` : p.st.code === 'l' ? `Lost · ${p.st.hit} / ${p.st.n}` : p.st.label)}</td><td class="r num">${isFree(p.x) ? '<span class="muted" title="Free play: promo money from the app, no bet of your own">Free</span>' : usd(slipAmt(p.x.stake) || 0)}</td><td class="r num" style="color:var(--${p.n > 0 ? 'good' : p.n < 0 ? 'bad' : 'muted'})">${plFmt(p.n)}</td><td class="r num" style="color:var(--${p.cum > 0 ? 'good' : p.cum < 0 ? 'bad' : 'muted'})">${plFmt(p.cum)}</td></tr>`).join('');
   }
-  const VIEWS = ['board', 'games', 'slips', 'taken', 'plchart', 'backtest', 'lines', 'method'];
+  const VIEWS = ['board', 'games', 'nba', 'slips', 'taken', 'plchart', 'backtest', 'lines', 'method'];
   function show(view) {
-    if (S.site && (view === 'slips' || view === 'taken' || view === 'plchart')) view = 'board'; // the website has no slips tabs
+    if (S.site && (view === 'slips' || view === 'taken' || view === 'plchart' || view === 'nba')) view = 'board'; // the website has no slips tabs
     VIEWS.forEach((v) => $('tab-' + v).setAttribute('aria-selected', String(v === view)));
     const onBoard = view === 'board' || view === 'games';
-    $('view-board').hidden = !onBoard; ['slips', 'taken', 'plchart', 'backtest', 'lines', 'method'].forEach((v) => { $('view-' + v).hidden = v !== view; });
+    $('view-board').hidden = !onBoard; ['nba', 'slips', 'taken', 'plchart', 'backtest', 'lines', 'method'].forEach((v) => { $('view-' + v).hidden = v !== view; });
+    if (view === 'nba') renderNba();
     $('panel-props').hidden = view === 'games'; $('panel-games').hidden = view !== 'games';
     if (view === 'slips' || view === 'taken') renderSlips();
     if (view === 'plchart') renderPl();
@@ -2861,6 +2996,11 @@ const PX = (() => {
     if (t.dataset.del) { if (S.confirmDel === t.dataset.del) { S.confirmDel = null; return remove('tickets', t.dataset.del); } S.confirmDel = t.dataset.del; return renderTracker(); }
     if (t.dataset.rmgame) { const id = t.dataset.rmgame; if (S.linesRaw.has(id)) await remove('lines', id); for (const [pid, p] of [...S.pulls]) if (p && (p.eventId === id || (S.aliasOf && S.aliasOf(p.eventId, p) === id))) await remove('pulls', pid); return; }
     if (t.id === 'pull-now') return pullNow();
+    if (t.id === 'nba-add') return addNba();
+    if (t.id === 'nba-submit') return submitNba();
+    if (t.id === 'nba-clear') return clearNba();
+    if (t.dataset.nbaadd) return addNbaLeg(t.dataset.nbaadd);
+    if (t.id === 'nba-slip-new') { S.nbaSlip = 'new'; ls.set('pp.nbaSlip', 'new'); return renderNba(); }
     if (t.id === 'pull-go') { if (!S.pullConfirm) { S.pullConfirm = true; pullMsg(''); return renderPull(); } return firePull(); }
     if (t.id === 'inj-go') return fireInj();
     if (t.id === 'grade-go') return fireGrade();
@@ -2905,11 +3045,12 @@ const PX = (() => {
       if (t.id === 'slip-appf' || t.id === 'taken-appf') { S.slipApp = t.value; ls.set('pp.slipapp', S.slipApp); renderSlips(); return; }
       if (t.id === 'slip-week' || t.id === 'taken-week') { S.slipWeek = t.value === '' ? null : Number(t.value); ls.set('pp.slipweek', S.slipWeek); renderSlips(); return; }
       if (t.id === 'slip-hidedone' || t.id === 'taken-hidedone') { S.hideDone = t.checked; ls.set('pp.hidedone', t.checked); renderSlips(); if (t.checked && S.slipPending) toast(`${S.slipPending} ${S.slipPending === 1 ? 'prop from a finished game still needs' : 'props from finished games still need'} a result. ${S.slipPending === 1 ? 'It is' : 'They are'} listed at the top of My slips.`, true); return; }
+      if (t.id === 'nba-slip-sel' && t.value) { S.nbaSlip = t.value; ls.set('pp.nbaSlip', t.value); renderNba(); return; }
       if (t.id === 'slip-sel' && t.value) { S.activeSlip = t.value; ls.set('pp.activeSlip', t.value); renderSlips(); renderBoard(); return; }
-      if (t.dataset && t.dataset.slipflex) { const id = t.dataset.slipflex, cur = S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.checked) d.flex = true; else { delete d.flex; delete d.paid; } save('slips', id, d).then(() => renderSlips()); return; }
-      if (t.id === 'slip-app' || (t.dataset && t.dataset.slipapp)) { const id = t.id === 'slip-app' ? (activeSlip() || {}).id : t.dataset.slipapp, cur = id && S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.value) d.app = t.value; else delete d.app; save('slips', id, d).then(() => renderSlips()); return; }
+      if (t.dataset && t.dataset.slipflex) { const id = t.dataset.slipflex, cur = S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.checked) d.flex = true; else { delete d.flex; delete d.paid; } save('slips', id, d).then(() => { renderSlips(); renderNba(); }); return; }
+      if (t.id === 'slip-app' || (t.dataset && t.dataset.slipapp)) { const id = t.id === 'slip-app' ? (activeSlip() || {}).id : t.dataset.slipapp, cur = id && S.slips.get(id); if (!cur) return; const d = { ...cur }; if (t.value) d.app = t.value; else delete d.app; save('slips', id, d).then(() => { renderSlips(); renderNba(); }); return; }
       if (t.dataset && t.dataset.slipmoney) { const cur = S.slips.get(t.dataset.slipid), k = t.dataset.slipmoney, v = t.value === '' ? null : Math.max(0, Math.round(Number(t.value) * 100) / 100);
-        if (cur && (v === null || Number.isFinite(v)) && v !== (cur[k] ?? null)) { const d = { ...cur }; if (v === null) delete d[k]; else d[k] = v; save('slips', t.dataset.slipid, d).then(() => { const a = document.activeElement, fk = a && a.dataset && a.dataset.slipmoney ? [a.dataset.slipmoney, a.dataset.slipid, !!a.closest('#slip-money')] : S.tabTo; renderSlips(); refocusMoney(fk); }); } return; }
+        if (cur && (v === null || Number.isFinite(v)) && v !== (cur[k] ?? null)) { const d = { ...cur }; if (v === null) delete d[k]; else d[k] = v; save('slips', t.dataset.slipid, d).then(() => { const a = document.activeElement, fk = a && a.dataset && a.dataset.slipmoney ? [a.dataset.slipmoney, a.dataset.slipid, !!a.closest('#slip-money, #nba-money')] : S.tabTo; renderSlips(); renderNba(); refocusMoney(fk); }); } return; }
       if (t.dataset && t.dataset.slipname) { const cur = S.slips.get(t.dataset.slipname), name = t.value.trim().slice(0, 40); if (cur && name && name !== cur.name) save('slips', t.dataset.slipname, { ...cur, name }); return; } }
     const t = e.target;
     if (t.dataset.g) {
@@ -2923,6 +3064,7 @@ const PX = (() => {
     if (t.id === 'f-sort') { const [key, dir] = t.value.split(':'); S.sort = { key, dir }; ls.set('pp.sort', S.sort); renderBoard(); }
     if (t.id === 'slip-stake' || t.id === 'slip-price') renderSlip();
     if (t.id === 'g-all') renderLines();
+    if (t.id === 'nba-when' || t.id === 'nba-mkt') renderNba();
     if (t.dataset.gbook) { if (t.checked) S.gbooks.add(t.dataset.gbook); else S.gbooks.delete(t.dataset.gbook); ls.set('pp.gbooks', [...S.gbooks]); renderGames(); }
     if (t.name === 'hsrc' && t.checked) { S.hsrc = t.value === 'odds' ? 'odds' : 'parlay'; ls.set('pp.hsrc', S.hsrc); $('api-key').blur(); renderLines(); }
     if (t.name === 'scope' && t.checked) { S.popts = { scope: t.value === 'night' ? 'night' : 'all' }; save('meta', 'pullopts', S.popts); renderPull(); }
@@ -2954,7 +3096,7 @@ const PX = (() => {
   async function loadSnapshot() {
     let snap; try { const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return false; snap = await r.json(); } catch (e) { return false; }
     if (!snap || !snap.collections) return false; if (snap.at === snapAt) return true; snapAt = snap.at; S.snapAt = snap.at;
-    S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; $('tab-taken').hidden = true; $('tab-plchart').hidden = true; if (!$('view-slips').hidden || !$('view-taken').hidden || !$('view-plchart').hidden) show('board');
+    S.ro = true; S.site = true; document.documentElement.classList.add('ro'); $('tab-slips').hidden = true; $('tab-taken').hidden = true; $('tab-plchart').hidden = true; $('tab-nba').hidden = true; if (!$('view-slips').hidden || !$('view-taken').hidden || !$('view-plchart').hidden) show('board');
     for (const coll of ['lines', 'pulls', 'tickets', 'log', 'rescore', 'slips', 'results']) if (local[coll]) { local[coll].clear(); if (coll === "slips") S.slipVer = (S.slipVer || 0) + 1; }
     S.pull = null; S.inj = null; S.grade = null; S.usage = null; S.events = null; S.marks = {}; S.follows = []; S.over = { out: [], in: [], back: [], wind: {} };
     for (const [coll, docs] of Object.entries(snap.collections)) { for (const [id, d] of Object.entries(docs || {})) applyDoc(coll, id, d); S.loaded.add(coll); }
