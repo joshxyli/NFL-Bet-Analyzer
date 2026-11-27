@@ -316,6 +316,8 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <label class="check" for="f-noslip"><input type="checkbox" id="f-noslip"> Hide props already on a slip</label>
           <label class="check" for="f-nowatch"><input type="checkbox" id="f-nowatch"> Hide injury watch</label>
           <div class="field"><label class="label" for="f-weight">Trust in model <span class="num" id="f-weight-val">20%</span></label><input type="range" id="f-weight" min="0" max="100" step="10" value="20"></div>
+          <div class="field"><label class="label" for="f-pricing">Price picks against</label><select id="f-pricing"><option value="pe2">2-leg pick'em (3×, 57.7% a leg)</option><option value="pe4">4-leg pick'em (10×, 56.2% a leg)</option><option value="book">Sportsbook price</option></select></div>
+          <label class="check" for="f-lowq" title="Applies only when picks are priced against the sportsbook price. Backtest, weeks 5-11: it raised returns at sportsbook prices; for pick'em at 10-30% trust it did not help, so pick'em keeps the full weight."><input type="checkbox" id="f-lowq"> Quarter model weight on WRs and backup RBs (sportsbook pricing)</label>
           <div class="field sortsel"><label class="label" for="f-sort">Sort by</label><select id="f-sort"><option value="edge:desc">Edge, best first</option><option value="edge:asc">Edge, worst first</option><option value="chance:desc">Chance, highest first</option><option value="chance:asc">Chance, lowest first</option><option value="proj:desc">Projection, highest first</option><option value="proj:asc">Projection, lowest first</option><option value="player:asc">Player, A to Z</option><option value="player:desc">Player, Z to A</option><option value="pick:asc">Pick, by prop and line</option><option value="pick:desc">Pick, reversed</option></select></div>
         </div>
         <details class="cond" id="cond"><summary id="cond-sum">Injuries</summary><div class="cond-body" id="cond-body"></div></details>
@@ -389,7 +391,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
       <div class="tiles" id="bt-tiles"></div>
       <div class="notice" id="bt-warn" hidden><p></p></div>
       <div class="two">
-        <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid? <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One pick on the better side of each player prop, $1 at the sportsbook price saved before kickoff, using your current Trust in model setting. Edge is the blended chance minus the price's implied chance, so Return above 0 means the picks beat the books' prices.</span></span></span></h3></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
+        <div class="panel"><div class="panel-pad"><h3>Would betting the edge have paid? <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">One pick on the better side of each player prop, $1 a pick, using your current Trust in model and Price picks against settings: at the sportsbook price saved before kickoff, or as a pick'em leg paying 1 / break-even (57.7% a leg for 2-leg, 56.2% for 4-leg; this assumes the pick'em line matches the book's line). Edge is the blended chance minus that bar, so Return above 0 means the picks beat it.</span></span></span></h3></div><div class="scroll"><table class="bt"><thead><tr><th>Player props</th><th class="r">Bets</th><th class="r">Record</th><th class="r">Won</th><th class="r">Expected</th><th class="r">Return</th></tr></thead><tbody id="bt-bets"></tbody></table></div></div>
         <div class="panel"><div class="panel-pad"><h3>Model win rate by prop type <span class="help" tabindex="0" role="button" aria-label="Help">?<span class="tip" role="tooltip"><span class="muted small">The model's win rate: how often its pick on each player prop (the better side) won, overall and by prop type. Wins and Losses count the model's pick on each prop (the better side), Win rate is wins divided by picks, and Picks is wins plus losses. Pushes and voids are left out. The expected win rate is the average chance the page gave those picks before kickoff: the model's chance blended with the market's no-vig chance, using your Trust in model setting for props.</span></span></span></h3><p class="small" id="bt-wr" style="margin:6px 0 2px"></p></div><div class="scroll"><table class="bt"><thead><tr><th>Type</th><th class="r">Picks</th><th class="r">Wins</th><th class="r">Losses</th><th class="r">Win rate</th></tr></thead><tbody id="bt-cal"></tbody></table></div></div>
       </div>
       <div class="panel"><div class="panel-pad"><h3>Games</h3></div><div class="scroll"><table class="bt"><thead><tr><th>Game</th><th>Kickoff</th><th>Picks saved</th><th>Final</th><th class="r">Graded</th></tr></thead><tbody id="bt-games"></tbody></table></div></div>
@@ -501,7 +503,7 @@ ul.plain { margin: 0; padding-left: 18px; display: flex; flex-direction: column;
           <li><strong>Model chance.</strong> The projection becomes a chance of clearing the line, using the usual spread of outcomes for that stat. Running backs' catches, receiving yards and rushing yards get the same fitted spread, with a back listed second or lower (or unlisted) given a real chance of a game with no production. For wide receivers' catches and yards the spread is wider than a plain average would suggest, and a receiver listed third or lower on the depth chart is given roughly a four in ten chance of a game with no production. Fitted on 2016 to 2025 games; on the 2026 saved lines it removed the model's habit of rating WR3 and WR4 overs too high. Receivers listed first or second get a 7% lift on the projection for this step, because their 2026 catches and yards have run above it.</li>
           <li><strong>Market chance.</strong> The book's two prices with its margin removed. This is usually the better estimate.</li>
 <li><strong>Game lines.</strong> Each team has an offense and a defense rating in points, updated after every game since 2002 and pulled a third of the way back to average each season. The projection adds a 2-point home edge and takes about 4.5 points off a team whose starting quarterback is out. The model's chance is blended with the market's by the Trust in model setting on the Game lines tab. Totals use the market only.</li>
-          <li><strong>Edge.</strong> Model and market are blended by the Trust in model setting. Edge is that blended chance minus the chance implied by the sportsbook's own price for that prop, with the book's margin left in (a -120 price needs 54.5%). The figure under it is the expected return per $1 at that price. Game lines work the same way.</li>
+          <li><strong>Edge.</strong> Model and market are blended by the Trust in model setting. Edge is that blended chance minus the chance implied by the sportsbook's own price for that prop, with the book's margin left in (a -120 price needs 54.5%). The figure under it is the expected return per $1 at that price. Game lines work the same way. With Price picks against set to 2-leg or 4-leg pick'em, player props are measured against the pick'em break-even instead (57.7% a leg for 2 legs at 3×, 56.2% for 4 legs at 10×), and the Backtest grades them the same way. At sportsbook prices, the Quarter model weight box gives the model a quarter of its usual weight on wide receivers and backup running backs, where the Nov 27 backtest found it added little beyond the market.</li>
         </ul>
       </div>
       <div class="panel panel-pad stack">
@@ -905,7 +907,7 @@ const PM = (() => {
     const groups = new Map();
     for (const o of picks) { if (o.model == null || o.out === 'v') continue; if (o.kind === 'game' && o.b !== 'fanduel' && o.b !== 'draftkings') continue;
       // props are scored as pick'em picks: each pick pays 1 / break-even (a fair share of the entry), so the bar is the break-even, not the sportsbook price
-      const w = o.kind === 'game' ? opt.gw : opt.w, p = w * o.model + (1 - w) * o.fair, pe = o.kind === 'prop' && opt.be, dec = pe ? 1 / opt.be : toDecimal(o.pr), c = { o, p, edge: p - 1 / dec, ev: p * dec - 1, dec };
+      const w = o.kind === 'game' ? opt.gw : opt.w * (opt.wf ? opt.wf(o) : 1), p = w * o.model + (1 - w) * o.fair, pe = o.kind === 'prop' && opt.be, dec = pe ? 1 / opt.be : toDecimal(o.pr), c = { o, p, edge: p - 1 / dec, ev: p * dec - 1, dec };
       const k = o.kind + '|' + o.eventId + '|' + (o.kind === 'game' ? o.m + '|' + o.b : normName(o.pl) + '|' + o.m), cur = groups.get(k); if (!cur || c.ev > cur.ev) groups.set(k, c); }
     const mk = (label) => ({ label, bets: 0, w: 0, l: 0, p: 0, exp: 0, profit: 0 });
     const byM = new Map(); // the model's pick on every player prop, by prop type
@@ -1048,7 +1050,7 @@ const PX = (() => {
   const S = {
     stats: null, byName: new Map(), dByTeam: new Map(), dByName: new Map(), injByTeam: new Map(), db: null, ready: false,
     lines: new Map(), linesRaw: new Map(), pulls: new Map(), log: new Map(), rescore: new Map(), slips: new Map(), marks: {}, follows: [], takenShow: ls.get('pp.takenShow', { taken: true, star: true, shark: true }), activeSlip: ls.get('pp.activeSlip', null), hideDone: ls.get('pp.hidedone', true), slipWeek: ls.get('pp.slipweek', null), slipApp: ls.get('pp.slipapp', ''), slipConfirm: null, adding: null, editLeg: null, btsrc: ls.get('pp.btsrc', 'saved'), results: new Map(), loaded: new Set(), grade: null, gradeStarted: ls.get('pp.gradeStarted', 0), gradeFiring: false, inj: null, injMap: new Map(), injTeams: new Set(), injStarted: ls.get('pp.injStarted', 0), injFiring: false, injMsg: null, pull: null, pullStarted: ls.get('pp.pullStarted', 0), askSeen: ls.get('pp.askSeen', null), pullConfirm: false, firing: false, tickets: new Map(), usage: null, events: null, over: { out: [], in: [], wind: {} }, byTeam: new Map(), ctx: new Map(),
-    slip: [], legs: Math.min(10, Math.max(2, Math.round(Number(ls.get('pp.legs', 2)) || 2))), pay: Math.max(1.5, Number(ls.get('pp.pay', 3)) || 3), be: 57.7, gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 20), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
+    slip: [], legs: Math.min(10, Math.max(2, Math.round(Number(ls.get('pp.legs', 2)) || 2))), pay: Math.max(1.5, Number(ls.get('pp.pay', 3)) || 3), be: 57.7, pricing: ['pe2', 'pe4', 'book'].includes(ls.get('pp.pricing', 'pe2')) ? ls.get('pp.pricing', 'pe2') : 'pe2', lowq: ls.get('pp.lowq', true) !== false, gbooks: new Set(ls.get('pp.gbooks', ['fanduel', 'draftkings'])), weight: ls.get('pp.weight', 20), gweight: ls.get('pp.gweight', 10), key: ls.get('pp.key', ''), pkey: ls.get('pp.pkey', ''), hsrc: ls.get('pp.hsrc', 'parlay') === 'odds' ? 'odds' : 'parlay',
     stake: ls.get('pp.stake', 10), off: { game: new Set(), market: new Set((ls.get('pp.off3', {}).market) || []), book: new Set((ls.get('pp.off3', {}).book) || []) }, price: '', confirmDel: null, rows: [], rowByKey: new Map(), sort: ls.get('pp.sort', { key: 'edge', dir: 'desc' }),
   };
 
@@ -1408,12 +1410,15 @@ const PX = (() => {
             const sp = thin ? PM.empirical(player, o.m, o.pt) : PM.sideProbs(proj, o.m, o.pt ?? 0.5); model = (o.s === 'Under' || o.s === 'No') ? sp.under : sp.over; }
           watch = injWatch(player, o, ec, opp, atHome, skip, model, proj ? proj.mean : null);
         }
-        const p = model == null ? fair : w * model + (1 - w) * fair;
-        const dec = PM.toDecimal(o.pr);
+        // Nov 26: unders on low-volume receivers (WR3+/RB2+ groups, lines of 2.5 catches or 20.5 yards or less) lost 39-52 in the weeks after the Nov 10 shape change, so the model gets half its usual weight there
+        const fringeU = !!(proj && proj.shape && proj.shape.low && o.s === 'Under' && o.pt != null && ((o.m === 'player_receptions' && o.pt <= 2.5) || (o.m === 'player_reception_yds' && o.pt <= 20.5)));
+        const ww = w * Math.min(wFactor(player), fringeU ? 0.5 : 1), p = model == null ? fair : ww * model + (1 - ww) * fair;
+        const pe = S.pricing === 'book' ? null : S.be / 100; // pick'em: the bar is the break-even a leg, not this sportsbook's price
+        const dec = pe ? 1 / pe : PM.toDecimal(o.pr);
         let opened = null;
         if (first) { const f = first.find((x) => x.pl === o.pl && x.m === o.m && x.b === o.b && x.s === o.s); if (f && (f.pt !== o.pt || f.pr !== o.pr)) opened = f; }
         rows.push({ key: legKey(eventId, o), eventId, game: `${away} @ ${home}`, commence: doc.commence, example: !!doc.example, o, player, opp, st, skip,
-          team: player ? player.t : null, pos: player ? player.p : null, proj, model, scored: model != null, fair, p, imp, dec, edge: p - imp, ev: p * dec - 1, opened, watch }); // measured against the sportsbook's own price for this prop, margin included
+          team: player ? player.t : null, pos: player ? player.p : null, proj, model, scored: model != null, fair, p, imp: pe || imp, dec, edge: p - (pe || imp), ev: p * dec - 1, opened, watch }); // measured against the chosen bar: the pick'em break-even a leg, or the sportsbook's own price for this prop, margin included
       }
       // PrizePicks and Pick6: a line with no price. Market chance = the sportsbooks' no-margin chance at their own line, moved to this line.
       const be = S.be / 100, refs = new Map();
@@ -1445,7 +1450,7 @@ const PX = (() => {
           const model = st && st.absent ? null : modelOver == null ? null : side === 'Over' ? modelOver : 1 - modelOver;
           const fair = fairOver == null ? null : side === 'Over' ? fairOver : 1 - fairOver;
           const scored = !(st && st.absent) && (model != null || fair != null);
-          const p = !scored ? 0.5 : model == null ? fair : fair == null ? w * model + (1 - w) * 0.5 : w * model + (1 - w) * fair;
+          const wd = w * wFactor(player), p = !scored ? 0.5 : model == null ? fair : fair == null ? wd * model + (1 - wd) * 0.5 : wd * model + (1 - wd) * fair;
           rows.push({ key: legKey(eventId, o), eventId, game: `${away} @ ${home}`, commence: doc.commence, example: !!doc.example, o, kind: 'dfs', player, opp, st, skip,
             team: player ? player.t : null, pos: player ? player.p : null, proj, model, scored, fair, p, imp: be, dec: 1 / be, edge: p - be, ev: p - be, opened: null, refText });
         }
@@ -1633,7 +1638,7 @@ const PX = (() => {
         <td class="c-pick"><div class="pick">${esc(r.kind === 'dfs' ? pickText(o).replace(/^Over/, 'More').replace(/^Under/, 'Less') : pickText(o))}</div><div class="price">${r.kind === 'dfs' ? `<span class="book">${BOOKS[o.b]}</span>${r.refText ? ` <span class="muted small">books: ${esc(r.refText)}</span>` : ' <span class="muted small">no sportsbook line</span>'}` : `<span class="book" style="margin-left:0" title="Line from ${BOOK_NAMES[o.b] || o.b}">${BOOKS[o.b]}</span>${o.pr != null ? ` <span class="num odds" title="${esc(BOOK_NAMES[o.b] || o.b)} price">${PM.fmtAm(o.pr)}</span>` : ''}${r.opened && r.opened.pr != null && r.opened.pr !== o.pr && (r.opened.pt == null || r.opened.pt === o.pt) ? ` <span class="muted small">opened ${PM.fmtAm(r.opened.pr)}</span>` : ''}${r.opened && r.opened.pt != null && r.opened.pt !== o.pt ? ` <span class="muted small">opened at ${r.opened.pt}</span>` : ''}`}</div></td>
         <td class="r c-proj" data-l="Proj">${r.proj ? `${projHtml(r, m)}${recent}${stepNote ? `<div class="why fillin">${esc(stepNote)}</div>` : ''}${why ? `<div class="why">${why}</div>` : ''}${logNote(r) ? `<div class="why">${esc(logNote(r))}</div>` : ''}` : `<span class="muted small">${r.kind === 'game' ? 'market only, ' + (r.books > 1 ? 'both books at this number' : 'one book at this number') : esc(r.skip || '—')}</span>`}</td>
         <td class="r c-chance" data-l="Model"><span class="num">${r.model == null ? '—' : pct(r.model)}</span><span class="sub2">market <span class="num">${r.fair == null ? '—' : pct(r.fair)}</span></span></td>
-        <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
+        <td class="r c-edge"><span class="pill ${edgeCls}">${!r.scored ? 'n/a' : (r.edge >= 0 ? '+' : '') + (r.edge * 100).toFixed(1) + ' pts'}</span>${!r.scored ? '' : r.kind === 'dfs' || S.pricing !== 'book' ? `<span class="sub2">wins <span class="num">${pct(r.p)}</span>, needs <span class="num">${S.be}%</span></span>` : `<span class="sub2">EV <span class="num">${(r.ev >= 0 ? '+' : '') + r.ev.toFixed(2)}</span> per $1</span>`}</td>
       <td class="r c-add">${followBtn(r)}${addBtn(r)}</td>
       </tr>${S.adding === r.key ? addForm(r) : ''}${S.fAdding === r.key ? followForm(r) : ''}`;
     }).join('');
@@ -2363,9 +2368,14 @@ const PX = (() => {
   }
   // break-even per pick: the hit rate each pick needs so that hitting every pick at this payout breaks even, (1 / payout) ^ (1 / picks)
   function setBe() {
+    if (S.pricing === 'pe4') { S.legs = 4; S.pay = 10; } else { S.legs = 2; S.pay = 3; } // pick'em power payouts: 2 legs at 3x, 4 legs at 10x (Sportsbook price keeps the 2-leg bar for PrizePicks and Pick6 lines)
     S.be = Math.round(1000 * Math.pow(1 / S.pay, 1 / S.legs)) / 10;
     const el = $('f-be-val'); if (el) el.textContent = S.be + '%';
   }
+  // Nov 27 backtest (weeks 5-11): at sportsbook prices the model adds little beyond the market for receivers and backup backs, so with the box ticked it gets a
+  // quarter of its usual weight there. Sportsbook pricing only: for pick'em at 10-30% trust the backtest showed no gain, so pick'em keeps the full weight.
+  function lowGroup(pl) { return !!pl && (pl.p === 'WR' || (pl.p === 'RB' && pl.dr !== 'RB1')); }
+  function wFactor(pl) { return S.lowq && S.pricing === 'book' && lowGroup(pl) ? 0.25 : 1; }
   function renderCond() {
     const blocks = []; let nOut = 0, nQ = 0, nBack = 0; const names = new Set();
     let i = 0;
@@ -2457,14 +2467,14 @@ const PX = (() => {
       let shape = null; if (pl.p === 'WR' && f[1] !== 'player_rush_yds') shape = { pos: 'WR', low: /^WR(?:[3-9]|\d\d)$/.test(dr) || !dr ? 1 : 0 }; else if (pl.p === 'RB') shape = { pos: 'RB', low: dr === 'RB1' ? 0 : 1 };
       if (!shape) return s; const sp = PM.sideProbs({ mean: Math.max(mean, 0.05), sd: mean * 0.6, shape }, f[1], pt); f[6] = (f[3] === 'Over' ? sp.over : sp.under).toFixed(4); return f.join('|'); }) });
     const logs = [...S.log.values()].map((d) => reshape(useRe ? S.rescore.get(d.eventId) || d : d));
-    const bt = PM.backtest(logs, S.results, { keyOf: (d) => `${abbr(d.away)}-${abbr(d.home)}-${etDay(d.commence)}`, abbr, w: S.weight / 100, gw: S.gweight / 100, be: 0 }); // props graded at the sportsbook price saved before kickoff
+    const bt = PM.backtest(logs, S.results, { keyOf: (d) => `${abbr(d.away)}-${abbr(d.home)}-${etDay(d.commence)}`, abbr, w: S.weight / 100, gw: S.gweight / 100, be: S.pricing === 'book' ? 0 : S.be / 100, wf: (o) => wFactor(S.byName.get(PM.normName(o.name || o.pl)) || S.byName.get(PM.normName(o.pl))) }); // props graded at the chosen price: the sportsbook price saved before kickoff, or the pick'em break-even a leg (depth chart as it is now for the quarter weight)
     const props = bt.cal.find((c) => c.label === 'All props'), any = bt.bet.props[1], gradedGames = bt.games.filter((x) => x.res).length;
     const roi = (b) => (b.bets ? (b.profit / b.bets * 100 >= 0 ? '+' : '') + (b.profit / b.bets * 100).toFixed(1) + '%' : '—');
     $('bt-tiles').innerHTML = [
       ['Games graded', gradedGames, `${bt.games.length - gradedGames} saved and waiting for results`],
       ['Prop lines graded', props ? props.n : 0, 'each line counted once'],
       ['Forecast error', props ? `${(props.bm / props.n).toFixed(3)} vs ${(props.bk / props.n).toFixed(3)}` : '—', props ? `model vs market, lower is better: ${props.bm < props.bk ? 'model ahead' : props.bm > props.bk ? 'market ahead' : 'level'}` : 'model vs market, once games are graded'],
-      ['Picking every positive edge', any.bets ? roi(any) : '—', any.bets ? `${any.w}-${any.l} on ${any.bets} picks at sportsbook prices, Trust in model ${S.weight}%` : 'no graded picks yet'],
+      ['Picking every positive edge', any.bets ? roi(any) : '—', any.bets ? `${any.w}-${any.l} on ${any.bets} picks ${S.pricing === 'book' ? 'at sportsbook prices' : S.pricing === 'pe4' ? "as 4-leg pick'em legs" : "as 2-leg pick'em legs"}, Trust in model ${S.weight}%` : 'no graded picks yet'],
     ].map(([a, b, c]) => `<div class="tile"><span class="label">${a}</span><b>${esc(b)}</b><span class="muted small">${esc(c)}</span></div>`).join('');
     const n = props ? props.n : 0, warn = $('bt-warn');
     warn.hidden = !(n > 0 && n < 500);
@@ -3060,6 +3070,7 @@ const PX = (() => {
       ls.set('pp.off3', { market: [...S.off.market], book: [...S.off.book] });
       renderGroups(); renderBoard(); const again = document.getElementById(t.id); if (again) again.focus();
     }
+    if (t.id === 'f-pricing' || t.id === 'f-lowq') { if (t.id === 'f-pricing') { S.pricing = t.value; ls.set('pp.pricing', S.pricing); setBe(); } else { S.lowq = t.checked; ls.set('pp.lowq', S.lowq); } buildRows(); renderBoard(); renderSlip(); setTimeout(renderBacktest, 0); }
     if (['f-edge', 'f-price', 'f-nowatch', 'f-noslip'].includes(t.id)) { if (t.id === 'f-price') ls.set('pp.price', t.value); if (t.id === 'f-nowatch') ls.set('pp.nowatch', t.checked); if (t.id === 'f-noslip') ls.set('pp.noslip', t.checked); renderBoard(); }
     if (t.id === 'f-sort') { const [key, dir] = t.value.split(':'); S.sort = { key, dir }; ls.set('pp.sort', S.sort); renderBoard(); }
     if (t.id === 'slip-stake' || t.id === 'slip-price') renderSlip();
@@ -3077,7 +3088,7 @@ const PX = (() => {
     window.addEventListener('scroll', upd, { passive: true }); tt.addEventListener('click', () => { window.scrollTo(0, 0); }); upd(); }
   /* ---------- boot ---------- */
   renderGroups();
-  $('f-price').value = ['minus', 'plus'].includes(ls.get('pp.price', '')) ? ls.get('pp.price', '') : ''; $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%';
+  $('f-price').value = ['minus', 'plus'].includes(ls.get('pp.price', '')) ? ls.get('pp.price', '') : ''; $('f-nowatch').checked = !!ls.get('pp.nowatch', false);  $('f-noslip').checked = !!ls.get('pp.noslip', false);  $('f-weight').value = S.weight; $('f-weight-val').textContent = S.weight + '%'; $('f-pricing').value = S.pricing; $('f-lowq').checked = S.lowq; setBe();
   const start = (location.hash || '').slice(1); if (['games', 'tracker', 'backtest', 'lines', 'method'].includes(start)) show(start);
   fetch('stats.json').then((r) => r.json()).then((stats) => {
     // games he played with no carry or target come as zero rows (slot [20] = 1): shown in his last games and counted in his projection like any other game
