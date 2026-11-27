@@ -249,3 +249,62 @@ python3 -I compare.py <repo> jobs_old.json ev_old.json var_old.json rescore c_w5
 
 - With the rule, the Backtest tab's "Every pick, no filter" row gets worse (−141 vs −121 units at 30%). With no model view on those players, that row just takes the best-priced side, which always has a negative edge. It is not a bet the rule would make.
 - **Recommendation:** model off for WR1/2, WR3+ and RB2+; keep it for RB1, TE and QB. Use trust 20-30%, not 60-100%. Do not add the other tuned settings. Re-check when the rest of week 12 is graded. Not published.
+
+## Tuning the projection weights on weeks 5-11 (added Nov 27)
+
+**Method:**
+- Stats were rebuilt as they stood before each week (weeks 4-11), using your stats builder (`nfl.py` from the "fetch game results and update stats" task, checksum verified) on nflverse data.
+  - The week-11 rebuild matches today's `stats.json` exactly: 623 of 623 player game logs, 32 of 32 team baselines and 32 of 32 defence factors.
+- Every saved prop line in weeks 5-12 (10,906 rows) was re-projected with a copy of the app's `project()` in which these weights are settings:
+  - recency decay (0.88 per game);
+  - last-season weight (0.5);
+  - usage vs game-log blend (0.7 usage);
+  - shrinkage priors: catch rate 15 targets, yards per catch 10 catches, yards per carry 40 carries, passing 100 attempts;
+  - strength of the game-script, defence and calibration effects;
+  - the weight on the default spread (4).
+- Context (opponent, venue, spread, total, roof, wind) comes from the nflverse schedule. Injury inputs could not be rebuilt, so each tweak is applied as a ratio to the saved projection: saved × rebuilt(tweaked) ÷ rebuilt(current).
+  - Rebuilt and saved projections agree to a median ratio of 0.99, with 79% within 10%.
+- Settings were picked by coordinate search to maximise positive-edge profit at sportsbook prices (summed over 10/20/30/60/100% trust). They were judged by leave-one-week-out on weeks 5-11.
+
+**Settings chosen on almost every fold:**
+
+| Setting | Chosen | Current | Folds |
+|---|---|---|---|
+| Recency decay | 1.0 (no fade over the last 10 games) | 0.88 | 14 of 14 |
+| Last-season games | full weight | half weight | 13 of 14 |
+| Passing efficiency prior | 30 attempts | 100 | 14 of 14 |
+| Catch-rate prior | 60 targets | 15 | 12 of 14 |
+
+The other settings (blend, yards-per-carry prior, game-script and calibration strength) changed from fold to fold.
+
+**Held-out weeks (leave-one-week-out), units:**
+
+| | 10% | 20% | 30% | 60% | 100% |
+|---|---|---|---|---|---|
+| Current model | +4.4 | −19.4 | −34.6 | −77.6 | −116.2 |
+| Tuned weights, current model | −0.8 | −0.6 | −21.7 | −35.7 | −39.1 |
+| WR/RB2+ rule alone | +4.6 | +5.5 | +19.0 | −1.0 | −31.7 |
+| **Rule + tuned weights** | **+10.5** | **+43.8** | **+26.1** | **−13.5** | **+0.2** |
+
+**App's own `PM.backtest()` on the saved lines with the chances overlaid** (positive edge, units; weeks 5-11 are in-sample for the tuned sets):
+
+| Configuration | Weeks 5-11: 10 / 20 / 30 / 60 / 100% | Week 12 (4 games): 10 / 20 / 30 / 60 / 100% |
+|---|---|---|
+| Current | +4.4 / −19.4 / −33.6 / −77.6 / −117.2 | −3.1 / +1.3 / −7.4 / +0.8 / +0.8 |
+| Rule | +4.6 / +5.5 / +19.0 / −1.0 / −31.7 | −4.0 / +4.7 / +0.4 / −2.5 / −5.0 |
+| Rule + 4 stable changes | +7.7 / +14.5 / +34.7 / +16.9 / +30.1 | −2.1 / +4.4 / −3.6 / −3.8 / −1.7 |
+| Rule + full tuned set | +7.1 / +44.1 / +50.0 / +36.0 / +35.3 | −4.0 / +3.5 / −5.5 / −0.6 / −0.5 |
+
+- **Full tuned set** (with the rule):
+  - recency decay 1.0;
+  - last season at 75% weight;
+  - blend 30% usage / 70% game log;
+  - catch-rate prior 60, yards-per-catch prior 25, yards-per-carry prior 100, passing prior 30;
+  - game script ×1.5;
+  - calibration applied ×1.5;
+  - default-spread weight 10.
+- **Reading:**
+  - Tuning the weights helps mainly in combination with the WR/RB2+ rule.
+  - The tuning procedure held up on held-out weeks at 20% trust: +43.8 units held out, against +44.1 in-sample. It also held up at 10%, 30% and 100%, but not at 60%.
+  - Individual settings are not stable across folds. Seven weeks is a small sample, and week 12 (4 games) does not confirm the gain.
+- Not published. Re-check against the rest of week 12 and week 13 before switching.
