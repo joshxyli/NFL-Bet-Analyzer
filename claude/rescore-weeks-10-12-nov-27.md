@@ -19,10 +19,14 @@ Written Nov 27, 2026. Step 1 of the recent-weeks diagnosis.
   - It beats the old model on Brier in every WR/RB group in both periods. The one exception is RB2+ receiving yards.
   - It leaves more money than the old one in weeks 5-9 (re-scored) at every trust level.
   - Both trail the market on Brier everywhere, as before.
+- **Week 12 so far (4 games graded from nflverse, see below) went the other way.** Unders hit (WR3+ 60%, RB2+ 54%), and the new model did slightly better than the old there. With week 12 included, weeks 10-12 still show the new shape worse on unders: positive-edge unders lost 35.9 vs 30.1 units at 30% trust, 25.6 vs 15.2 at 60%, and 31.4 vs 22.7 at 100%.
 - **Recommendation (per the decision rule: shrink, do not revert):**
-  1. **Halve the zero-production term for RB2+ receiving yards** (`SHAPE.RB.player_reception_yds.z[2]` 1.545 → 0.7725). It is the only variant tested that improved both periods at every trust level, on both Brier and return. It does not touch RB1.
-  2. **Keep the RB2+ rushing shape.** Reverting RB2+ to the old model was worse in weeks 5-9 at every trust level and no better in weeks 10-11. The rushing shape is a large Brier gain in both periods (0.2601 vs 0.2948, and 0.2569 vs 0.2844).
-  3. **Do not cut the WR3+ zero-production term yet.** A 25% cut helped weeks 10-11 but cost return in weeks 5-9. A 50% cut fixed the level but worsened weeks 5-9 Brier and return at 60-100% trust. Re-check once week 12 is graded.
+  1. **Halve the zero-production term for RB2+ receiving yards** (`SHAPE.RB.player_reception_yds.z[2]` 1.545 → 0.7725). It does not touch RB1.
+     - It improves RB2+ receiving-yards Brier in weeks 5-9 and weeks 10-12 (0.2705 vs 0.2815) and brings its under lean close to the market.
+     - It improved return at every trust level in weeks 5-9 and weeks 10-11. With week 12 added, the return effect is small and mixed: +6.3 units at 30%, -1.2 at 60%, -1.2 at 100%, on WR/RB lines in weeks 10-12.
+     - Week 12 alone has only 8 RB2+ receiving-yards lines, and it went slightly against the change there.
+  2. **Keep the RB2+ rushing shape.** Reverting RB2+ to the old model was worse in weeks 5-9 at every trust level and no better in weeks 10-11. The rushing shape is a large Brier gain in every period (weeks 10-12: 0.2578 vs 0.3086; weeks 5-9: 0.2569 vs 0.2844).
+  3. **Do not cut the WR3+ zero-production term yet.** A 25% cut is the best variant on weeks 10-12 (Brier 0.2687, and the smallest losses at every trust level) but cost return in weeks 5-9. A 50% cut fixed the level but worsened weeks 5-9 Brier and return at 60-100% trust. Re-check once all of week 12 is graded.
   4. **Leave the Nov 26 fringe-under rule in for now, but treat its evidence as weak.** It was built from these same week 10-11 losses, so weeks 10-11 are in-sample for it. It helps a lot at 30% trust, and nothing at 60% or 100% (it removes the better fringe unders there). In weeks 5-9 it is mixed: +4.6 units at 30%, -5.6 at 60%, +4.1 at 100%. Halving the RB2+ receiving term overlaps with it.
 - Nothing has been published to the app. The change in item 1 needs your go-ahead.
 
@@ -43,7 +47,9 @@ Written Nov 27, 2026. Step 1 of the recent-weeks diagnosis.
   - ROI uses one pick per player and prop, as in the app's Backtest: the best-EV side across books and lines, $1 at the saved book price.
   - So a leg that sits on several slips is counted once.
 - **Weeks:** weeks 10 and 11 = 27 games (Nov 12-23), all out of sample for the Nov 10 change.
-  - **Week 12 is not graded.** No week 12 results are saved yet, and ESPN was not reachable from this session. On Nov 27 only GB@LAR, CHI@DET, PHI@DAL and KC@BUF had finished.
+  - **Week 12: 4 of 16 games graded.** No week 12 results were saved in `data.json` yet, so box scores for the games finished by Nov 27 (GB@LA, CHI@DET, PHI@DAL, KC@BUF) were taken from nflverse (`stats_player_week_2026.csv` from the nflverse-data `stats_player` release). They were added only to a scratch copy of `data.json`, not to the repo.
+  - nflverse agrees exactly with the saved results on weeks 10-11: 620 of 620 player rows have the same rushing yards, catches and receiving yards.
+  - The rest of week 12 (Black Friday through MNF) still needs grading.
   - Weeks 5-9 are shown only as context. They were used to check the Nov 10 changes (the WR1/2 level was tuned on them), so they are not a clean test.
 
 ## Weeks 10-11 results (all props in the three markets, WR/RB/TE/QB)
@@ -133,12 +139,36 @@ Under lean is the mean model under chance; lower Brier is better; profit is posi
 
 - Two weeks is small: 136 WR3+ lines and 115 RB2+ lines. WR3+ overs hit 57% in weeks 10-11, and the market missed that too (it had them at 49%). Part of the under loss is that, not the model.
 - Weeks 5-9 groups: 696 of 5,332 rows had no rescore match. Those took today's depth chart, which may differ from the one at the time.
-- Week 12 should be added once its results are saved (the "fetch game results" task). Box score lookups should come from ESPN only, with a cache-busting parameter on each link, for example `https://www.espn.com/nfl/boxscore/_/gameId/<id>?_cb=<unix time>` or `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=<id>&_cb=<unix time>`. Then re-run the steps below with weeks `10,11,12`.
+- The rest of week 12 should be added once it is played. Use nflverse for box scores, not ESPN: download a fresh `stats_player_week_2026.csv`, run `add_nflverse_results.py`, then re-run the steps below with weeks `10,11,12`.
 - The four earlier docs this builds on (`recent-weeks-diagnosis-nov-2026.md`, `change-log-fringe-under-trust-nov-26.md`, `wr-receiving-shape-and-opponent-test.md`, `rb-te-shape-test.md`) were not in the repo, its history, the tools zip or Google Drive. So this doc goes by the code, the edit files and the app's own comments.
+
+## Week 12 so far (4 games, from nflverse) and weeks 10-12 combined
+
+Under lean / Brier on WR/RB lines, and positive-edge profit in units at 30 / 60 / 100% trust (WR/RB lines only).
+
+| Period | Set | Lines | Actual under | Market | Old | New | Halve RB2+ rec-yds term | ...plus WR3+ −25% | Halve all |
+|---|---|---|---|---|---|---|---|---|---|
+| Wk 12 | WR3+ | 20 | 0.600 | 0.509 / 0.2468 | 0.515 / 0.2097 | 0.551 / 0.2148 | 0.551 / 0.2148 | 0.529 / 0.2159 | 0.518 / 0.2162 |
+| Wk 12 | RB2+ | 28 | 0.536 | 0.497 / 0.2331 | 0.473 / 0.3232 | 0.576 / 0.2521 | 0.556 / 0.2572 | 0.556 / 0.2572 | 0.485 / 0.2798 |
+| Wk 12 | All WR/RB | 102 | 0.549 | 0.505 / 0.2399 | 0.520 / 0.2614 | 0.550 / 0.2490 | 0.544 / 0.2504 | 0.540 / 0.2506 | 0.518 / 0.2569 |
+| Wk 12 | Profit | | | | -8.6 / -0.2 / +0.8 | -8.1 / +2.4 / +2.9 | -9.0 / +0.6 / +1.1 | -8.1 / -2.0 / +0.4 | -10.2 / -3.3 / -2.6 |
+| Wk 10-12 | WR3+ | 156 | 0.449 | 0.509 / 0.2464 | 0.514 / 0.2825 | 0.557 / 0.2748 | 0.557 / 0.2748 | 0.536 / 0.2734 | 0.524 / 0.2748 |
+| Wk 10-12 | RB2+ | 143 | 0.497 | 0.498 / 0.2501 | 0.475 / 0.3077 | 0.576 / 0.2800 | 0.557 / 0.2770 | 0.557 / 0.2770 | 0.498 / 0.2881 |
+| Wk 10-12 | RB2+ rec yds | 39 | 0.436 | 0.501 / 0.2512 | 0.479 / 0.2885 | 0.596 / 0.2815 | 0.526 / 0.2705 | 0.526 / 0.2705 | 0.526 / 0.2705 |
+| Wk 10-12 | All WR/RB | 714 | 0.510 | 0.506 / 0.2483 | 0.526 / 0.2799 | 0.553 / 0.2696 | 0.549 / 0.2690 | 0.545 / 0.2687 | 0.530 / 0.2712 |
+| Wk 10-12 | Profit | | | | -48.9 / -63.2 / -64.5 | -50.0 / -57.0 / -76.5 | -43.7 / -58.2 / -77.7 | -39.2 / -54.1 / -71.7 | -44.0 / -57.5 / -77.6 |
+
+- **All props (WR/RB/TE/QB), positive-edge unders, weeks 10-12, units at 30 / 60 / 100% trust:**
+  - old: -30.1 / -15.2 / -22.7
+  - new: -35.9 / -25.6 / -31.4
+  - new + fringe rule: -15.4 / -29.4 / -33.6
+- **Week 12 alone, all props:** new +1.4 vs old -1.2 at 60% trust, and new +5.1 vs old +3.1 at 100%.
+- The fringe rule still helps only at 30% trust.
 
 ## How to re-run (scripts in `claude/rescore_w10_12/`)
 
 ```
+python3 -I add_nflverse_results.py <repo> stats_player_week_2026.csv 12 <scratch repo dir>   # adds nflverse box scores for games missing from results; use <scratch repo dir> as <repo> below
 python3 -I build_old.py index.new.html <wr_model_tools dir> index.old.html   # index.new.html = published page (Artifact read)
 python3 -I collect.py <repo> 10,11 jobs_new.json ; python3 -I collect.py <repo> 5,6,7,8,9 jobs_old.json
 node eval.js index.old.html index.new.html jobs_new.json ev_new.json          # same for jobs_old -> ev_old
