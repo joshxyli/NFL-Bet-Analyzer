@@ -308,3 +308,19 @@ The other settings (blend, yards-per-carry prior, game-script and calibration st
   - The tuning procedure held up on held-out weeks at 20% trust: +43.8 units held out, against +44.1 in-sample. It also held up at 10%, 30% and 100%, but not at 60%.
   - Individual settings are not stable across folds. Seven weeks is a small sample, and week 12 (4 games) does not confirm the gain.
 - Not published. Re-check against the rest of week 12 and week 13 before switching.
+
+## Published Nov 27: pricing selector and sportsbook-only quarter weight
+
+Live app version 331 (version id 1795786541-1816), built on version 1795758316-836b. Diff: `claude/rescore_w10_12/app_pricing_quarter_weight.diff`.
+
+- **"Price picks against" selector** next to Trust in model:
+  - 2-leg pick'em (3×, 57.7% a leg), the default;
+  - 4-leg pick'em (10×, 56.2% a leg);
+  - Sportsbook price.
+
+  It sets the board's edge (in pick'em modes the sub-line reads "wins X, needs Y%") and how the Backtest tab grades props (the backtest's `be` option). It is remembered on the device.
+- **"Quarter model weight on WRs and backup RBs (sportsbook pricing)" checkbox,** on by default.
+  - It applies only under Sportsbook price: the model gets 25% of its usual weight on every WR and any RB not listed RB1, on the board and in the Backtest. The Backtest uses today's depth chart for past games.
+  - Under pick'em pricing the weights are unchanged, including the Nov 26 half weight on fringe unders. The weeks 5-11 backtest showed no gain from the quarter weight for pick'em at 10-30% trust.
+- The "How it works" Edge note and the Backtest summary tile now name the pricing mode.
+- The website copy picks up the new page on its next scheduled update.
