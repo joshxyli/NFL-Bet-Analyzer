@@ -202,3 +202,50 @@ python3 -I compare.py <repo> jobs_old.json ev_old.json var_old.json rescore c_w5
   - The pick'em results assume the PrizePicks/Pick6 line equals the book line, and they score each leg on its own, not whole slips.
   - The WR/RB2+ rule came from a weight fit on weeks 5-9, so weeks 5-9 are in-sample for it.
   - The "market chance above 63% falls off" pattern (from the leg hit-rate table) rests on 41 and 30 legs. It was not tested in the backtest.
+
+## Tuning the model on weeks 5-11 (added Nov 27)
+
+- **Goal:** maximise the Backtest tab's "Any positive edge" profit (player props at the saved sportsbook price) on weeks 5-11 (101 games, 10,906 graded prop rows).
+- **Settings searched:**
+  - model weight per group (WR1/2, WR3+, RB1, RB2+, TE, QB) from 0 to 1.5;
+  - the WR1/2 lift (1.00 / 1.035 / 1.07);
+  - the zero-production terms for WR3+, RB2+ receiving and RB2+ rushing (scaled 0 to 1);
+  - an overall over/under lean.
+- **Method:**
+  - Weeks 5-9 lines were rebuilt with the current shape from their saved projections.
+  - Settings were judged by leave-one-week-out: tune on six weeks, score the seventh, repeat for all seven weeks.
+  - Week 12 (4 games) was kept out entirely.
+
+**Held-out results, summed over the seven folds (units):**
+
+| Procedure | 10% | 30% | 60% | 100% |
+|---|---|---|---|---|
+| Current model | +4.4 | −34.6 | −77.6 | −116.2 |
+| **Fixed rule: model off for WR1/2, WR3+, RB2+** | **+4.6** | **+19.0** | **−1.0** | **−31.7** |
+| On/off per group, tuned | +2.2 | −2.5 | −18.7 | −44.1 |
+| Weights 0-1.5 per group, tuned per trust | −8.5 | −0.1 | −26.1 | −35.6 |
+| Weights + shape, tuned per trust | −8.9 | −4.9 | −32.0 | −53.7 |
+| Everything incl. lean, tuned per trust | −5.2 | −19.0 | −87.0 | −170.3 |
+
+- **More tuning did worse on held-out weeks.**
+  - In-sample, the fully tuned model shows +25 / +32 / +8 units at 30 / 60 / 100%, but that does not survive the held-out test.
+  - The fixed rule beat every tuned procedure at every trust level.
+  - The rule's group weights came from a fit on weeks 5-9, so only weeks 10-11 are fully held out for it.
+- **Add-ons to the rule did not reliably help:** QB half or off, TE half or off, RB1 half, small weight back on WR or RB2+, and lean to under or over. The best of them, QB at half weight, gained 3 units at 30% and 17 at 60%. That is within week-to-week noise, so none is recommended.
+- **Rule vs current, game bootstrap over weeks 5-11** (90% ranges): +53.7 [+9, +99] at 30%, +76.6 [+20, +129] at 60%, +84.5 [+18, +148] at 100%, +0.2 [−10, +10] at 10%. The rule is better at 30% or more with about 98% probability.
+- **Whether the rule itself is profitable:** about 74% likely at 30% trust (+19 units), even at 60%, and still losing at 100%. It cuts losses more than it creates profit.
+- **Per week at 30% trust:** +17, +21, −6, −2, −2, −2, −7 for weeks 5 to 11. The gain comes from avoiding the big losing weeks (current: −22 in week 8, −26 in week 10, −19 in week 11).
+
+**Confirmed with the app's own `PM.backtest()` on the saved lines (positive edge):**
+
+| Weeks | Trust | Current | Rule |
+|---|---|---|---|
+| 5-11 | 10% | 56 bets, +4.4u | 34 bets, +4.6u |
+| 5-11 | 20% (board default) | 599 bets, −19.6u (−3.3%) | 354 bets, +5.3u (+1.5%) |
+| 5-11 | 30% | 1,202 bets, −31.1u (−2.6%) | 659 bets, +21.1u (+3.2%) |
+| 5-11 | 60% | 2,185 bets, −74.5u (−3.4%) | 1,121 bets, −1.5u (−0.1%) |
+| 5-11 | 100% | 2,625 bets, −117.4u (−4.5%) | 1,340 bets, −32.4u (−2.4%) |
+| 12 (4 games) | 20 / 30 / 60 / 100% | +0.4 / −6.2 / −0.8 / +2.8u | +4.7 / +0.4 / −2.5 / −5.0u |
+
+- With the rule, the Backtest tab's "Every pick, no filter" row gets worse (−141 vs −121 units at 30%). With no model view on those players, that row just takes the best-priced side, which always has a negative edge. It is not a bet the rule would make.
+- **Recommendation:** model off for WR1/2, WR3+ and RB2+; keep it for RB1, TE and QB. Use trust 20-30%, not 60-100%. Do not add the other tuned settings. Re-check when the rest of week 12 is graded. Not published.
