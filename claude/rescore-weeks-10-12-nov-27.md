@@ -180,3 +180,25 @@ python3 -I compare.py <repo> jobs_old.json ev_old.json var_old.json rescore c_w5
 ```
 
 `eval.js` and `variants.js` write `pm_*.js` next to themselves, so run them from a working copy.
+
+## Profit levers, checked with the app's own backtest (added Nov 27)
+
+- **Method:**
+  - Each proposed change was applied to the saved lines, and the published app's `PM.backtest()` was run on them: all player props, best-EV side per player-prop.
+  - Results are shown at sportsbook prices and at pick'em break-evens of 54.25% and 57.74% (the backtest's `be` option, which pays 1/break-even).
+  - Weeks 10-12 (31 games: weeks 10-11 plus 4 week-12 games from nflverse) are the clean test. Weeks 5-9 (56 games) use the app's re-scored lines and are a second look.
+  - Ranges are 90% intervals from resampling games, on the change in positive-edge profit against the current model.
+  - The per-game runs add up exactly to a single full backtest run (367 bets, −48.6 units at 30% trust in weeks 10-12).
+
+| Proposal | Weeks 10-12 (test) | Weeks 5-9 | Verdict |
+|---|---|---|---|
+| Model off for WR1/2, WR3+ and RB2+ (model chance := market), model kept for RB1, TE, QB | Sportsbook prices: +42.0 [+18, +66] at 30%, +47.2 [+18, +76] at 60%, +51.8 [+15, +89] at 100%, +3.0 [−2, +9] at 10%. Pick'em at 54.25%: +25 / +41 / +58 at 30 / 60 / 100%. | +8.0 [−28, +43] at 30%, +12.5 [−34, +58] at 60%, +20.1 [−31, +70] at 100%, −3.2 at 10% | **Supported at trust 30% or more.** Large and clear in the test; positive but not significant in weeks 5-9; not supported at 10%. Still loses at sportsbook prices in weeks 10-12 (−6.6 units at 30%). |
+| Halve the RB2+ receiving-yards zero term | +6.2 [+0.5, +12.1] at 30%, −1.3 at 60%, −1.2 at 100%, 0 at 10% | +9.2 [+2, +16] at 30%, +8.4 at 60%, +14.9 [+4, +26] at 100% | **Modestly supported**, clearest at 30%. |
+| Cap big edges / raise the edge floor | Edge 5+ was the worst bucket per bet (−25% at 30% trust) | Edge 5+ was the best bucket at 30% trust (+10%) | **Not supported either way. Withdrawn.** |
+| Pick'em: choose legs by market chance alone | +29.5 units on 317 legs (59.3% hit) at 54.25%; +15.0 on 153 (63.4%) at 57.74%. vs current at 10% trust: +4.1 (P=0.73). vs current at 30% trust: +18.3 | +65.5 on 528 legs (61.0%); +22.5 on 291 (62.2%). vs current at 10% trust: −11.2 (P=0.17) | **Partly supported.** Profitable on book lines in both periods, and better than the model at 30% trust or more. But not better than the current model at 10% trust. |
+| Pick'em, model off for WR/RB2+, at 30% trust | +36.2 at 54.25% (best of all runs) | +76.6 at 54.25% (best of all runs) | **Best pick'em setting at 54.25% in both periods**; mixed at 57.74%. |
+
+- **Caveats:**
+  - The pick'em results assume the PrizePicks/Pick6 line equals the book line, and they score each leg on its own, not whole slips.
+  - The WR/RB2+ rule came from a weight fit on weeks 5-9, so weeks 5-9 are in-sample for it.
+  - The "market chance above 63% falls off" pattern (from the leg hit-rate table) rests on 41 and 30 legs. It was not tested in the backtest.
